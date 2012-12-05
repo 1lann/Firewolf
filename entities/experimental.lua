@@ -88,7 +88,7 @@ local globalDatabase = rootFolder .. "/database"
 
 api.clearPage = function(site, color, redraw)
 	-- Site titles
-	local titles = {firewolf = "Firewolf", server = "Server Management", 
+	local titles = {firewolf = "Firewolf Homepage", server = "Server Management", 
 		history = "Firewolf History", help = "Help Page", downloads = "Downloads Center", 
 		settings = "Firewolf Settings", credits = "Firewolf Credits", getinfo = "Website Information",
 		nomodem = "No Modem Attached!", crash = "Website Has Crashed!", overspeed = "Too Fast!"}
