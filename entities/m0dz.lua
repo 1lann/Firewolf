@@ -1,6 +1,6 @@
 
 --  
---  Mozilla Firefox Website Browser
+--  Firewolf Website Browser
 --  Made by GravityScore and 1lann
 --
 --  Original Concept From RednetExplorer 2.4.1
@@ -12,8 +12,8 @@
 --  -------- Variables
 
 -- Version
-local version = "2.0"
-local browserAgentTemplate = "Mozilla Firefox " .. version
+local version = "2.1"
+local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 
 -- Server Identification
@@ -55,19 +55,20 @@ local history = {}
 local addressBarHistory = {}
 
 -- Events
-local event_loadWebsite = "firefox_loadWebsiteEvent"
-local event_exitWebsite = "firefox_exitWebsiteEvent"
-local event_exitApp = "firefox_exitAppEvent"
-local event_redirect = "firefox_redirectEvent"
+local event_loadWebsite = "firewolf_loadWebsiteEvent"
+local event_exitWebsite = "firewolf_exitWebsiteEvent"
+local event_exitApp = "firewolf_exitAppEvent"
+local event_redirect = "firewolf_redirectEvent"
 
 -- Download URLs
-local firefoxURL = "http://dl.dropbox.com/u/97263369/firefox/entities/" .. serverID .. ".lua"
-local databaseURL = "http://dl.dropbox.com/u/97263369/firefox/databases/" .. serverID .. "-database.txt"
-local serverURL = "http://dl.dropbox.com/u/97263369/firefox/server/server.lua"
-local availableThemesURL = "http://dl.dropbox.com/u/97263369/firefox/themes/available.txt"
+local firewolfURL = "https://raw.github.com/1lann/firewolf/master/entities/" .. serverID .. ".lua"
+local databaseURL = "https://raw.github.com/1lann/firewolf/master/databases/" .. serverID .. 
+		"-database.txt"
+local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server.lua"
+local availableThemesURL = "https://raw.github.com/1lann/firewolf/master/themes/available.txt"
 
 -- Data Locations
-local rootFolder = "/.Firefox_Data"
+local rootFolder = "/.Firewolf_Data"
 local cacheFolder = rootFolder .. "/cache"
 local serverFolder = rootFolder .. "/servers"
 local themeLocation = rootFolder .. "/theme"
@@ -76,20 +77,20 @@ local availableThemesLocation = rootFolder .. "/available_themes"
 local serverSoftwareLocation = rootFolder .. "/server_software"
 local settingsLocation = rootFolder .. "/settings"
 local historyLocation = rootFolder .. "/history"
-local firefoxLocation = "/" .. shell.getRunningProgram()
+local firewolfLocation = "/" .. shell.getRunningProgram()
 
 local userBlacklist = rootFolder .. "/user_blacklist"
 local userWhitelist = rootFolder .. "/user_whitelist"
 local globalDatabase = rootFolder .. "/database"
 
 
---  -------- Firefox API
+--  -------- Firewolf API
 
 api.clearPage = function(site, color, redraw)
 	-- Site titles
-	local titles = {firefox = "Mozilla Firefox", server = "Server Management", 
-		history = "Firefox History", help = "Help Page", downloads = "Downloads Center", 
-		settings = "Firefox Settings", credits = "Firefox Credits", getinfo = "Website Information",
+	local titles = {firewolf = "Firewolf Homepage", server = "Server Management", 
+		history = "Firewolf History", help = "Help Page", downloads = "Downloads Center", 
+		settings = "Firewolf Settings", credits = "Firewolf Credits", getinfo = "Website Information",
 		nomodem = "No Modem Attached!", crash = "Website Has Crashed!", overspeed = "Too Fast!"}
 	local title = titles[site]
 
@@ -447,17 +448,26 @@ local function download(url, path)
 	return false
 end
 
+local function migrateFilesystem()
+	-- Migrate from old version
+	if fs.exists("/.Firefox_Data") and not(fs.exists(rootFolder)) then
+		fs.move("/.Firefox_Data", rootFolder)
+	else
+		fs.delete("/.Firefox_Data")
+	end
+end
+
 local function resetFilesystem()
 	-- Folders
 	if not(fs.exists(rootFolder)) then fs.makeDir(rootFolder)
-	elseif not(fs.isDir(rootFolder)) then fs.move(rootFolder, "/old-firefox-data-file") end
+	elseif not(fs.isDir(rootFolder)) then fs.move(rootFolder, "/old-wirewolf-data-file") end
 	if not(fs.exists(serverFolder)) then fs.makeDir(serverFolder) end
 	if not(fs.exists(cacheFolder)) then fs.makeDir(cacheFolder) end
 
 	-- Settings
 	if not(fs.exists(settingsLocation)) then
 		local f = io.open(settingsLocation, "w")
-		f:write(textutils.serialize({auto = "true", incog = "false", home = "firefox"}))
+		f:write(textutils.serialize({auto = "true", incog = "false", home = "firewolf"}))
 		f:close()
 	end
 
@@ -507,18 +517,18 @@ local function updateClient()
 	fs.delete(updateLocation)
 
 	-- Update
-	download(firefoxURL, updateLocation)
+	download(firewolfURL, updateLocation)
 	local a = io.open(updateLocation, "r")
-	local b = io.open(firefoxLocation, "r")
+	local b = io.open(firewolfLocation, "r")
 	local new = a:read("*a")
 	local cur = b:read("*a")
 	a:close()
 	b:close()
 
 	if cur ~= new then
-		fs.delete(firefoxLocation)
-		fs.move(updateLocation, firefoxLocation)
-		shell.run(firefoxLocation)
+		fs.delete(firewolfLocation)
+		fs.move(updateLocation, firewolfLocation)
+		shell.run(firewolfLocation)
 		error()
 	else
 		fs.delete(updateLocation)
@@ -750,7 +760,7 @@ end
 local pages = {}
 local errPages = {}
 
-pages.firefox = function(site)
+pages.firewolf = function(site)
 	clearPage(site, colors[curTheme["background"]])
 	print("")
 	term.setTextColor(colors[curTheme["text-color"]])
@@ -759,13 +769,13 @@ pages.firefox = function(site)
 	centerPrint("         _,-='\"-.__               /\\_/\\    ")
 	centerPrint("          -.}        =._,.-==-._.,  @ @._, ")
 	centerPrint("             -.__  __,-.   )       _,.-'   ")
-	centerPrint("  Firefox " .. version .. "     \"     G..m-\"^m m'        ")
+	centerPrint("  Firewolf " .. version .. "    \"     G..m-\"^m m'        ")
 	centerPrint(string.rep(" ", 43))
 
 	term.setBackgroundColor(colors[curTheme["bottom-box"]])
 	term.setCursorPos(1, 10)
 	centerPrint(string.rep(" ", 43))
-	centerPrint("  rdnt://firefox              Home Screen  ")
+	centerPrint("  rdnt://firewolf                Homepage  ")
 	centerPrint("  rdnt://history                  History  ")
 	centerPrint("  rdnt://downloads       Downloads Center  ")
 	centerPrint("  rdnt://server         Server Management  ")
@@ -777,7 +787,7 @@ pages.firefox = function(site)
 	while true do
 		local e, but, x, y = os.pullEvent()
 		if e == "mouse_click" and x >= 7 and x <= 45 then
-			if y == 11 then redirect("firefox") return
+			if y == 11 then redirect("firewolf") return
 			elseif y == 12 then redirect("history") return
 			elseif y == 13 then redirect("downloads") return
 			elseif y == 14 then redirect("server") return
@@ -799,7 +809,7 @@ pages.history = function(site)
 	print("")
 	centerPrint(string.rep(" ", 43))
 	centerWrite(string.rep(" ", 43))
-	centerPrint("Firefox History")
+	centerPrint("Firewolf History")
 	centerPrint(string.rep(" ", 43))
 	print("")
 	term.setBackgroundColor(colors[curTheme["bottom-box"]])
@@ -827,7 +837,7 @@ pages.history = function(site)
 			print("")
 			centerPrint(string.rep(" ", 43))
 			centerWrite(string.rep(" ", 43))
-			centerPrint("Firefox History")
+			centerPrint("Firewolf History")
 			centerPrint(string.rep(" ", 43))
 			print("\n")
 			term.setBackgroundColor(colors[curTheme["bottom-box"]])
@@ -1034,7 +1044,7 @@ pages.server = function(site)
 	print("")
 	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
-	centerPrint("Firefox Server Management")
+	centerPrint("Firewolf Server Management")
 	centerPrint(string.rep(" ", 47))
 	print("")
 
@@ -1210,13 +1220,13 @@ pages.server = function(site)
 				term.setCursorPos(1, 1)
 				print("")
 				print(" Server Shell Editing")
-				print(" Type 'exit' to return to Firefox.")
+				print(" Type 'exit' to return to Firewolf.")
 				print("")
 
 				local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
 					"eject", "exit", "help", "id", "mkdir", "monitor", "rename", "alias", "clear",
-					"paint", "firefox", "lua", "redstone", "rs", "redprobe", "redpulse", "programs",
-					"redset", "reboot", "hello", "label", "list", "ls"}
+					"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", "programs",
+					"redset", "reboot", "hello", "label", "list", "ls", "easter"}
 				
 				while true do
 					shell.setDir(serverFolder .. "/" .. disList[sel])
@@ -1236,7 +1246,7 @@ pages.server = function(site)
 					local com = words[1]
 					if com == "exit" then
 						break
-					elseif com == "firefox" or (com == "easter" and words[2] == "egg") then
+					elseif com == "firewolf" or (com == "easter" and words[2] == "egg") then
 						-- Easter egg
 					elseif com then
 						local a = false
@@ -1296,7 +1306,7 @@ pages.help = function(site)
 	print("\n")
 	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
-	centerPrint("Firefox Help")
+	centerPrint("Firewolf Help")
 	centerPrint(string.rep(" ", 47))
 	print("")
 
@@ -1309,7 +1319,7 @@ pages.help = function(site)
 		pages[1] = {title = "Getting Started - Intoduction", content = {
 			"Hey there!", 
 			"",
-			"Firefox is an app that allows you to create", 
+			"Firewolf is an app that allows you to create", 
 			"and visit websites! Each site has name (the",
 			"URL) which you can type into the address bar",
 			"above, and then visit the site.",
@@ -1321,10 +1331,10 @@ pages.help = function(site)
 			"To view all sites, just open it and hit",
 			"enter (leave the field blank)."
 		}} pages[3] = {title = "Getting Started - Built-In Websites", content = {
-			"Firefox has a set of built-in websites", 
+			"Firewolf has a set of built-in websites", 
 			"available for use:",
 			"",
-			"rdnt://firefox    Normal hompage",
+			"rdnt://firewolf   Normal hompage",
 			"rdnt://history    Your history",
 			"rdnt://downloads  Download themes and plugins",
 			"rdnt://server     Create websites",
@@ -1332,22 +1342,22 @@ pages.help = function(site)
 		}} pages[4] = {title = "Getting Started - Built-In Websites", content = {
 			"More built-in websites:",
 			"",
-			"rdnt://settings   Firefox settings",
-			"rdnt://update     Force update Firefox",
+			"rdnt://settings   Firewolf settings",
+			"rdnt://update     Force update Firewolf",
 			"rdnt://getinfo    Get website info",
 			"rdnt://credits    View the credits",
 			"rdnt://exit       Exit the app"
 		}}
 	elseif opt == "Making a Theme" then
 		pages[1] = {title = "Making a Theme - Introduction", content = {
-			"Firefox themes are files that tell Firefox",
+			"Firewolf themes are files that tell Firewolf",
 			"to color things certain colors.",
 			"Several themes can already be downloaded for",
-			"Firefox from the Download Center.",
+			"Firewolf from the Download Center.",
 			"",
 			"You can also make your own theme, use it in",
-			"your copy of Firefox, and submit it to the",
-			"Firefox Download Center!"
+			"your copy of Firewolf, and submit it to the",
+			"Firewolf Download Center!"
 		}} pages[2] = {title = "Making a Theme - Example", content = {
 			"A theme file consists of several lines of",
 			"text. Here is the default theme file:",
@@ -1372,7 +1382,7 @@ pages.help = function(site)
 			"click on the themes section, and click on",
 			"'Create my Own'.",
 			"",
-			"Enter a theme name, then exit Firefox and",
+			"Enter a theme name, then exit Firewolf and",
 			"edit the newly create file in the root",
 			"folder. Specify the colors for the keys,",
 			"and return to the themes section of the",
@@ -1388,7 +1398,7 @@ pages.help = function(site)
 		}}
 	elseif opt == "API Documentation" then
 		pages[1] = {title = "API Documentation - 1", content = {
-			"The Firefox API is a bunch of global",
+			"The Firewolf API is a bunch of global",
 			"functions that aim to simplify your life when",
 			"designing and coding websites.",
 			"",
@@ -1504,7 +1514,7 @@ pages.settings = function(site)
 		term.setBackgroundColor(colors[curTheme["top-box"]])
 		centerPrint(string.rep(" ", 43))
 		centerWrite(string.rep(" ", 43))
-		centerPrint("Firefox Settings")
+		centerPrint("Firewolf Settings")
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Designed For: " .. serverList[serverID])
 		centerPrint(string.rep(" ", 43))
@@ -1518,8 +1528,7 @@ pages.settings = function(site)
 
 		term.setBackgroundColor(colors[curTheme["bottom-box"]])
 		for i = 1, 9 do centerPrint(string.rep(" ", 43)) end
-		local opt = prompt({{a, 6, 10}, {b, 6, 12}, {c, 6, 14}, {"Reset Firefox", 6, 16}})
-
+		local opt = prompt({{a, 6, 10}, {b, 6, 12}, {c, 6, 14}, {"Reset Firewolf", 6, 16}})
 		if opt == a then
 			if autoupdate == "true" then autoupdate = "false"
 			elseif autoupdate == "false" then autoupdate = "true" end
@@ -1533,14 +1542,14 @@ pages.settings = function(site)
 			local a = read():gsub("^%s*(.-)%s*$", "%1")
 			openAddressBar = true
 			if a ~= "" then homepage = a end
-		elseif opt == "Reset Firefox" then
+		elseif opt == "Reset Firewolf" then
 			clearPage(site, colors[curTheme["background"]])
 			term.setTextColor(colors[curTheme["text-color"]])
 			term.setBackgroundColor(colors[curTheme["top-box"]])
 			print("")
 			centerPrint(string.rep(" ", 43))
 			centerWrite(string.rep(" ", 43))
-			centerPrint("Reset Firefox")
+			centerPrint("Reset Firewolf")
 			centerPrint(string.rep(" ", 43))
 			print("")
 			term.setBackgroundColor(colors[curTheme["bottom-box"]])
@@ -1581,14 +1590,14 @@ pages.settings = function(site)
 			print("")
 			centerPrint(string.rep(" ", 43))
 			centerWrite(string.rep(" ", 43))
-			centerPrint("Reset Firefox")
+			centerPrint("Reset Firewolf")
 			centerPrint(string.rep(" ", 43))
 			print("")
 			term.setCursorPos(1, 10)
 			term.setBackgroundColor(colors[curTheme["bottom-box"]])
 			centerPrint(string.rep(" ", 43))
 			centerWrite(string.rep(" ", 43))
-			centerPrint("Firefox has been reset.")
+			centerPrint("Firewolf has been reset.")
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Click to Exit...")
 			centerPrint(string.rep(" ", 43))
@@ -1615,7 +1624,7 @@ pages.update = function(site)
 	term.setBackgroundColor(colors[curTheme["top-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerWrite(string.rep(" ", 43))
-	centerPrint("Update Firefox")
+	centerPrint("Force Update Firewolf")
 	centerPrint(string.rep(" ", 43))
 
 	print("\n")
@@ -1633,13 +1642,13 @@ pages.update = function(site)
 
 		local updateLocation = rootFolder .. "/update"
 		fs.delete(updateLocation)
-		download(firefoxURL, updateLocation)
+		download(firewolfURL, updateLocation)
 		centerWrite(string.rep(" ", 43))
 		centerWrite("Done! Restarting...")
 		sleep(1.1)
-		fs.delete(firefoxLocation)
-		fs.move(updateLocation, firefoxLocation)
-		shell.run(firefoxLocation)
+		fs.delete(firewolfLocation)
+		fs.move(updateLocation, firewolfLocation)
+		shell.run(firewolfLocation)
 
 		return true
 	elseif opt == "Cancel" then
@@ -1658,7 +1667,7 @@ pages.credits = function(site)
 	term.setBackgroundColor(colors[curTheme["top-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerWrite(string.rep(" ", 43))
-	centerPrint("Firefox Credits")
+	centerPrint("Firewolf Credits")
 	centerPrint(string.rep(" ", 43))
 	print("\n")
 	term.setBackgroundColor(colors[curTheme["bottom-box"]])
@@ -1755,7 +1764,7 @@ pages.kitteh = function(site)
 	centerPrint("            '-._               _.-'            ")
 	centerPrint("                '\"'--.....--'\"'                ")
 	print("")
-	centerPrint("Firefox Kitteh is Not Amused...")
+	centerPrint("Firewolf Kitteh is Not Amused...")
 	sleep(6)
 	os.shutdown()
 end
@@ -1779,8 +1788,9 @@ errPages.overspeed = function()
 	centerPrint(string.rep(" ", 43))
 	centerPrint("  Website browsing sleep limit reached!    ")
 	centerPrint(string.rep(" ", 43))
-	centerPrint("  To prevent Firefox from spamming rednet, ")
-	centerPrint("  Firefox has stopped loading the page.    ")
+	centerPrint("  To prevent Firewolf from spamming        ")
+	centerPrint("  rednet, Firewolf has stopped loading     ")
+	centerPrint("  the page.                                ")
 	centerPrint(string.rep(" ", 43))
 	centerPrint(string.rep(" ", 43))
 	centerPrint(string.rep(" ", 43))
@@ -1857,7 +1867,7 @@ errPages.checkForModem = function()
 			centerWrite(string.rep(" ", 43))
 			centerPrint("No wireless modem was found on this")
 			centerWrite(string.rep(" ", 43))
-			centerPrint("computer, and Firefox is not able to")
+			centerPrint("computer, and Firewolf is not able to")
 			centerWrite(string.rep(" ", 43))
 			centerPrint("run without one!")
 			centerPrint(string.rep(" ", 43))
@@ -2357,37 +2367,38 @@ local function main()
 	term.clear()
 	term.setCursorPos(1, 2)
 	term.setBackgroundColor(colors[curTheme["top-box"]])
-	centerPrint("            _   _                    __ __    ")
-	centerPrint(" --------- / | / |   ____ ____   __ / // /__  ")
-	centerPrint(" -------- /  |/  |  /   //_  /  / // // //  | ")
-	centerPrint(" ------- / /| /| | / / /  / /_ / // // // - | ")
-	centerPrint(" ------ /_/ |/ |_|/___/  /___//_//_//_//_/|_| ")
-	centerPrint(" ----- _____ __ ____   ____ ____ ______  __   ")
-	centerPrint(" ---- / ___// // __ \\ / __// __//   /\\ \\/ /   ")
-	centerPrint(" --- / /__ / // _  / / __// __// / /  >  <    ")
-	centerPrint(" -- / ___//_//_/ \\_\\/___//_/  /___/  /_/\\_\\   ")
-	centerPrint(" - / /                                        ")
-	centerPrint("  /_/    Doing Good is Part of Our Code.      ")
-	centerPrint("                                              ")
+	centerPrint(string.rep(" ", 47))
+	centerPrint("          ______ ____ ____   ______            ")
+	centerPrint(" ------- / ____//  _// __ \\ / ____/            ")
+	centerPrint(" ------ / /_    / / / /_/ // __/               ")
+	centerPrint(" ----- / __/  _/ / / _  _// /___               ")
+	centerPrint(" ---- / /    /___//_/ |_|/_____/               ")
+	centerPrint(" --- / /       _       __ ____   __     ______ ")
+	centerPrint(" -- /_/       | |     / // __ \\ / /    / ____/ ")
+	centerPrint("              | | /| / // / / // /    / /_     ")
+	centerPrint("              | |/ |/ // /_/ // /___ / __/     ")
+	centerPrint("              |__/|__/ \\____//_____//_/        ")
+	centerPrint(string.rep(" ", 47))
 	print("\n")
 	term.setBackgroundColor(colors[curTheme["bottom-box"]])
 
 	-- Download Files
-	centerPrint(string.rep(" ", 46))
-	centerWrite(string.rep(" ", 46))
+	centerPrint(string.rep(" ", 47))
+	centerWrite(string.rep(" ", 47))
 	centerPrint("Downloading Required Files...")
-	centerWrite(string.rep(" ", 46))
+	centerWrite(string.rep(" ", 47))
+	migrateFilesystem()
 	resetFilesystem()
 
 	-- Download Databases
 	local x, y = term.getCursorPos()
 	term.setCursorPos(1, y - 1)
-	centerWrite(string.rep(" ", 46))
+	centerWrite(string.rep(" ", 47))
 	centerWrite("Downloading Databases...")
 	loadDatabases()
 
 	-- Load Settings
-	centerWrite(string.rep(" ", 46))
+	centerWrite(string.rep(" ", 47))
 	centerWrite("Loading Settings...")
 	local f = io.open(settingsLocation, "r")
 	local a = textutils.unserialize(f:read("*l"))
@@ -2402,7 +2413,7 @@ local function main()
 	b:close()
 
 	-- Update
-	centerWrite(string.rep(" ", 46))
+	centerWrite(string.rep(" ", 47))
 	centerWrite("Checking For Updates...")
 	if autoupdate then updateClient() end
 
@@ -2431,7 +2442,7 @@ local function startup()
 
 			term.setBackgroundColor(colors[curTheme["bottom-box"]])
 			api.centerPrint(string.rep(" ", 46))
-			api.centerPrint("  Firefox is unable to run without the HTTP   ")
+			api.centerPrint("  Firewolf is unable to run without the HTTP   ")
 			api.centerPrint("  API Enabled! Please enable it in the CC     ")
 			api.centerPrint("  Config!                                     ")
 			api.centerPrint(string.rep(" ", 46))
@@ -2449,7 +2460,7 @@ local function startup()
 			term.setCursorPos(1, 4)
 			api.centerPrint("HTTP API Not Enabled! D:")
 			print("\n")
-			api.centerPrint("Firefox is unable to run without the HTTP")
+			api.centerPrint("Firewolf is unable to run without the HTTP")
 			api.centerPrint("API Enabled! Please enable it in the CC")
 			api.centerPrint("Config!")
 			print("\n\n")
@@ -2469,15 +2480,15 @@ local function startup()
 		term.setCursorPos(1, 4)
 		api.centerPrint("Advanced Comptuer Required!")
 		print("\n")
-		api.centerPrint("This version of Firefox (" .. version .. ") requires")
-		api.centerPrint("an Advanced Comptuer to run!")
+		api.centerPrint("This version of Firewolf (" .. version .. ")")
+		api.centerPrint("requires an Advanced Comptuer to run!")
 		print("")
-		api.centerPrint("You may download Firefox 1.4.5 to use on")
+		api.centerPrint("You may download Firewolf 1.4.5 to use on")
 		api.centerPrint("this computer...")
 
 		print("\n\n")
 		term.clearLine()
-		api.centerWrite("[Download Firefox 1.4.5]         Exit Firefox ")
+		api.centerWrite("[Download Firewolf 1.4.5]         Exit Firewolf ")
 		local curOpt = 1
 		while true do
 			local _, key = os.pullEvent("key")
@@ -2487,10 +2498,12 @@ local function startup()
 					term.setCursorPos(1, 4)
 					api.centerPrint("Downloading...")
 
-					fs.delete("/firefox-old")
+					local oldDownloadURL = "https://raw.github.com/1lann/firewolf/master/entities/" .. 
+							"old.lua"
+					fs.delete("/firewolf-old")
 					fs.delete("/" .. shell.getRunningProgram())
-					local oldDownloadURL = "http://dl.dropbox.com/u/97263369/firefox/entities/old.lua"
-					download(oldDownloadURL, "/firefox-old")
+					local oldDownloadURL = ""
+					download(oldDownloadURL, "/firewolf-old")
 
 					term.clear()
 					term.setCursorPos(1, 4)
@@ -2505,11 +2518,11 @@ local function startup()
 			elseif key == 203 and curOpt == 2 then
 				curOpt = 1
 				term.clearLine()
-				api.centerWrite("[Download Firefox 1.4.5]         Exit Firefox ")
+				api.centerWrite("[Download Firewolf 1.4.5]         Exit Firewolf ")
 			elseif key == 205 and curOpt == 1 then
 				curOpt = 2
 				term.clearLine()
-				api.centerWrite(" Download Firefox 1.4.5         [Exit Firefox]")
+				api.centerWrite(" Download Firewolf 1.4.5         [Exit Firewolf]")
 			end
 		end
 
@@ -2522,10 +2535,10 @@ local function startup()
 		term.setCursorPos(1, 4)
 		api.centerPrint("Advanced Comptuer Required!")
 		print("\n")
-		api.centerPrint("This version of Firefox (" .. version .. ") requires")
-		api.centerPrint("an Advanced Comptuer to run!")
+		api.centerPrint("This version of Firewolf (" .. version .. ")")
+		api.centerPrint("requires an Advanced Comptuer to run!")
 		print("")
-		api.centerPrint("Turtles may not be used to run Firefox! :(")
+		api.centerPrint("Turtles may not be used to run Firewolf! :(")
 		api.centerPrint("Press any key to exit...")
 
 		os.pullEvent("key")
@@ -2542,13 +2555,13 @@ local function startup()
 		term.setBackgroundColor(colors[curTheme["top-box"]])
 		api.centerPrint(string.rep(" ", 46))
 		api.centerWrite(string.rep(" ", 46))
-		api.centerPrint("Firefox has Crashed! D:")
+		api.centerPrint("Firewolf has Crashed! D:")
 		api.centerPrint(string.rep(" ", 46))
 		print("")
 
 		term.setBackgroundColor(colors[curTheme["bottom-box"]])
 		api.centerPrint(string.rep(" ", 46))
-		api.centerPrint("  Firefox has encountered a critical error:   ")
+		api.centerPrint("  Firewolf has encountered a critical error:   ")
 		api.centerPrint(string.rep(" ", 46))
 		term.setBackgroundColor(colors[curTheme["background"]])
 		print("")
@@ -2589,7 +2602,7 @@ end
 term.setCursorBlink(false)
 term.clear()
 term.setCursorPos(1, 1)
-api.centerPrint("Thank You for Using Mozilla Firefox " .. version)
+api.centerPrint("Thank You for Using Firewolf " .. version)
 api.centerPrint("Made by 1lann and GravityScore")
 term.setCursorPos(1, 3)
 

@@ -37,9 +37,10 @@ local debugging = false
 local override = false
 
 -- Dropbox URLs
-local firefoxURL = "http://dl.dropbox.com/u/97263369/firefox/entities/" .. serverID .. ".lua"
-local databaseURL = "http://dl.dropbox.com/u/97263369/firefox/databases/" .. serverID .. "-database.txt"
-local serverURL = "http://dl.dropbox.com/u/97263369/firefox/firefox-server.lua"
+local firefoxURL = "https://raw.github.com/1lann/firewolf/master/entities/" .. serverID .. ".lua"
+local databaseURL = 
+		"https://raw.github.com/1lann/firewolf/master/databases/" .. serverID .. "-database.txt"
+local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-old.lua"
 
 -- Events
 local openURLBarEvent = "firefox_open_url_bar_event"
