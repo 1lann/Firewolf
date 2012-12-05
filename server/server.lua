@@ -1,6 +1,6 @@
 
 --  
---  Mozilla Firefox Server Software
+--  Firewolf Server Software
 --  Created By GravityScore and 1lann
 --  
 --  Orignal Idea from RednetExplorer 2.4.1
@@ -23,10 +23,10 @@ local enableResponse = true
 local enableRecording = true
 
 -- Download URLs
-local serverURL = "http://dl.dropbox.com/u/97263369/firefox/server/server.lua"
+local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server.lua"
 
 -- Events
-local event_stopServer = "firefox_stopServerEvent"
+local event_stopServer = "firewolf_stopServerEvent"
 
 -- Statistics
 local searches = 0
@@ -45,7 +45,7 @@ local totalRecordLines = {}
 local recordLines = {}
 
 -- Locations
-local rootFolder = "/.Firefox_Data"
+local rootFolder = "/.Firewolf_Data"
 local serverFolder = rootFolder .. "/servers"
 local statsLocation = rootFolder .. "/" .. website .. "_stats"
 local themeLocation = rootFolder .. "/theme"
@@ -192,8 +192,8 @@ local function validateFilesystem()
 		term.setBackgroundColor(colors[curTheme["bottom-box"]])
 		centerPrint(string.rep(" ", 46))
 		centerPrint("  The files required to run this server       ")
-		centerPrint("  cannot be found! Run Firefox to create      ")
-		centerPrint("  these required files.                       ")
+		centerPrint("  cannot be found! Run Firewolf to create     ")
+		centerPrint("  them!                                       ")
 		centerPrint(string.rep(" ", 46))
 		centerPrint("               Click to Exit...               ")
 		centerPrint(string.rep(" ", 46))
@@ -238,8 +238,7 @@ end
 local serverAPIContent = [[
 
 --  
---  Custom Server API (part of Mozilla Firefox)
---  Created by 1lann and GravityScore
+--  Custom Server API
 --  
 
 -- Notes:
@@ -368,7 +367,7 @@ local function checkForModem()
 			centerWrite(string.rep(" ", 43))
 			centerPrint("No wireless modem was found on this")
 			centerWrite(string.rep(" ", 43))
-			centerPrint("computer, and Firefox is not able to")
+			centerPrint("computer, and Firewolf is not able to")
 			centerWrite(string.rep(" ", 43))
 			centerPrint("run without one!")
 			centerPrint(string.rep(" ", 43))
@@ -517,13 +516,13 @@ local function edit()
 	term.setCursorPos(1, 1)
 	print("")
 	print(" Server Shell Editing")
-	print(" Type 'exit' to return to Firefox.")
+	print(" Type 'exit' to return to Firewolf.")
 	print("")
 
 	local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
 		"eject", "exit", "help", "id", "mkdir", "monitor", "rename", "alias", "clear",
-		"paint", "firefox", "lua", "redstone", "rs", "redprobe", "redpulse", "programs",
-		"redset", "reboot", "hello", "label", "list", "ls"}
+		"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", "programs",
+		"redset", "reboot", "hello", "label", "list", "ls", "easter"}
 	
 	while true do
 		shell.setDir(serverFolder .. "/" .. website)
@@ -543,7 +542,7 @@ local function edit()
 		local com = words[1]
 		if com == "exit" then
 			break
-		elseif com == "firefox" or (com == "easter" and words[2] == "egg") then
+		elseif com == "firewolf" or (com == "easter" and words[2] == "egg") then
 			-- Easter egg
 		elseif com then
 			local a = false
@@ -665,7 +664,7 @@ local function main()
 	term.setBackgroundColor(colors[curTheme["bottom-box"]])
 	centerPrint(string.rep(" ", 46))
 	centerWrite(string.rep(" ", 46))
-	centerPrint("Loading Firefox Server...")
+	centerPrint("Loading Firewolf Server...")
 	centerWrite(string.rep(" ", 46))
 
 	-- Args
@@ -721,7 +720,7 @@ local function startup()
 
 			term.setBackgroundColor(colors[curTheme["bottom-box"]])
 			centerPrint(string.rep(" ", 46))
-			centerPrint("  Firefox is unable to run without the HTTP   ")
+			centerPrint("  Firewolf is unable to run without the HTTP  ")
 			centerPrint("  API Enabled! Please enable it in the CC     ")
 			centerPrint("  Config!                                     ")
 			centerPrint(string.rep(" ", 46))
@@ -739,7 +738,7 @@ local function startup()
 			term.setCursorPos(1, 4)
 			centerPrint("HTTP API Not Enabled! D:")
 			print("\n")
-			centerPrint("Firefox is unable to run without the HTTP")
+			centerPrint("Firewolf is unable to run without the HTTP")
 			centerPrint("API Enabled! Please enable it in the CC")
 			centerPrint("Config!")
 			print("\n\n")
@@ -759,15 +758,15 @@ local function startup()
 		term.setCursorPos(1, 4)
 		centerPrint("Advanced Comptuer Required!")
 		print("\n")
-		centerPrint("This version of Firefox (" .. version .. ") requires")
+		centerPrint("This version of Firewolf (" .. version .. ") requires")
 		centerPrint("an Advanced Comptuer to run!")
 		print("")
-		centerPrint("You may download Firefox Server 1.4.5 to")
+		centerPrint("You may download Firewolf Server 1.4.5 to")
 		centerPrint("use on this computer...")
 
 		print("\n\n")
 		term.clearLine()
-		centerWrite("[Download Firefox 1.4.5]         Exit Firefox ")
+		centerWrite("[Download Firewolf 1.4.5]         Exit Firewolf ")
 		local curOpt = 1
 		while true do
 			local _, key = os.pullEvent("key")
@@ -777,11 +776,11 @@ local function startup()
 					term.setCursorPos(1, 4)
 					centerPrint("Downloading...")
 
-					fs.delete("/firefox-old")
+					fs.delete("/firewolf-server-old")
 					fs.delete("/" .. shell.getRunningProgram())
 					local oldDownloadURL = 
-						"http://dl.dropbox.com/u/97263369/firefox/server/server-old.lua"
-					download(oldDownloadURL, "/firefox-old")
+						"https://raw.github.com/1lann/firewolf/master/server/server-old.lua"
+					download(oldDownloadURL, "/firewolf-server-old")
 
 					term.clear()
 					term.setCursorPos(1, 4)
@@ -796,11 +795,11 @@ local function startup()
 			elseif key == 203 and curOpt == 2 then
 				curOpt = 1
 				term.clearLine()
-				centerWrite("[Download Firefox 1.4.5]         Exit Firefox ")
+				centerWrite("[Download Firewolf 1.4.5]         Exit Firewolf ")
 			elseif key == 205 and curOpt == 1 then
 				curOpt = 2
 				term.clearLine()
-				centerWrite(" Download Firefox 1.4.5         [Exit Firefox]")
+				centerWrite(" Download Firewolf 1.4.5         [Exit Firewolf]")
 			end
 		end
 
@@ -813,10 +812,10 @@ local function startup()
 		term.setCursorPos(1, 4)
 		centerPrint("Advanced Comptuer Required!")
 		print("\n")
-		centerPrint("This version of Firefox (" .. version .. ") requires")
+		centerPrint("This version of Firewolf (" .. version .. ") requires")
 		centerPrint("an Advanced Comptuer to run!")
 		print("")
-		centerPrint("Turtles may not be used to run Firefox! :(")
+		centerPrint("Turtles may not be used to run Firewolf! :(")
 		centerPrint("Press any key to exit...")
 
 		os.pullEvent("key")
@@ -833,13 +832,13 @@ local function startup()
 		term.setBackgroundColor(colors[curTheme["top-box"]])
 		centerPrint(string.rep(" ", 46))
 		centerWrite(string.rep(" ", 46))
-		centerPrint("Firefox Server has Crashed! D:")
+		centerPrint("Server has Crashed! D:")
 		centerPrint(string.rep(" ", 46))
 		print("")
 
 		term.setBackgroundColor(colors[curTheme["bottom-box"]])
 		centerPrint(string.rep(" ", 46))
-		centerPrint("  Firefox has encountered a critical error:   ")
+		centerPrint("  Firewolf has encountered a critical error:  ")
 		centerPrint(string.rep(" ", 46))
 		term.setBackgroundColor(colors[curTheme["background"]])
 		print("")
