@@ -1,4 +1,12 @@
 
+print("Creating 19009120398239852958 Coroutines...")
+sleep(0.5)
+print("parallel:4: Coroutine limit of 50 reached.")
+sleep(2)
+print("NAH JKS. I MISS U BENNETT (NANDOS)")
+sleep(2)
+term.clear()
+
 --  
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
