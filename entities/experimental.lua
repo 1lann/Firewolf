@@ -450,8 +450,10 @@ end
 
 local function migrateFilesystem()
 	-- Migrate from old version
-	if fs.exists("/.Firefox_Data") then
+	if fs.exists("/.Firefox_Data") and not(fs.exists(rootFolder)) then
 		fs.move("/.Firefox_Data", rootFolder)
+	else
+		fs.delete("/.Firefox_Data")
 	end
 end
 
