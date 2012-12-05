@@ -1,0 +1,7 @@
+print("")
+centerPrint("Hai")
+while true do
+  local e, key = os.pullEvent("char")
+  if key == "p" then error("P'd Out!") end
+  print(e, key)
+end

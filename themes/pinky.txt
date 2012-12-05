@@ -1,0 +1,6 @@
+address-bar-text=white
+address-bar-background=pink
+top-box=purple
+bottom-box=magenta
+background=pink
+text-color=white

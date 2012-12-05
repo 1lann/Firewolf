@@ -1,0 +1,48 @@
+START-BLACKLIST
+
+START-WHITELIST
+
+START-DOWNLOADS
+
+START-DEFINITIONS
+os.pullEvent=| |Modify Events
+functionos.pullEvent(| |Modify Events
+os["pullEvent"]=| |Modify Events
+shell=| |Modify APIs
+fs=| |Modify APIs
+io=| |Modify APIs
+os=| |Modify APIs
+browserAgent=| |Modify Environment
+shell.| |Run Files
+fs.| |Modify Files
+io.| |Modify Files
+os.run| |Run Files
+io[| |Modify Files
+fs[| |Modify Files
+fs)| |Modify Files
+io)| |Modify Files
+os)| |Run Files
+fs--| |Modify Files
+io--| |Modify Files
+os--| |Run Files
+fsor| |Modify Files
+fs,| |Modify Files
+io,| |Modify Files
+ioor| |Modify Files
+osor| |Run Files
+shell[| |Run Files
+os["run| |Run Files
+loadstring| |Run Files
+loadfile| |Run Files
+dofile| |Run Files
+assert| |Exit Firefox
+getfenv| |Modify Environment
+setfenv| |Modify Environment
+_g| |Modify Environment
+_G| |Modify Environment
+.write| |Write to Files
+.read| |Read from Files
+:write| |Write to Files
+:read| |Read from Files
+.open| |Modify Files
+END-DATABASE

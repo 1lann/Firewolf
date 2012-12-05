@@ -1,0 +1,8 @@
+http://dl.dropbox.com/u/97263369/firefox/themes/default.txt| |Fire (default) 
+http://dl.dropbox.com/u/97263369/firefox/themes/original.txt| |Original 
+http://dl.dropbox.com/u/97263369/firefox/themes/carbon.txt| |Carbon 
+http://dl.dropbox.com/u/97263369/firefox/themes/ice.txt| |Ice 
+http://dl.dropbox.com/u/97263369/firefox/themes/ocean.txt| |Ocean 
+http://dl.dropbox.com/u/97263369/firefox/themes/forest.txt| |Forest 
+http://dl.dropbox.com/u/97263369/firefox/themes/pinky.txt| |Pinky
+http://dl.dropbox.com/u/97263369/firefox/themes/sunrise.txt| |Sunrise

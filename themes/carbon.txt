@@ -1,0 +1,6 @@
+address-bar-text=white
+address-bar-background=black
+top-box=lightGray
+bottom-box=gray
+background=black
+text-color=white
