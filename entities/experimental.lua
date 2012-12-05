@@ -460,7 +460,7 @@ end
 local function resetFilesystem()
 	-- Folders
 	if not(fs.exists(rootFolder)) then fs.makeDir(rootFolder)
-	elseif not(fs.isDir(rootFolder)) then fs.move(rootFolder, "/old-wirewolf-data-file") end
+	elseif not(fs.isDir(rootFolder)) then fs.move(rootFolder, "/old-firewolf-data-file") end
 	if not(fs.exists(serverFolder)) then fs.makeDir(serverFolder) end
 	if not(fs.exists(cacheFolder)) then fs.makeDir(cacheFolder) end
 
