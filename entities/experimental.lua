@@ -449,7 +449,10 @@ local function download(url, path)
 end
 
 local function migrateFilesystem()
-
+	-- Migrate from old version
+	if fs.exists("/.Firefox_Data") then
+		fs.move("/.Firefox_Data", rootFolder)
+	end
 end
 
 local function resetFilesystem()
@@ -2382,6 +2385,7 @@ local function main()
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Downloading Required Files...")
 	centerWrite(string.rep(" ", 47))
+	migrateFilesystem()
 	resetFilesystem()
 
 	-- Download Databases
