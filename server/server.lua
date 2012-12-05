@@ -12,7 +12,7 @@
 --  -------- Variables
 
 -- Version
-local version = "2.0"
+local version = "2.1"
 
 -- Updating
 local autoupdate = true
