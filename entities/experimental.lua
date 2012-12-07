@@ -2498,8 +2498,7 @@ local function startup()
 					term.setCursorPos(1, 4)
 					api.centerPrint("Downloading...")
 
-					local oldDownloadURL = "https://raw.github.com/1lann/firewolf/master/entities/" .. 
-							"old.lua"
+					local oldDownloadURL = "http://raw.github.com/1lann/firewolf/master/entities/old.lua"
 					fs.delete("/firewolf-old")
 					fs.delete("/" .. shell.getRunningProgram())
 					local oldDownloadURL = ""
