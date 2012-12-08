@@ -287,7 +287,7 @@ local function loadTheme(path)
 			l = l:gsub("^%s*(.-)%s*$", "%1")
 			if l ~= "" and l ~= nil and l ~= "\n" then
 				local b = l:find("=")
-				if a then
+				if a and b then
 					local c = l:sub(1, b - 1)
 					local d = l:sub(b + 1, -1)
 					if c == "" or d == "" then return nil
