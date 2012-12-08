@@ -127,6 +127,64 @@ local function prompt(list)
 	end
 end
 
+local function scrollingPrompt(list, x, y, len, width)
+	local wid = width
+	if wid == nil then wid = w - 3 end
+
+	local function draw(a)
+		for i, v in ipairs(a) do
+			term.setCursorPos(1, y + i - 1)
+			api.centerWrite(string.rep(" ", wid + 2))
+			term.setCursorPos(x, y + i - 1)
+			write("[ " .. v)
+			term.setCursorPos(wid + x - 2, y + i - 1)
+			write("  ]")
+		end
+		term.setCursorPos(wid + x - 2, y)
+		write("  ]")
+	end
+
+	local function updateDisplayList(items, loc, len)
+		local ret = {}
+		for i = 1, len do
+			local item = items[i + loc - 1]
+			if item ~= nil then table.insert(ret, item) end
+		end
+		return ret
+	end
+
+	local loc = 1
+	local disList = updateDisplayList(list, loc, len)
+	draw(disList)
+	
+	while true do
+		local e, but, clx, cly = os.pullEvent()
+		if e == "key" and but == 200 and loc > 1 then
+			loc = loc - 1
+			disList = updateDisplayList(list, loc, len)
+			draw(disList)
+		elseif e == "key" and but == 208 and loc + len - 1 < #list then
+			loc = loc + 1
+			disList = updateDisplayList(list, loc, len)
+			draw(disList)
+		elseif e == "mouse_scroll" and but > 0 and loc + len - 1 < #list then
+			loc = loc + but
+			disList = updateDisplayList(list, loc, len)
+			draw(disList)
+		elseif e == "mouse_scroll" and but < 0 and loc > 1 then
+			loc = loc + but
+			disList = updateDisplayList(list, loc, len)
+			draw(disList)
+		elseif e == "mouse_click" then
+			for i, v in ipairs(disList) do
+				if clx >= x and clx <= x + wid and cly == i + y - 1 then
+					return v
+				end
+			end
+		end
+	end
+end
+
 
 --  -------- Themes
 
@@ -589,7 +647,8 @@ local function interface()
 		local p1 = "Pause Server"
 		if enableResponse == false then p1 = "Unpause Server" end
 		term.setBackgroundColor(colors[theme["top-box"]])
-		local opt = prompt({{p1, 5, 4}, {"Stats", w - 14, 4}, {"Edit", 5, 5}, {"Stop", w - 13, 5}})
+		local opt = prompt({{p1, 5, 4}, {"Manage", w - 15, 4}, {"Edit", 5, 5}, 
+			{"Stop", w - 13, 5}})
 		if opt == p1 then
 			-- Pause/unpause server
 			enableResponse = not(enableResponse)
@@ -611,34 +670,54 @@ local function interface()
 				local opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
 					{"Back", 9, 15}})
 				if opt == "Manage Blocked IDs" then
-					
+					while true do
+						clearPage()
+						term.setCursorPos(1, 8)
+						term.setTextColor(colors[theme["text-color"]])
+						term.setBackgroundColor(colors[theme["bottom-box"]])
+						for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+
+						term.setCursorPos(5, 9)
+						write("Blocked IDs: (Click to Unblock)")
+						local a = {"Back", "Block New ID"}
+						for _, v in pairs(permantentIgnoreDatabase) do
+							table.insert(a, v)
+						end
+
+						local b = scrollingPrompt(a, 5, 11, 7, 45)
+						if b == "Back" then
+							break
+						elseif b == "Block New ID" then
+							term.setCursorPos(5, 10)
+							write("ID: ")
+							local c = read():gsub("^%s*(.-)%s*$", "%1")
+							local d = -1
+							local err = pcall(function() d = tonumber(c) end)
+							if err or d < 0 then
+								term.setCursorPos(1, 10)
+								centerWrite(string.rep(" ", 47))
+								term.setCursorPos(5, 10)
+								write("Not a Valid ID!")
+								sleep(1.1)
+							else
+								term.setCursorPos(1, 10)
+								centerWrite(string.rep(" ", 47))
+								term.setCursorPos(5, 10)
+								write("Blocked ID: " .. c .. "!")
+								table.insert(permantentIgnoreDatabase, tostring(d))
+								sleep(1.1)
+							end
+						else
+							for i, v in ipairs(permantentIgnoreDatabase) do
+								if v == tostring(d) then table.remove(permantentIgnoreDatabase, i) end
+							end
+						end
+					end
 				elseif opt == "Delete Server" then
 					fs.delete(dataLocation)
 					os.queueEvent(event_stopServer)
 					return
 				elseif opt == "Back" then
-					break
-				end
-			end
-			
-			enableRecording = true
-		elseif opt == "Stats" then
-			-- View stats
-			enableRecording = false
-			clearPage()
-			term.setCursorPos(1, 8)
-			term.setTextColor(colors[theme["text-color"]])
-			term.setBackgroundColor(colors[theme["bottom-box"]])
-			for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
-
-			term.setCursorPos(5, 9)
-			write("Visits: " .. tostring(visits))
-			term.setCursorPos(5, 10)
-			write("Searches: " .. tostring(searches))
-
-			while true do
-				local opt = prompt({{"Back", 9, 12}})
-				if opt == "Back" then
 					break
 				end
 			end
@@ -684,24 +763,24 @@ local function main()
 	term.clear()
 	term.setCursorPos(1, 2)
 	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint("            _   _                    __ __    ")
-	centerPrint(" --------- / | / |   ____ ____   __ / // /__  ")
-	centerPrint(" -------- /  |/  |  /   //_  /  / // // //  | ")
-	centerPrint(" ------- / /| /| | / / /  / /_ / // // // - | ")
-	centerPrint(" ------ /_/ |/ |_|/___/  /___//_//_//_//_/|_| ")
-	centerPrint(" ----- _____ __ ____   ____ ____ ______  __   ")
-	centerPrint(" ---- / ___// // __ \\ / __// __//   /\\ \\/ /   ")
-	centerPrint(" --- / /__ / // _  / / __// __// / /  >  <    ")
-	centerPrint(" -- / ___//_//_/ \\_\\/___//_/  /___/  /_/\\_\\   ")
-	centerPrint(" - / /                                        ")
-	centerPrint("  /_/    Doing Good is Part of Our Code.      ")
-	centerPrint("                                              ")
+	centerPrint(string.rep(" ", 47))
+	centerPrint("          ______ ____ ____   ______            ")
+	centerPrint(" ------- / ____//  _// __ \\ / ____/            ")
+	centerPrint(" ------ / /_    / / / /_/ // __/               ")
+	centerPrint(" ----- / __/  _/ / / _  _// /___               ")
+	centerPrint(" ---- / /    /___//_/ |_|/_____/               ")
+	centerPrint(" --- / /       _       __ ____   __     ______ ")
+	centerPrint(" -- /_/       | |     / // __ \\ / /    / ____/ ")
+	centerPrint("              | | /| / // / / // /    / /_     ")
+	centerPrint("              | |/ |/ // /_/ // /___ / __/     ")
+	centerPrint("              |__/|__/ \\____//_____//_/        ")
+	centerPrint(string.rep(" ", 47))
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 46))
-	centerWrite(string.rep(" ", 46))
+	centerPrint(string.rep(" ", 47))
+	centerWrite(string.rep(" ", 47))
 	centerPrint("Loading Firewolf Server...")
-	centerWrite(string.rep(" ", 46))
+	centerWrite(string.rep(" ", 47))
 
 	-- Args
 	if #args >= 2 then
