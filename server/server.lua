@@ -650,23 +650,21 @@ local function interface()
 		local opt = prompt({{p1, 5, 4}, {"Manage", w - 15, 4}, {"Edit", 5, 5}, 
 			{"Stop", w - 13, 5}})
 		if opt == p1 then
-			-- Pause/unpause server
 			enableResponse = not(enableResponse)
 		elseif opt == "Manage" then
-			-- View stats
-			enableRecording = false
-			clearPage()
-			term.setCursorPos(1, 8)
-			term.setTextColor(colors[theme["text-color"]])
-			term.setBackgroundColor(colors[theme["bottom-box"]])
-			for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
-
-			term.setCursorPos(5, 9)
-			write("Visits: " .. tostring(visits))
-			term.setCursorPos(5, 10)
-			write("Searches: " .. tostring(searches))
-
 			while true do
+				enableRecording = false
+				clearPage()
+				term.setCursorPos(1, 8)
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["bottom-box"]])
+				for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+
+				term.setCursorPos(5, 9)
+				write("Visits: " .. tostring(visits))
+				term.setCursorPos(5, 10)
+				write("Searches: " .. tostring(searches))
+
 				local opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
 					{"Back", 9, 15}})
 				if opt == "Manage Blocked IDs" then
@@ -684,7 +682,7 @@ local function interface()
 							table.insert(a, v)
 						end
 
-						local b = scrollingPrompt(a, 5, 11, 7, 45)
+						local b = scrollingPrompt(a, 5, 11, 7, 43)
 						if b == "Back" then
 							break
 						elseif b == "Block New ID" then
