@@ -33,7 +33,12 @@ local searches = 0
 local visits = 0
 
 -- Theme
-local curTheme = {}
+local theme = {}
+
+-- Databases
+local ignoreDatabase = {}
+local permantentIgnoreDatabase = {}
+local suspected = {}
 
 -- Server
 local w, h = term.getSize()
@@ -74,16 +79,16 @@ local function clearPage(r)
 	title = "Hosting: rdnt://" .. website
 
 	-- Address Bar
-	term.setTextColor(colors[curTheme["address-bar-text"]])
+	term.setTextColor(colors[theme["address-bar-text"]])
 	term.setCursorPos(2, 1)
-	term.setBackgroundColor(colors[curTheme["address-bar-background"]])
+	term.setBackgroundColor(colors[theme["address-bar-background"]])
 	term.clearLine()
 	term.setCursorPos(2, 1)
 	if title:len() > 42 then title = title:sub(1, 39) .. "..." end
 	write(title)
 
 	-- Records
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 	for i = 1, 11 do
 		term.setCursorPos(1, i + 7) 
 		centerWrite(string.rep(" ", 47)) 
@@ -176,20 +181,20 @@ end
 local function validateFilesystem()
 	if not(fs.exists(rootFolder)) or not(fs.exists(serverFolder)) or not(fs.exists(dataLocation)) or
 			not(fs.exists(serverSoftwareLocation)) or not(fs.exists(dataLocation .. "/home")) then
-		term.setBackgroundColor(colors[curTheme["background"]])
-		term.setTextColor(colors[curTheme["text-color"]])
+		term.setBackgroundColor(colors[theme["background"]])
+		term.setTextColor(colors[theme["text-color"]])
 		term.clear()
 		term.setCursorPos(1, 1)
 		print("")
-		term.setTextColor(colors[curTheme["text-color"]])
-		term.setBackgroundColor(colors[curTheme["top-box"]])
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
 		centerPrint(string.rep(" ", 46))
 		centerWrite(string.rep(" ", 46))
 		centerPrint("Invalid Filesystem!")
 		centerPrint(string.rep(" ", 46))
 		print("")
 
-		term.setBackgroundColor(colors[curTheme["bottom-box"]])
+		term.setBackgroundColor(colors[theme["bottom-box"]])
 		centerPrint(string.rep(" ", 46))
 		centerPrint("  The files required to run this server       ")
 		centerPrint("  cannot be found! Run Firewolf to create     ")
@@ -349,20 +354,20 @@ local function checkForModem()
 		end
 
 		if not(present) then
-			term.setTextColor(colors[curTheme["text-color"]])
-			term.setBackgroundColor(colors[curTheme["background"]])
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["background"]])
 			term.clear()
 			term.setCursorPos(1, 2)
 			print("")
-			term.setTextColor(colors[curTheme["text-color"]])
-			term.setBackgroundColor(colors[curTheme["top-box"]])
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
 			centerPrint(string.rep(" ", 43))
 			centerWrite(string.rep(" ", 43))
 			centerPrint("No Modem Attached! D:")
 			centerPrint(string.rep(" ", 43))
 			print("")
 
-			term.setBackgroundColor(colors[curTheme["bottom-box"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
 			centerPrint(string.rep(" ", 43))
 			centerWrite(string.rep(" ", 43))
 			centerPrint("No wireless modem was found on this")
@@ -414,9 +419,6 @@ local function respondToEvents()
 		if parallelWithServer == nil then record(" - parallelWithServer()") end
 	else record("Loaded Server API") end
 
-	local ignoreDatabase = {}
-	local suspected = {}
-
 	-- Event Loop
 	local writingClock = os.clock()
 	local ignoreClock = os.clock()
@@ -438,6 +440,8 @@ local function respondToEvents()
 		-- Ignore ID
 		local ignore = false
 		for _, v in pairs(ignoreDatabase) do
+			if tostring(id) == v then ignore = true break end
+		end for _, v in pairs(permantentIgnoreDatabase) do
 			if tostring(id) == v then ignore = true break end
 		end
 
@@ -494,7 +498,8 @@ local function respondToEvents()
 		-- Save stats
 		if os.clock() - writingClock > 5 then
 			local f = io.open(statsLocation, "w")
-			f:write(tostring(visits) .. "\n" .. tostring(searches))
+			f:write(tostring(visits) .. "\n" .. tostring(searches) .. "\n" ..
+				textutils.serialize(permantentIgnoreDatabase))
 			f:close()
 			writingClock = os.clock()
 		end
@@ -565,48 +570,55 @@ end
 local function interface()
 	-- Start interface
 	while true do
-		term.setBackgroundColor(colors[curTheme["background"]])
-		term.setTextColor(colors[curTheme["text-color"]])
+		term.setBackgroundColor(colors[theme["background"]])
+		term.setTextColor(colors[theme["text-color"]])
 		term.clear()
 		term.setCursorPos(1, 1)
 		clearPage(true)
 		term.setCursorPos(1, 2)
 		print("")
-		term.setTextColor(colors[curTheme["text-color"]])
-		term.setBackgroundColor(colors[curTheme["top-box"]])
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
 		centerPrint(string.rep(" ", 47))
 		centerPrint(string.rep(" ", 47))
 		centerPrint(string.rep(" ", 47))
 		centerPrint(string.rep(" ", 47))
 		print("")
-		term.setBackgroundColor(colors[curTheme["bottom-box"]])
+		term.setBackgroundColor(colors[theme["bottom-box"]])
 
 		local p1 = "Pause Server"
 		if enableResponse == false then p1 = "Unpause Server" end
-		term.setBackgroundColor(colors[curTheme["top-box"]])
-		local opt = prompt({{p1, 5, 4}, {"View Stats", w - 19, 4}, {"Edit", 5, 5}, {"Stop", w - 13, 5}})
+		term.setBackgroundColor(colors[theme["top-box"]])
+		local opt = prompt({{p1, 5, 4}, {"Manage", w - 19, 4}, {"Edit", 5, 5}, {"Stop", w - 13, 5}})
 		if opt == p1 then
 			-- Pause/unpause server
 			enableResponse = not(enableResponse)
-		elseif opt == "View Stats" then
+		elseif opt == "Manage" then
 			-- View stats
 			enableRecording = false
 			clearPage()
 			term.setCursorPos(1, 8)
-			term.setTextColor(colors[curTheme["text-color"]])
-			term.setBackgroundColor(colors[curTheme["bottom-box"]])
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
 			for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
 
 			term.setCursorPos(5, 9)
-			write("Visits:")
-			term.setCursorPos(8, 10)
-			write(visits)
-			term.setCursorPos(5, 12)
-			write("Searches:")
-			term.setCursorPos(8, 13)
-			write(searches)
+			write("Visits: " .. tostring(visits))
+			term.setCursorPos(5, 10)
+			write("Searches: " .. tostring(searches))
 
-			prompt({{"Back", -1, 15}})
+			while true do
+				local opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
+					{"Back", 9, 15}})
+				if opt == "Manage Blocked IDs" then
+
+				elseif opt == "Delete Server" then
+
+				elseif opt == "Back" then
+					break
+				end
+			end
+			
 			enableRecording = true
 		elseif opt == "Edit" then
 			-- Edit server pages
@@ -643,11 +655,11 @@ end
 
 local function main()
 	-- Logo
-	term.setBackgroundColor(colors[curTheme["background"]])
-	term.setTextColor(colors[curTheme["text-color"]])
+	term.setBackgroundColor(colors[theme["background"]])
+	term.setTextColor(colors[theme["text-color"]])
 	term.clear()
 	term.setCursorPos(1, 2)
-	term.setBackgroundColor(colors[curTheme["top-box"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint("            _   _                    __ __    ")
 	centerPrint(" --------- / | / |   ____ ____   __ / // /__  ")
 	centerPrint(" -------- /  |/  |  /   //_  /  / // // //  | ")
@@ -661,7 +673,7 @@ local function main()
 	centerPrint("  /_/    Doing Good is Part of Our Code.      ")
 	centerPrint("                                              ")
 	print("\n")
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 46))
 	centerWrite(string.rep(" ", 46))
 	centerPrint("Loading Firewolf Server...")
@@ -693,8 +705,10 @@ local function main()
 		local f = io.open(statsLocation, "r")
 		local a = tonumber(f:read("*l"))
 		local b = tonumber(f:read("*l"))
+		local c = textutils.unserialize(f:read("*l"))
 		if a then visits = a end
 		if b then searches = b end
+		if c then permantentIgnoreDatabase = c end
 		f:close()
 	end
 	if not(checkForModem()) then return end
@@ -707,18 +721,18 @@ local function startup()
 	-- HTTP API
 	if not(http) then
 		if term.isColor() then
-			term.setTextColor(colors[curTheme["text-color"]])
-			term.setBackgroundColor(colors[curTheme["background"]])
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["background"]])
 			term.clear()
 			term.setCursorPos(1, 2)
-			term.setBackgroundColor(colors[curTheme["top-box"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
 			centerPrint(string.rep(" ", 46))
 			centerWrite(string.rep(" ", 46))
 			centerPrint("HTTP API Not Enabled! D:")
 			centerPrint(string.rep(" ", 46))
 			print("")
 
-			term.setBackgroundColor(colors[curTheme["bottom-box"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
 			centerPrint(string.rep(" ", 46))
 			centerPrint("  Firewolf is unable to run without the HTTP  ")
 			centerPrint("  API Enabled! Please enable it in the CC     ")
@@ -825,27 +839,27 @@ local function startup()
 	-- Run
 	local _, err = pcall(main)
 	if err ~= nil then
-		term.setTextColor(colors[curTheme["text-color"]])
-		term.setBackgroundColor(colors[curTheme["background"]])
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["background"]])
 		term.clear()
 		term.setCursorPos(1, 2)
-		term.setBackgroundColor(colors[curTheme["top-box"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
 		centerPrint(string.rep(" ", 46))
 		centerWrite(string.rep(" ", 46))
 		centerPrint("Server has Crashed! D:")
 		centerPrint(string.rep(" ", 46))
 		print("")
 
-		term.setBackgroundColor(colors[curTheme["bottom-box"]])
+		term.setBackgroundColor(colors[theme["bottom-box"]])
 		centerPrint(string.rep(" ", 46))
 		centerPrint("  Firewolf has encountered a critical error:  ")
 		centerPrint(string.rep(" ", 46))
-		term.setBackgroundColor(colors[curTheme["background"]])
+		term.setBackgroundColor(colors[theme["background"]])
 		print("")
 		print("  " .. err)
 		print("")
 
-		term.setBackgroundColor(colors[curTheme["bottom-box"]])
+		term.setBackgroundColor(colors[theme["bottom-box"]])
 		centerPrint(string.rep(" ", 46))
 		centerPrint("  Please report this error to 1lann or        ")
 		centerPrint("  GravityScore so we are able to fix it!      ")
@@ -865,9 +879,9 @@ local function startup()
 end
 
 -- Theme
-curTheme = loadTheme(themeLocation)
-if curTheme == nil then curTheme = loadTheme(defaultThemeLocation) end
-if curTheme == nil then curTheme = defaultTheme end
+theme = loadTheme(themeLocation)
+if theme == nil then theme = loadTheme(defaultThemeLocation) end
+if theme == nil then theme = defaultTheme end
 
 -- Start
 startup()
