@@ -589,7 +589,7 @@ local function interface()
 		local p1 = "Pause Server"
 		if enableResponse == false then p1 = "Unpause Server" end
 		term.setBackgroundColor(colors[theme["top-box"]])
-		local opt = prompt({{p1, 5, 4}, {"Manage", w - 19, 4}, {"Edit", 5, 5}, {"Stop", w - 13, 5}})
+		local opt = prompt({{p1, 5, 4}, {"Manage", w - 15, 4}, {"Edit", 5, 5}, {"Stop", w - 13, 5}})
 		if opt == p1 then
 			-- Pause/unpause server
 			enableResponse = not(enableResponse)
@@ -611,9 +611,11 @@ local function interface()
 				local opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
 					{"Back", 9, 15}})
 				if opt == "Manage Blocked IDs" then
-
+					
 				elseif opt == "Delete Server" then
-
+					fs.delete(dataLocation)
+					os.queueEvent(event_stopServer)
+					return
 				elseif opt == "Back" then
 					break
 				end
