@@ -452,6 +452,7 @@ local function migrateFilesystem()
 	-- Migrate from old version
 	if fs.exists("/.Firefox_Data") and not(fs.exists(rootFolder)) then
 		fs.move("/.Firefox_Data", rootFolder)
+		fs.delete(serverSoftwareLocation)
 	else
 		fs.delete("/.Firefox_Data")
 	end
@@ -865,6 +866,10 @@ pages.history = function(site)
 		centerPrint("No Items in History!")
 		centerPrint(string.rep(" ", 43))
 	end
+end
+
+pages.firefox = function(site)
+redirect("firewolf")
 end
 
 pages.downloads = function(site)
