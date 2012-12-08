@@ -713,8 +713,8 @@ local function getSearchResults(input)
 				end
 
 				if not(x) and resultIDs[tostring(id)] <= 5 then
+					if not i:find("rdnt://") then i = ("rdnt://" .. i) end
 					if input == "" then
-						if not results:find("rdnt://") then results = ("rdnt://" .. results) end
 						table.insert(results, i)
 					elseif string.find(i, input) and i ~= input then
 						table.insert(results, i)
@@ -2567,7 +2567,7 @@ local function startup()
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		api.centerPrint(string.rep(" ", 46))
-		api.centerPrint("  Firewolf has encountered a critical error:   ")
+		api.centerPrint("  Firewolf has encountered a critical error:  ")
 		api.centerPrint(string.rep(" ", 46))
 		term.setBackgroundColor(colors[theme["background"]])
 		print("")
