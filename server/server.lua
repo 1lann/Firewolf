@@ -691,6 +691,7 @@ local function interface()
 							local c = read():gsub("^%s*(.-)%s*$", "%1")
 							local d = -1
 							local err = pcall(function() d = tonumber(c) end)
+							print(d)
 							if err or d < 0 then
 								term.setCursorPos(1, 10)
 								centerWrite(string.rep(" ", 47))
