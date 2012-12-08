@@ -589,7 +589,7 @@ local function interface()
 		local p1 = "Pause Server"
 		if enableResponse == false then p1 = "Unpause Server" end
 		term.setBackgroundColor(colors[theme["top-box"]])
-		local opt = prompt({{p1, 5, 4}, {"Stats", w - 15, 4}, {"Edit", 5, 5}, {"Stop", w - 13, 5}})
+		local opt = prompt({{p1, 5, 4}, {"Stats", w - 14, 4}, {"Edit", 5, 5}, {"Stop", w - 13, 5}})
 		if opt == p1 then
 			-- Pause/unpause server
 			enableResponse = not(enableResponse)
