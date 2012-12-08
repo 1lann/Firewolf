@@ -589,7 +589,7 @@ local function interface()
 		local p1 = "Pause Server"
 		if enableResponse == false then p1 = "Unpause Server" end
 		term.setBackgroundColor(colors[theme["top-box"]])
-		local opt = prompt({{p1, 5, 4}, {"Manage", w - 15, 4}, {"Edit", 5, 5}, {"Stop", w - 13, 5}})
+		local opt = prompt({{p1, 5, 4}, {"Stats", w - 15, 4}, {"Edit", 5, 5}, {"Stop", w - 13, 5}})
 		if opt == p1 then
 			-- Pause/unpause server
 			enableResponse = not(enableResponse)
@@ -617,6 +617,28 @@ local function interface()
 					os.queueEvent(event_stopServer)
 					return
 				elseif opt == "Back" then
+					break
+				end
+			end
+			
+			enableRecording = true
+		elseif opt == "Stats" then
+			-- View stats
+			enableRecording = false
+			clearPage()
+			term.setCursorPos(1, 8)
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
+			for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+
+			term.setCursorPos(5, 9)
+			write("Visits: " .. tostring(visits))
+			term.setCursorPos(5, 10)
+			write("Searches: " .. tostring(searches))
+
+			while true do
+				local opt = prompt({{"Back", 9, 12}})
+				if opt == "Back" then
 					break
 				end
 			end
