@@ -134,7 +134,7 @@ local function scrollingPrompt(list, x, y, len, width)
 	local function draw(a)
 		for i, v in ipairs(a) do
 			term.setCursorPos(1, y + i - 1)
-			api.centerWrite(string.rep(" ", wid + 2))
+			centerWrite(string.rep(" ", wid + 2))
 			term.setCursorPos(x, y + i - 1)
 			write("[ " .. v)
 			term.setCursorPos(wid + x - 2, y + i - 1)
