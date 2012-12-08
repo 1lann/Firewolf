@@ -690,8 +690,8 @@ local function interface()
 							write("ID: ")
 							local c = read():gsub("^%s*(.-)%s*$", "%1")
 							local d = -1
-							local err = pcall(function() d = tonumber(c) end)
-							print(d)
+							local err = pcall(tonumber(c))
+							print(d .. "  " .. err)
 							if err then
 								term.setCursorPos(1, 10)
 								centerWrite(string.rep(" ", 47))
@@ -699,6 +699,7 @@ local function interface()
 								write("Not a Valid ID!")
 								sleep(1.1)
 							else
+								d = tonumber(c)
 								term.setCursorPos(1, 10)
 								centerWrite(string.rep(" ", 47))
 								term.setCursorPos(5, 10)
