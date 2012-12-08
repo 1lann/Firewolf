@@ -2326,6 +2326,10 @@ end
 
 --  -------- Address Bar
 
+local function addressBarRead()
+	return read(nil, addressBarHistory):gsub("^%s*(.-)%s*$", "%1")
+end
+
 local function addressBarMain()
 	while true do
 		local e, but, x, y = os.pullEvent()
@@ -2341,7 +2345,7 @@ local function addressBarMain()
 				term.setTextColor(colors[theme["address-bar-text"]])
 				term.clearLine()
 				write("rdnt://")
-				website = read(nil, addressBarHistory):gsub("^%s*(.-)%s*$", "%1")
+				website = addressBarRead()
 				if website == "home" or website == "homepage" then
 					website = homepage
 				end
