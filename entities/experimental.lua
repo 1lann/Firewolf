@@ -714,6 +714,7 @@ local function getSearchResults(input)
 
 				if not(x) and resultIDs[tostring(id)] <= 5 then
 					if input == "" then
+						if not results:find("rdnt://") then results = ("rdnt://" .. results) end
 						table.insert(results, i)
 					elseif string.find(i, input) and i ~= input then
 						table.insert(results, i)
