@@ -692,7 +692,7 @@ local function interface()
 							local d = -1
 							local err = pcall(tonumber(c))
 							print(tostring(d) .. "  " .. tostring(err))
-							if err then
+							if err == false then
 								term.setCursorPos(1, 10)
 								centerWrite(string.rep(" ", 47))
 								term.setCursorPos(5, 10)
