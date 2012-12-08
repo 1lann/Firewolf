@@ -1,6 +1,6 @@
-address-bar-text=black
-address-bar-background=white
-top-box=white
-bottom-box=white
+address-bar-text=white
+address-bar-background=black
+top-box=black
+bottom-box=black
 background=black
-text-color=black
+text-color=white
