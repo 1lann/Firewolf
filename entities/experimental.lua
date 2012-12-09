@@ -316,6 +316,7 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 					pos = 0
 				end
 				redraw()
+				liveUpdates(line, "update_history", nil, nil, nil, nil, nil)
 			elseif but == keys.backspace and pos > 0 then
 				redraw(" ")
 				line = line:sub(1, pos - 1) .. line:sub(pos + 1, -1)
@@ -335,7 +336,7 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 				return nil
 			end
 		end if liveUpdates and e then
-			liveUpdates(e, but, x, y, p4, p5)
+			liveUpdates(line, e, but, x, y, p4, p5)
 		end
 	end
 
@@ -2434,17 +2435,55 @@ end
 local curSites = {}
 
 local function retrieveAllWebsites()
-	local sClock = os.clock()
+	curSites = getSearchResults("")
+	local a = os.startTimer(15)
+
 	while true do
 		local e, but = os.pullEvent()
-		if e == event_exitWebsite then
+		if e == "timer" and but == a then
+			curSites = getSearchResults("")
+			a = os.startTimer(15)
+		elseif e == event_exitWebsite then
 			break
 		end
 	end
 end
 
 local function addressBarRead()
-	return read(nil, addressBarHistory):gsub(" ", "")
+	local function draw(list)
+		if #list > 0 then
+			local ox, oy = term.getCursorPos()
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
+			for i, v in ipairs(list) do
+				term.setCursorPos(8, i + 1)
+				write(string.rep(" ", 42))
+				term.setCursorPos(9, i + 1)
+				write(v)
+			end
+			term.setCursorPos(8, #list + 1)
+			write(string.rep(" ", 42))
+			term.setCursorPos(ox, oy)
+		end
+	end
+
+	local function onLiveUpdate(cur, e, but, x, y, p4, p5)
+		if e == "char" or e == "update_history" then
+			local a, b = {}, {}
+			for k, v in pairs(curSites) do
+				local _, count = v:gsub(cur, "")
+				table.insert(a, {v, count})
+			end
+			table.sort(a, function(a, b) return a[2] < b[2] end)
+			for k, v in pairs(a) do table.insert(b, v[1]) end
+			list = updateDisplayList(b, 1, maxLen)
+			draw(b)
+		elseif e == "mouse_click" then
+
+		end
+	end
+
+	return modRead(nil, addressBarHistory, 42, onLiveUpdate)
 end
 
 local function addressBarMain()
