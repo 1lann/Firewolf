@@ -331,7 +331,7 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 			elseif but == keys["end"] then
 				pos = line:len()
 				redraw()
-			elseif (but == 29 or but == 157) and exitOnControl == true then 
+			elseif (but == 29 or but == 157) and not(exitOnControl == true) then 
 				return nil
 			end
 		end if liveUpdates and e then
@@ -460,17 +460,17 @@ function urlDownload(url)
 		write("This is for security purposes: " .. a)
 		term.setCursorPos(5, 9)
 		write("Enter the 4 numbers above: ")
-		openAddressBar = false
-		local b = modRead(nil, nil, 4, true):gsub("^%s*(.-)%s*$", "%1")
-		openAddressBar = true
+		local b = modRead(nil, nil, 4, true)
+		if b == nil then
+			os.queueEvent(event_exitWebsite)
+			return
+		end
 
 		if b == a then
 			term.setCursorPos(5, 11)
 			write("Save As: /")
-			openAddressBar = false
-			local c = "/" .. modRead(nil, nil, 42, false):gsub("^%s*(.-)%s*$", "%1")
-			openAddressBar = true
-			if c ~= "" and c ~= nil then
+			local c = "/" .. modRead(nil, nil, 33, false)
+			if c ~= "/" and c ~= nil then
 				local f = io.open(c, "w")
 				f:write(data)
 				f:close()
@@ -483,6 +483,9 @@ function urlDownload(url)
 				clearPage(website, colors.black)
 				term.setCursorPos(1, 2)
 				return c
+			elseif c == nil then
+				os.queueEvent(event_exitWebsite)
+				return
 			end
 		else
 			term.setCursorPos(5, 13)
@@ -1006,10 +1009,8 @@ pages.downloads = function(site)
 			elseif t == "Make my Own" then
 				term.setCursorPos(6, 18)
 				write("Path: /")
-				openAddressBar = false
-				local n = "/" .. modRead(nil, nil, 35, false)
-				openAddressBar = true
-				if n ~= "" then
+				local n = "/" .. modRead(nil, nil, 35)
+				if n ~= "/" and n ~= nil then
 					local f = io.open(n, "w")
 					f:write(ownThemeFileContent)
 					f:close()
@@ -1021,14 +1022,15 @@ pages.downloads = function(site)
 					openAddressBar = false
 					sleep(1.1)
 					openAddressBar = true
+				elseif n == nil then
+					os.queueEvent(event_exitWebsite)
+					return
 				end
 			elseif t == "Load my Own" then
 				term.setCursorPos(6, 18)
 				write("Path: /")
-				openAddressBar = false
-				local n = "/" .. modRead(nil, nil, 35, false)
-				openAddressBar = true
-				if n ~= "" then
+				local n = "/" .. modRead(nil, nil, 35)
+				if n ~= "/" and n ~= nil then
 					term.setCursorPos(1, 18)
 					centerWrite(string.rep(" ", 47))
 					
@@ -1060,6 +1062,9 @@ pages.downloads = function(site)
 						sleep(1.1)
 						openAddressBar = true
 					end
+				elseif n == nil then
+					os.queueEvent(event_exitWebsite)
+					return
 				end
 			else
 				local url = ""
@@ -1221,14 +1226,20 @@ pages.server = function(site)
 					for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
 					term.setCursorPos(5, 9)
 					write("Name: ")
-					openAddressBar = false
-					local name = modRead(nil, nil, 37, false)
+					local name = modRead(nil, nil, 37)
+					if name == nil then
+						os.queueEvent(event_exitWebsite)
+						return
+					end
 					term.setCursorPos(5, 11)
 					write("URL:")
 					term.setCursorPos(8, 12)
 					write("rdnt://")
-					local url = read():gsub(" ", "")
-					openAddressBar = true
+					local url = modRead(nil, nil, 33):gsub(" ", "")
+					if url == nil then
+						os.queueEvent(event_exitWebsite)
+						return
+					end
 
 					local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
 						"[", "]", "{", "}", "\\", "\"", ":", ";", "?", "<", ">", ",", "`"}
@@ -1242,7 +1253,7 @@ pages.server = function(site)
 							openAddressBar = true
 							b = true
 							break
-						elseif name == "" or url == "" or name == nil or url == nil then
+						elseif name == "" or url == "" then
 							term.setCursorPos(5, 13)
 							write("URL or Name Is Empty!")
 							openAddressBar = false
@@ -1626,9 +1637,11 @@ pages.settings = function(site)
 		elseif opt == c then
 			term.setCursorPos(9, 15)
 			write("rdnt://")
-			openAddressBar = false
-			local a = read():gsub("^%s*(.-)%s*$", "%1")
-			openAddressBar = true
+			local a = modRead(nil, nil, 28)
+			if a == nil then
+				os.queueEvent(event_exitWebsite)
+				return
+			end
 			if a ~= "" then homepage = a end
 		elseif opt == "Reset Firewolf" then
 			clearPage(site, colors[theme["background"]])
@@ -1786,9 +1799,11 @@ pages.getinfo = function(site)
 	local x, y = term.getCursorPos()
 	term.setCursorPos(7, y - 1)
 	write("rdnt://")
-	openAddressBar = false
-	local a = read():gsub("^%s*(.-)%s*$", "%1")
-	openAddressBar = true
+	local a = modRead(nil, nil, 29)
+	if a == nil then
+		os.queueEvent(event_exitWebsite)
+		return
+	end
 	local id, content, status = getWebsite(a)
 
 	if id ~= nil then
@@ -1809,14 +1824,17 @@ pages.getinfo = function(site)
 		if opt == "Save Source" then
 			term.setCursorPos(9, 13)
 			write("Save As: /")
-			openAddressBar = false
-			local loc = "/" .. read():gsub("^%s*(.-)%s*$", "%1")
-			openAddressBar = true
-			local f = io.open(loc, "w")
-			f:write(content)
-			f:close()
-			term.setCursorPos(1, 13)
-			centerWrite(string.rep(" ", 43))
+			local loc = "/" .. modRead(nil, nil, 24)
+			if loc ~= nil and loc ~= "/" then
+				local f = io.open(loc, "w")
+				f:write(content)
+				f:close()
+				term.setCursorPos(1, 13)
+				centerWrite(string.rep(" ", 43))
+			elseif loc == nil then
+				os.queueEvent(event_exitWebsite)
+				return
+			end
 		elseif opt == "Visit Site" then
 			redirect(a)
 			return
