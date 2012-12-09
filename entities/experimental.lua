@@ -2483,7 +2483,7 @@ local function addressBarRead()
 		end
 	end
 
-	return modRead(nil, addressBarHistory, 42, onLiveUpdate)
+	return modRead(nil, addressBarHistory, 42, onLiveUpdate, true)
 end
 
 local function addressBarMain()
