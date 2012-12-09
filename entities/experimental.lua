@@ -460,14 +460,14 @@ function urlDownload(url)
 		term.setCursorPos(5, 9)
 		write("Enter the 4 numbers above: ")
 		openAddressBar = false
-		local b = read(nil, nil, 4, true):gsub("^%s*(.-)%s*$", "%1")
+		local b = modRead(nil, nil, 4, true):gsub("^%s*(.-)%s*$", "%1")
 		openAddressBar = true
 
 		if b == a then
 			term.setCursorPos(5, 11)
 			write("Save As: /")
 			openAddressBar = false
-			local c = "/" .. read(nil, nil, 42, false):gsub("^%s*(.-)%s*$", "%1")
+			local c = "/" .. modRead(nil, nil, 42, false):gsub("^%s*(.-)%s*$", "%1")
 			openAddressBar = true
 			if c ~= "" and c ~= nil then
 				local f = io.open(c, "w")
@@ -1006,7 +1006,7 @@ pages.downloads = function(site)
 				term.setCursorPos(6, 18)
 				write("Path: /")
 				openAddressBar = false
-				local n = "/" .. read(nil, nil, 35, false):gsub("^%s*(.-)%s*$", "%1")
+				local n = "/" .. modRead(nil, nil, 35, false):gsub("^%s*(.-)%s*$", "%1")
 				openAddressBar = true
 				if n ~= "" then
 					local f = io.open(n, "w")
@@ -1025,7 +1025,7 @@ pages.downloads = function(site)
 				term.setCursorPos(6, 18)
 				write("Path: /")
 				openAddressBar = false
-				local n = "/" .. read(nil, nil, 35, false):gsub("^%s*(.-)%s*$", "%1")
+				local n = "/" .. modRead(nil, nil, 35, false):gsub("^%s*(.-)%s*$", "%1")
 				openAddressBar = true
 				if n ~= "" then
 					term.setCursorPos(1, 18)
@@ -1221,7 +1221,7 @@ pages.server = function(site)
 					term.setCursorPos(5, 9)
 					write("Name: ")
 					openAddressBar = false
-					local name = read(nil, nil, 37, false):gsub("^%s*(.-)%s*$", "%1")
+					local name = modRead(nil, nil, 37, false):gsub("^%s*(.-)%s*$", "%1")
 					term.setCursorPos(5, 11)
 					write("URL:")
 					term.setCursorPos(8, 12)
