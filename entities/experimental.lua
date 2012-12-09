@@ -263,6 +263,87 @@ for k, v in pairs(env) do backupEnv[k] = v end
 setfenv(1, env)
 
 
+--  -------- Utilities
+
+local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exitOnControl)
+	term.setCursorBlink(true)
+	local line = ""
+	local hisPos = nil
+	local pos = 0
+	if replaceChar then replaceChar = replaceChar:sub(1, 1) end
+	local w, h = term.getSize()
+	local sx, sy = term.getCursorPos()
+
+	local function redraw(repl)
+		local scroll = 0
+		if line:len() >= maxLen then scroll = line:len() - maxLen end
+
+		term.setCursorPos(sx, sy)
+		local a = repl or replaceChar
+		if a then term.write(string.rep(a, line:len() - scroll))
+		else term.write(line:sub(scroll + 1)) end
+		term.setCursorPos(sx + pos - scroll, sy)
+	end
+
+	while true do
+		local e, but, x, y, p4, p5 = os.pullEvent()
+		if e == "char" and not(stopAtMaxLen == true and line:len() >= maxLen) then
+			line = line:sub(1, pos) .. but .. line:sub(pos + 1, -1)
+			pos = pos + 1
+			redraw()
+		elseif e == "key" then
+			if but == keys.enter then
+				break
+			elseif but == keys.left then
+				if pos > 0 then pos = pos - 1 redraw() end
+			elseif but == keys.right then
+				if pos < line:len() then pos = pos + 1 redraw() end
+			elseif (but == keys.up or but == keys.down) and his then
+				redraw(" ")
+				if but == keys.up then
+					if hisPos == nil and #his > 0 then hisPos = #his
+					elseif hisPos > 1 then hisPos = hisPos - 1 end
+				elseif but == keys.down then
+					if hisPos == #his then hisPos = nil
+					elseif hisPos ~= nil then hisPos = hisPos + 1 end
+				end
+
+				if hisPos then
+					line = his[hisPos]
+					pos = line:len()
+				else
+					line = ""
+					pos = 0
+				end
+				redraw()
+			elseif but == keys.backspace and pos > 0 then
+				redraw(" ")
+				line = line:sub(1, pos - 1) .. line:sub(pos + 1, -1)
+				pos = pos - 1
+				redraw()
+			elseif but == keys.home then
+				pos = 0
+				redraw()
+			elseif but == keys.delete and pos < line:len() then
+				redraw(" ")
+				line = line:sub(1, pos) .. line:sub(pos + 2, -1)
+				redraw()
+			elseif but == keys["end"] then
+				pos = line:len()
+				redraw()
+			elseif (but == 29 or but == 157) and exitOnControl == true then 
+				return nil
+			end
+		end if liveUpdates and e then
+			liveUpdates(e, but, x, y, p4, p5)
+		end
+	end
+
+	term.setCursorBlink(false)
+	return line
+end
+
+
 --  -------- Themes
 
 local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
@@ -379,14 +460,14 @@ function urlDownload(url)
 		term.setCursorPos(5, 9)
 		write("Enter the 4 numbers above: ")
 		openAddressBar = false
-		local b = read():gsub("^%s*(.-)%s*$", "%1")
+		local b = read(nil, nil, 4, true):gsub("^%s*(.-)%s*$", "%1")
 		openAddressBar = true
 
 		if b == a then
 			term.setCursorPos(5, 11)
 			write("Save As: /")
 			openAddressBar = false
-			local c = "/" .. read():gsub("^%s*(.-)%s*$", "%1")
+			local c = "/" .. read(nil, nil, 42, false):gsub("^%s*(.-)%s*$", "%1")
 			openAddressBar = true
 			if c ~= "" and c ~= nil then
 				local f = io.open(c, "w")
@@ -925,7 +1006,7 @@ pages.downloads = function(site)
 				term.setCursorPos(6, 18)
 				write("Path: /")
 				openAddressBar = false
-				local n = "/" .. read():gsub("^%s*(.-)%s*$", "%1")
+				local n = "/" .. read(nil, nil, 35, false):gsub("^%s*(.-)%s*$", "%1")
 				openAddressBar = true
 				if n ~= "" then
 					local f = io.open(n, "w")
@@ -944,7 +1025,7 @@ pages.downloads = function(site)
 				term.setCursorPos(6, 18)
 				write("Path: /")
 				openAddressBar = false
-				local n = "/" .. read():gsub("^%s*(.-)%s*$", "%1")
+				local n = "/" .. read(nil, nil, 35, false):gsub("^%s*(.-)%s*$", "%1")
 				openAddressBar = true
 				if n ~= "" then
 					term.setCursorPos(1, 18)
@@ -1140,7 +1221,7 @@ pages.server = function(site)
 					term.setCursorPos(5, 9)
 					write("Name: ")
 					openAddressBar = false
-					local name = read():gsub("^%s*(.-)%s*$", "%1")
+					local name = read(nil, nil, 37, false):gsub("^%s*(.-)%s*$", "%1")
 					term.setCursorPos(5, 11)
 					write("URL:")
 					term.setCursorPos(8, 12)
@@ -2326,8 +2407,22 @@ end
 
 --  -------- Address Bar
 
+local curSites = {}
+
+local function retrieveAllWebsites()
+	local sClock = os.clock()
+	while true do
+		local e = os.pullEvent()
+		if os.clock() - sClock > 20 then
+			curSites = getSearchResults("")
+		elseif e == event_exitApp then
+			break
+		end
+	end
+end
+
 local function addressBarRead()
-	return read(nil, addressBarHistory):gsub("^%s*(.-)%s*$", "%1")
+	return read(nil, addressBarHistory):gsub(" ", "")
 end
 
 local function addressBarMain()
@@ -2345,8 +2440,11 @@ local function addressBarMain()
 				term.setTextColor(colors[theme["address-bar-text"]])
 				term.clearLine()
 				write("rdnt://")
+				local oldWebsite = website
 				website = addressBarRead()
-				if website == "home" or website == "homepage" then
+				if website == nil then
+					website = oldWebsite
+				elseif website == "home" or website == "homepage" then
 					website = homepage
 				end
 
@@ -2432,7 +2530,7 @@ local function main()
 	website = homepage
 
 	-- Run
-	parallel.waitForAll(websiteMain, addressBarMain)
+	parallel.waitForAll(websiteMain, addressBarMain, retrieveAllWebsites)
 end
 
 local function startup()
