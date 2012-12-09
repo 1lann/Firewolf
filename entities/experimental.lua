@@ -1803,7 +1803,7 @@ pages.getinfo = function(site)
 	local x, y = term.getCursorPos()
 	term.setCursorPos(7, y - 1)
 	write("rdnt://")
-	local a = modRead(nil, nil, 29)
+	local a = modRead(nil, nil, 31)
 	if a == nil then
 		os.queueEvent(event_exitWebsite)
 		return
@@ -1859,7 +1859,7 @@ pages.kitteh = function(site)
 	term.setTextColor(colors.white)
 	term.setBackgroundColor(colors.black)
 	term.clear()
-	term.setCursorPos(1, 1)
+	term.setCursorPos(1, 3)
 	centerPrint("       .__....._             _.....__,         ")
 	centerPrint("         .\": o :':         ;': o :\".           ")
 	centerPrint("         '. '-' .'.       .'. '-' .'           ")
@@ -2436,10 +2436,8 @@ local curSites = {}
 local function retrieveAllWebsites()
 	local sClock = os.clock()
 	while true do
-		local e = os.pullEvent()
-		if os.clock() - sClock > 20 then
-			curSites = getSearchResults("")
-		elseif e == event_exitApp then
+		local e, but = os.pullEvent()
+		if e == event_exitWebsite then
 			break
 		end
 	end
