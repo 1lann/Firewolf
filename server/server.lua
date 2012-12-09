@@ -689,17 +689,14 @@ local function interface()
 							term.setCursorPos(5, 10)
 							write("ID: ")
 							local c = read():gsub("^%s*(.-)%s*$", "%1")
-							local d = -1
-							local err = pcall(tonumber(c))
-							print(tostring(d) .. "  " .. tostring(err))
-							if err == false then
+							local d = tonumber(c)
+							if d == nil then
 								term.setCursorPos(1, 10)
 								centerWrite(string.rep(" ", 47))
 								term.setCursorPos(5, 10)
 								write("Not a Valid ID!")
 								sleep(1.1)
 							else
-								d = tonumber(c)
 								term.setCursorPos(1, 10)
 								centerWrite(string.rep(" ", 47))
 								term.setCursorPos(5, 10)
