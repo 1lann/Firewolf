@@ -690,11 +690,21 @@ local function interface()
 							write("ID: ")
 							local c = read():gsub("^%s*(.-)%s*$", "%1")
 							local d = tonumber(c)
+							local found = false
+							for k, v in pairs(permantentIgnoreDatabase) do
+								if v == tostring(d) then found = true break end
+							end
 							if d == nil then
 								term.setCursorPos(1, 10)
 								centerWrite(string.rep(" ", 47))
 								term.setCursorPos(5, 10)
 								write("Not a Valid ID!")
+								sleep(1.1)
+							elseif found == true then
+								term.setCursorPos(1, 10)
+								centerWrite(string.rep(" ", 47))
+								term.setCursorPos(5, 10)
+								write("ID Already Exists!")
 								sleep(1.1)
 							else
 								term.setCursorPos(1, 10)
