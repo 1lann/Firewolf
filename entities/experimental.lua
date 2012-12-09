@@ -1238,11 +1238,12 @@ pages.server = function(site)
 					write("URL:")
 					term.setCursorPos(8, 12)
 					write("rdnt://")
-					local url = modRead(nil, nil, 33):gsub(" ", "")
+					local url = modRead(nil, nil, 33)
 					if url == nil then
 						os.queueEvent(event_exitWebsite)
 						return
 					end
+					url = url:gsub(" ", "")
 
 					local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
 						"[", "]", "{", "}", "\\", "\"", ":", ";", "?", "<", ">", ",", "`"}
