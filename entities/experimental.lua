@@ -469,8 +469,9 @@ function urlDownload(url)
 		if b == a then
 			term.setCursorPos(5, 11)
 			write("Save As: /")
-			local c = "/" .. modRead(nil, nil, 33, false)
-			if c ~= "/" and c ~= nil then
+			local c = modRead(nil, nil, 33, false)
+			if c ~= "" and c ~= nil then
+				c = "/" .. c
 				local f = io.open(c, "w")
 				f:write(data)
 				f:close()
@@ -1009,8 +1010,9 @@ pages.downloads = function(site)
 			elseif t == "Make my Own" then
 				term.setCursorPos(6, 18)
 				write("Path: /")
-				local n = "/" .. modRead(nil, nil, 35)
-				if n ~= "/" and n ~= nil then
+				local n = modRead(nil, nil, 35)
+				if n ~= "" and n ~= nil then
+					n = "/" .. n
 					local f = io.open(n, "w")
 					f:write(ownThemeFileContent)
 					f:close()
@@ -1029,8 +1031,9 @@ pages.downloads = function(site)
 			elseif t == "Load my Own" then
 				term.setCursorPos(6, 18)
 				write("Path: /")
-				local n = "/" .. modRead(nil, nil, 35)
-				if n ~= "/" and n ~= nil then
+				local n = modRead(nil, nil, 35)
+				if n ~= "" and n ~= nil then
+					n = "/" .. n
 					term.setCursorPos(1, 18)
 					centerWrite(string.rep(" ", 47))
 					
@@ -1824,8 +1827,9 @@ pages.getinfo = function(site)
 		if opt == "Save Source" then
 			term.setCursorPos(9, 13)
 			write("Save As: /")
-			local loc = "/" .. modRead(nil, nil, 24)
-			if loc ~= nil and loc ~= "/" then
+			local loc = modRead(nil, nil, 24)
+			if loc ~= nil and loc ~= "" then
+				loc = "/" .. loc
 				local f = io.open(loc, "w")
 				f:write(content)
 				f:close()
