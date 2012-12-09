@@ -340,6 +340,7 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 	end
 
 	term.setCursorBlink(false)
+	if line ~= nil then line = line:gsub("^%s*(.-)%s*$", "%1") end
 	return line
 end
 
@@ -1006,7 +1007,7 @@ pages.downloads = function(site)
 				term.setCursorPos(6, 18)
 				write("Path: /")
 				openAddressBar = false
-				local n = "/" .. modRead(nil, nil, 35, false):gsub("^%s*(.-)%s*$", "%1")
+				local n = "/" .. modRead(nil, nil, 35, false)
 				openAddressBar = true
 				if n ~= "" then
 					local f = io.open(n, "w")
@@ -1025,7 +1026,7 @@ pages.downloads = function(site)
 				term.setCursorPos(6, 18)
 				write("Path: /")
 				openAddressBar = false
-				local n = "/" .. modRead(nil, nil, 35, false):gsub("^%s*(.-)%s*$", "%1")
+				local n = "/" .. modRead(nil, nil, 35, false)
 				openAddressBar = true
 				if n ~= "" then
 					term.setCursorPos(1, 18)
@@ -1221,7 +1222,7 @@ pages.server = function(site)
 					term.setCursorPos(5, 9)
 					write("Name: ")
 					openAddressBar = false
-					local name = modRead(nil, nil, 37, false):gsub("^%s*(.-)%s*$", "%1")
+					local name = modRead(nil, nil, 37, false)
 					term.setCursorPos(5, 11)
 					write("URL:")
 					term.setCursorPos(8, 12)
