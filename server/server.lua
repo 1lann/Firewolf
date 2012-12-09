@@ -706,7 +706,7 @@ local function interface()
 							end
 						else
 							for i, v in ipairs(permantentIgnoreDatabase) do
-								if v == tostring(d) then table.remove(permantentIgnoreDatabase, i) end
+								if v == b then table.remove(permantentIgnoreDatabase, i) end
 							end
 						end
 					end
