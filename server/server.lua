@@ -805,10 +805,10 @@ local function main()
 		local f = io.open(statsLocation, "r")
 		local a = tonumber(f:read("*l"))
 		local b = tonumber(f:read("*l"))
-		local c = textutils.unserialize(f:read("*l"))
+		local c = f:read("*l")
 		if a then visits = a end
 		if b then searches = b end
-		if c then permantentIgnoreDatabase = c end
+		if c then permantentIgnoreDatabase = textutils.unserialize(c) end
 		f:close()
 	end
 	if not(checkForModem()) then return end
