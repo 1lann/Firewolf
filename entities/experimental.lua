@@ -1641,7 +1641,7 @@ pages.settings = function(site)
 		elseif opt == c then
 			term.setCursorPos(9, 15)
 			write("rdnt://")
-			local a = modRead(nil, nil, 28)
+			local a = modRead(nil, nil, 30)
 			if a == nil then
 				os.queueEvent(event_exitWebsite)
 				return
