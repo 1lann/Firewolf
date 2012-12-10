@@ -577,11 +577,10 @@ end
 
 local function migrateFilesystem()
 	-- Migrate from old version
-	if fs.exists("/.Firefox_Data") and not(fs.exists(rootFolder)) then
+	if fs.exists("/.Firefox_Data") then
 		fs.move("/.Firefox_Data", rootFolder)
+		fs.delete(rootFolder .. "/server_software")
 		fs.delete(serverSoftwareLocation)
-	else
-		fs.delete("/.Firefox_Data")
 	end
 end
 
@@ -2518,7 +2517,7 @@ local function addressBarRead()
 		if e == "char" or e == "update_history" or e == "delete" then
 			list = {}
 			for _, v in pairs(curSites) do
-				if #list <= len and v:gsub("rdnt://", ""):find(cur:lower(), 1, true) then
+				if #list < len and v:gsub("rdnt://", ""):find(cur:lower(), 1, true) then
 					table.insert(list, v)
 				end
 			end
