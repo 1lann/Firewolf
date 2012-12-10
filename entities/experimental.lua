@@ -2469,7 +2469,7 @@ local function addressBarRead()
 		if #list > 0 then
 			for i, v in ipairs(list) do
 				term.setCursorPos(2, i + 1)
-				write("rdnt://" .. v)
+				write(v)
 			end
 		end
 		term.setCursorPos(ox, oy)
@@ -2491,9 +2491,12 @@ local function addressBarRead()
 				for i = 1, 4 do 
 					if curSites[i] ~= nil and curSites[i]:find(cur) then
 						table.insert(a, curSites[i]) 
+					else
+						table.insert(a, "")
 					end
 				end 
 			end
+			table.sort(a)
 			draw(a)
 		elseif e == "mouse_click" then
 
