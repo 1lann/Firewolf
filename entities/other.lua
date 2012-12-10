@@ -8,11 +8,17 @@
 --  
 
 
+-- Added:
+-- - Live searching
+-- - Prevented read from destroying the background colors
+-- - Control out of reads
+-- - Block IDs from a server
+
 
 --  -------- Variables
 
 -- Version
-local version = "2.1"
+local version = "2.2"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 
@@ -34,7 +40,7 @@ local backupEnv = {}
 local api = {}
 
 -- Themes
-local curTheme = {}
+local theme = {}
 
 -- Databases
 local blacklist = {}
@@ -65,6 +71,9 @@ local firewolfURL = "https://raw.github.com/1lann/firewolf/master/entities/" .. 
 local databaseURL = "https://raw.github.com/1lann/firewolf/master/databases/" .. serverID .. 
 		"-database.txt"
 local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server.lua"
+if serverID == "experimental" then 
+	serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-experimental.lua"
+end
 local availableThemesURL = "https://raw.github.com/1lann/firewolf/master/themes/available.txt"
 
 -- Data Locations
@@ -98,12 +107,12 @@ api.clearPage = function(site, color, redraw)
 	local c = color
 	if c == nil then c = colors.black end
 	term.setBackgroundColor(c)
-	term.setTextColor(colors[curTheme["address-bar-text"]])
+	term.setTextColor(colors[theme["address-bar-text"]])
 	if redraw ~= true then term.clear() end
 
 	-- URL bar
 	term.setCursorPos(2, 1)
-	term.setBackgroundColor(colors[curTheme["address-bar-background"]])
+	term.setBackgroundColor(colors[theme["address-bar-background"]])
 	term.clearLine()
 	term.setCursorPos(2, 1)
 	if site:len() > 42 then site = site:sub(1, 39) .. "..." end
@@ -263,6 +272,126 @@ for k, v in pairs(env) do backupEnv[k] = v end
 setfenv(1, env)
 
 
+--  -------- Utilities
+
+local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exitOnControl)
+	term.setCursorBlink(true)
+	local line = ""
+	local hisPos = nil
+	local pos = 0
+	if replaceChar then replaceChar = replaceChar:sub(1, 1) end
+	local w, h = term.getSize()
+	local sx, sy = term.getCursorPos()
+
+	local function redraw(repl)
+		local scroll = 0
+		if line:len() >= maxLen then scroll = line:len() - maxLen end
+
+		term.setCursorPos(sx, sy)
+		local a = repl or replaceChar
+		if a then term.write(string.rep(a, line:len() - scroll))
+		else term.write(line:sub(scroll + 1)) end
+		term.setCursorPos(sx + pos - scroll, sy)
+	end
+
+	while true do
+		local e, but, x, y, p4, p5 = os.pullEvent()
+		if e == "char" and not(stopAtMaxLen == true and line:len() >= maxLen) then
+			line = line:sub(1, pos) .. but .. line:sub(pos + 1, -1)
+			pos = pos + 1
+			redraw()
+		elseif e == "key" then
+			if but == keys.enter then
+				break
+			elseif but == keys.left then
+				if pos > 0 then pos = pos - 1 redraw() end
+			elseif but == keys.right then
+				if pos < line:len() then pos = pos + 1 redraw() end
+			elseif (but == keys.up or but == keys.down) and his then
+				redraw(" ")
+				if but == keys.up then
+					if hisPos == nil and #his > 0 then hisPos = #his
+					elseif hisPos > 1 then hisPos = hisPos - 1 end
+				elseif but == keys.down then
+					if hisPos == #his then hisPos = nil
+					elseif hisPos ~= nil then hisPos = hisPos + 1 end
+				end
+
+				if hisPos then
+					line = his[hisPos]
+					pos = line:len()
+				else
+					line = ""
+					pos = 0
+				end
+				redraw()
+				if liveUpdates then
+					local a, data = liveUpdates(line, "update_history", nil, nil, nil, nil, nil)
+					if a == true and data == nil then
+						term.setCursorBlink(false)
+						return line
+					elseif a == true and data ~= nil then
+						term.setCursorBlink(false)
+						return data
+					end
+				end
+			elseif but == keys.backspace and pos > 0 then
+				redraw(" ")
+				line = line:sub(1, pos - 1) .. line:sub(pos + 1, -1)
+				pos = pos - 1
+				redraw()
+				if liveUpdates then
+					local a, data = liveUpdates(line, "delete", nil, nil, nil, nil, nil)
+					if a == true and data == nil then
+						term.setCursorBlink(false)
+						return line
+					elseif a == true and data ~= nil then
+						term.setCursorBlink(false)
+						return data
+					end
+				end
+			elseif but == keys.home then
+				pos = 0
+				redraw()
+			elseif but == keys.delete and pos < line:len() then
+				redraw(" ")
+				line = line:sub(1, pos) .. line:sub(pos + 2, -1)
+				redraw()
+				if liveUpdates then
+					local a, data = liveUpdates(line, "delete", nil, nil, nil, nil, nil)
+					if a == true and data == nil then
+						term.setCursorBlink(false)
+						return line
+					elseif a == true and data ~= nil then
+						term.setCursorBlink(false)
+						return data
+					end
+				end
+			elseif but == keys["end"] then
+				pos = line:len()
+				redraw()
+			elseif (but == 29 or but == 157) and not(exitOnControl == true) then 
+				term.setCursorBlink(false)
+				return nil
+			end
+		end if liveUpdates then
+			local a, data = liveUpdates(line, e, but, x, y, p4, p5)
+			if a == true and data == nil then
+				term.setCursorBlink(false)
+				return line
+			elseif a == true and data ~= nil then
+				term.setCursorBlink(false)
+				return data
+			end
+		end
+	end
+
+	term.setCursorBlink(false)
+	if line ~= nil then line = line:gsub("^%s*(.-)%s*$", "%1") end
+	return line
+end
+
+
 --  -------- Themes
 
 local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
@@ -287,7 +416,7 @@ local function loadTheme(path)
 			l = l:gsub("^%s*(.-)%s*$", "%1")
 			if l ~= "" and l ~= nil and l ~= "\n" then
 				local b = l:find("=")
-				if a then
+				if a and b then
 					local c = l:sub(1, b - 1)
 					local d = l:sub(b + 1, -1)
 					if c == "" or d == "" then return nil
@@ -308,10 +437,10 @@ end
 --  -------- Download API
 
 function urlDownload(url)
-	clearPage(website, colors[curTheme["background"]])
+	clearPage(website, colors[theme["background"]])
 	print("\n\n")
-	term.setTextColor(colors[curTheme["text-color"]])
-	term.setBackgroundColor(colors[curTheme["top-box"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Processing Download Request...")
@@ -339,9 +468,9 @@ function urlDownload(url)
 		return nil
 	end
 
-	clearPage(website, colors[curTheme["background"]])
+	clearPage(website, colors[theme["background"]])
 	print("")
-	term.setBackgroundColor(colors[curTheme["top-box"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Download Files")
@@ -351,7 +480,7 @@ function urlDownload(url)
 	local a = website
 	if a:find("/") then a = a:sub(1, a:find("/") - 1) end
 
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 	for i = 1, 10 do centerPrint(string.rep(" ", 47)) end
 	term.setCursorPos(1, 8)
 	centerPrint("  The website:                                 ")
@@ -361,34 +490,35 @@ function urlDownload(url)
 
 	local opt = prompt({{"Download", 6, 14}, {"Cancel", w - 16, 14}})
 	if opt == "Download" then
-		clearPage(website, colors[curTheme["background"]])
+		clearPage(website, colors[theme["background"]])
 		print("")
-		term.setTextColor(colors[curTheme["text-color"]])
-		term.setBackgroundColor(colors[curTheme["top-box"]])
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
 		centerPrint(string.rep(" ", 47))
 		centerWrite(string.rep(" ", 47))
 		centerPrint("Download Files")
 		centerPrint(string.rep(" ", 47))
 		print("")
 
-		term.setBackgroundColor(colors[curTheme["bottom-box"]])
+		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 10 do centerPrint(string.rep(" ", 47)) end
 		local a = tostring(math.random(1000, 9999))
 		term.setCursorPos(5, 8)
 		write("This is for security purposes: " .. a)
 		term.setCursorPos(5, 9)
 		write("Enter the 4 numbers above: ")
-		openAddressBar = false
-		local b = read():gsub("^%s*(.-)%s*$", "%1")
-		openAddressBar = true
+		local b = modRead(nil, nil, 4, true)
+		if b == nil then
+			os.queueEvent(event_exitWebsite)
+			return
+		end
 
 		if b == a then
 			term.setCursorPos(5, 11)
 			write("Save As: /")
-			openAddressBar = false
-			local c = "/" .. read():gsub("^%s*(.-)%s*$", "%1")
-			openAddressBar = true
+			local c = modRead(nil, nil, 33, false)
 			if c ~= "" and c ~= nil then
+				c = "/" .. c
 				local f = io.open(c, "w")
 				f:write(data)
 				f:close()
@@ -401,6 +531,9 @@ function urlDownload(url)
 				clearPage(website, colors.black)
 				term.setCursorPos(1, 2)
 				return c
+			elseif c == nil then
+				os.queueEvent(event_exitWebsite)
+				return
 			end
 		else
 			term.setCursorPos(5, 13)
@@ -450,18 +583,17 @@ end
 
 local function migrateFilesystem()
 	-- Migrate from old version
-	if fs.exists("/.Firefox_Data") and not(fs.exists(rootFolder)) then
+	if fs.exists("/.Firefox_Data") then
 		fs.move("/.Firefox_Data", rootFolder)
+		fs.delete(rootFolder .. "/server_software")
 		fs.delete(serverSoftwareLocation)
-	else
-		fs.delete("/.Firefox_Data")
 	end
 end
 
 local function resetFilesystem()
 	-- Folders
 	if not(fs.exists(rootFolder)) then fs.makeDir(rootFolder)
-	elseif not(fs.isDir(rootFolder)) then fs.move(rootFolder, "/old-wirewolf-data-file") end
+	elseif not(fs.isDir(rootFolder)) then fs.move(rootFolder, "/old-firewolf-data-file") end
 	if not(fs.exists(serverFolder)) then fs.makeDir(serverFolder) end
 	if not(fs.exists(cacheFolder)) then fs.makeDir(cacheFolder) end
 
@@ -727,6 +859,11 @@ local function getSearchResults(input)
 	end
 
 	table.sort(results)
+	table.sort(results, function(a, b)
+		local _, ac = a:gsub("rdnt://", ""):gsub(input:lower(), "")
+		local _, bc = b:gsub("rdnt://", ""):gsub(input:lower(), "")
+		return ac > bc
+	end)
 	return results
 end
 
@@ -763,10 +900,10 @@ local pages = {}
 local errPages = {}
 
 pages.firewolf = function(site)
-	clearPage(site, colors[curTheme["background"]])
+	clearPage(site, colors[theme["background"]])
 	print("")
-	term.setTextColor(colors[curTheme["text-color"]])
-	term.setBackgroundColor(colors[curTheme["top-box"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerPrint("         _,-='\"-.__               /\\_/\\    ")
 	centerPrint("          -.}        =._,.-==-._.,  @ @._, ")
@@ -774,7 +911,7 @@ pages.firewolf = function(site)
 	centerPrint("  Firewolf " .. version .. "    \"     G..m-\"^m m'        ")
 	centerPrint(string.rep(" ", 43))
 
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 	term.setCursorPos(1, 10)
 	centerPrint(string.rep(" ", 43))
 	centerPrint("  rdnt://firewolf                Homepage  ")
@@ -805,20 +942,20 @@ pages.firewolf = function(site)
 end
 
 pages.firefox = function(site)
-redirect("firewolf")
+	redirect("firewolf")
 end
 
 pages.history = function(site)
-	clearPage(site, colors[curTheme["background"]])
-	term.setTextColor(colors[curTheme["text-color"]])
-	term.setBackgroundColor(colors[curTheme["top-box"]])
+	clearPage(site, colors[theme["background"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	print("")
 	centerPrint(string.rep(" ", 43))
 	centerWrite(string.rep(" ", 43))
 	centerPrint("Firewolf History")
 	centerPrint(string.rep(" ", 43))
 	print("")
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 
 	if #history > 0 then
 		for i = 1, 12 do
@@ -837,16 +974,16 @@ pages.history = function(site)
 			f:write(textutils.serialize(history))
 			f:close()
 
-			clearPage(site, colors[curTheme["background"]])
-			term.setTextColor(colors[curTheme["text-color"]])
-			term.setBackgroundColor(colors[curTheme["top-box"]])
+			clearPage(site, colors[theme["background"]])
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
 			print("")
 			centerPrint(string.rep(" ", 43))
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Firewolf History")
 			centerPrint(string.rep(" ", 43))
 			print("\n")
-			term.setBackgroundColor(colors[curTheme["bottom-box"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
 			centerPrint(string.rep(" ", 43))
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Cleared history.")
@@ -874,9 +1011,9 @@ pages.history = function(site)
 end
 
 pages.downloads = function(site)
-	clearPage(site, colors[curTheme["background"]])
-	term.setTextColor(colors[curTheme["text-color"]])
-	term.setBackgroundColor(colors[curTheme["top-box"]])
+	clearPage(site, colors[theme["background"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	print("")
 	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
@@ -884,7 +1021,7 @@ pages.downloads = function(site)
 	centerPrint(string.rep(" ", 47))
 	print("")
 
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 	for i = 1, 5 do
 		centerPrint(string.rep(" ", 47))
 	end
@@ -905,9 +1042,9 @@ pages.downloads = function(site)
 			end
 			f:close()
 
-			clearPage(site, colors[curTheme["background"]])
-			term.setTextColor(colors[curTheme["text-color"]])
-			term.setBackgroundColor(colors[curTheme["top-box"]])
+			clearPage(site, colors[theme["background"]])
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
 			print("")
 			centerPrint(string.rep(" ", 47))
 			centerWrite(string.rep(" ", 47))
@@ -915,7 +1052,7 @@ pages.downloads = function(site)
 			centerPrint(string.rep(" ", 47))
 			print("")
 
-			term.setBackgroundColor(colors[curTheme["bottom-box"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
 			for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 			local t = scrollingPrompt(c, 4, 8, 10, 44)
 			if t == nil then
@@ -924,10 +1061,9 @@ pages.downloads = function(site)
 			elseif t == "Make my Own" then
 				term.setCursorPos(6, 18)
 				write("Path: /")
-				openAddressBar = false
-				local n = "/" .. read():gsub("^%s*(.-)%s*$", "%1")
-				openAddressBar = true
-				if n ~= "" then
+				local n = modRead(nil, nil, 35)
+				if n ~= "" and n ~= nil then
+					n = "/" .. n
 					local f = io.open(n, "w")
 					f:write(ownThemeFileContent)
 					f:close()
@@ -939,20 +1075,22 @@ pages.downloads = function(site)
 					openAddressBar = false
 					sleep(1.1)
 					openAddressBar = true
+				elseif n == nil then
+					os.queueEvent(event_exitWebsite)
+					return
 				end
 			elseif t == "Load my Own" then
 				term.setCursorPos(6, 18)
 				write("Path: /")
-				openAddressBar = false
-				local n = "/" .. read():gsub("^%s*(.-)%s*$", "%1")
-				openAddressBar = true
-				if n ~= "" then
+				local n = modRead(nil, nil, 35)
+				if n ~= "" and n ~= nil then
+					n = "/" .. n
 					term.setCursorPos(1, 18)
 					centerWrite(string.rep(" ", 47))
 					
 					if fs.exists(n) and not(fs.isDir(n)) then
-						curTheme = loadTheme(n)
-						if curTheme ~= nil then
+						theme = loadTheme(n)
+						if theme ~= nil then
 							fs.delete(themeLocation)
 							fs.copy(n, themeLocation)
 							term.setCursorPos(6, 18)
@@ -960,7 +1098,7 @@ pages.downloads = function(site)
 						else
 							term.setCursorPos(6, 18)
 							write("Theme File is Corrupt! D:")
-							curTheme = loadTheme(themeLocation)
+							theme = loadTheme(themeLocation)
 						end
 						openAddressBar = false
 						sleep(1.1)
@@ -978,19 +1116,22 @@ pages.downloads = function(site)
 						sleep(1.1)
 						openAddressBar = true
 					end
+				elseif n == nil then
+					os.queueEvent(event_exitWebsite)
+					return
 				end
 			else
 				local url = ""
 				for _, v in pairs(themes) do if v[2] == t then url = v[1] break end end
 				term.setCursorPos(1, 4)
-				term.setBackgroundColor(colors[curTheme["top-box"]])
+				term.setBackgroundColor(colors[theme["top-box"]])
 				centerWrite(string.rep(" ", 47))
 				centerWrite("Download Center - Downloading...")
 				fs.delete(rootFolder .. "/temp_theme")
 				download(url, rootFolder .. "/temp_theme")
-				curTheme = loadTheme(rootFolder .. "/temp_theme")
-				if curTheme == nil then
-					curTheme = loadTheme(themeLocation)
+				theme = loadTheme(rootFolder .. "/temp_theme")
+				if theme == nil then
+					theme = loadTheme(themeLocation)
 					fs.delete(rootFolder .. "/temp_theme")
 					centerWrite(string.rep(" ", 47))
 					centerWrite("Download Center - Theme Is Corrupt! D:")
@@ -1012,9 +1153,9 @@ pages.downloads = function(site)
 			end
 		end
 	elseif opt == "Plugins" then
-		clearPage(site, colors[curTheme["background"]])
-		term.setTextColor(colors[curTheme["text-color"]])
-		term.setBackgroundColor(colors[curTheme["top-box"]])
+		clearPage(site, colors[theme["background"]])
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
 		print("")
 		centerPrint(string.rep(" ", 47))
 		centerWrite(string.rep(" ", 47))
@@ -1022,7 +1163,7 @@ pages.downloads = function(site)
 		centerPrint(string.rep(" ", 47))
 		print("\n")
 
-		term.setBackgroundColor(colors[curTheme["bottom-box"]])
+		term.setBackgroundColor(colors[theme["bottom-box"]])
 		centerPrint(string.rep(" ", 47))
 		centerWrite(string.rep(" ", 47))
 		centerPrint("Comming Soon! (hopefully :P)")
@@ -1044,9 +1185,9 @@ pages.downloads = function(site)
 end
 
 pages.server = function(site)
-	clearPage(site, colors[curTheme["background"]])
-	term.setTextColor(colors[curTheme["text-color"]])
-	term.setBackgroundColor(colors[curTheme["top-box"]])
+	clearPage(site, colors[theme["background"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	print("")
 	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
@@ -1059,7 +1200,7 @@ pages.server = function(site)
 		if fs.isDir(serverFolder .. "/" .. v) then table.insert(servers, v) end
 	end
 
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 	for i = 1, 12 do
 		term.setCursorPos(3, i + 6)
 		write(string.rep(" ", 24))
@@ -1068,7 +1209,7 @@ pages.server = function(site)
 	end
 
 	local function draw(l, sel)
-		term.setBackgroundColor(colors[curTheme["bottom-box"]])
+		term.setBackgroundColor(colors[theme["bottom-box"]])
 		term.setCursorPos(4, 8)
 		write("[- New Server -]")
 		for i, v in ipairs(l) do
@@ -1128,25 +1269,32 @@ pages.server = function(site)
 			if x >= 4 and x <= 25 then
 				if y == 8 then
 					-- New server
-					term.setBackgroundColor(colors[curTheme["background"]])
+					term.setBackgroundColor(colors[theme["background"]])
 					for i = 1, 12 do
 						term.setCursorPos(3, i + 6)
 						write(string.rep(" ", 47))
 					end
 
-					term.setBackgroundColor(colors[curTheme["bottom-box"]])
+					term.setBackgroundColor(colors[theme["bottom-box"]])
 					term.setCursorPos(1, 8)
 					for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
 					term.setCursorPos(5, 9)
 					write("Name: ")
-					openAddressBar = false
-					local name = read():gsub("^%s*(.-)%s*$", "%1")
+					local name = modRead(nil, nil, 37)
+					if name == nil then
+						os.queueEvent(event_exitWebsite)
+						return
+					end
 					term.setCursorPos(5, 11)
 					write("URL:")
 					term.setCursorPos(8, 12)
 					write("rdnt://")
-					local url = read():gsub(" ", "")
-					openAddressBar = true
+					local url = modRead(nil, nil, 33)
+					if url == nil then
+						os.queueEvent(event_exitWebsite)
+						return
+					end
+					url = url:gsub(" ", "")
 
 					local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
 						"[", "]", "{", "}", "\\", "\"", ":", ";", "?", "<", ">", ",", "`"}
@@ -1160,7 +1308,7 @@ pages.server = function(site)
 							openAddressBar = true
 							b = true
 							break
-						elseif name == "" or url == "" or name == nil or url == nil then
+						elseif name == "" or url == "" then
 							term.setCursorPos(5, 13)
 							write("URL or Name Is Empty!")
 							openAddressBar = false
@@ -1283,7 +1431,7 @@ pages.server = function(site)
 					disList[sel] .. "\", \"" .. serverFolder .. "/" .. disList[sel] .. "\")")
 				f:close()
 
-				term.setBackgroundColor(colors[curTheme["bottom-box"]])
+				term.setBackgroundColor(colors[theme["bottom-box"]])
 				term.setCursorPos(32, 15)
 				write("Will Run on Boot!")
 				openAddressBar = false
@@ -1306,9 +1454,9 @@ pages.server = function(site)
 end
 
 pages.help = function(site)
-	clearPage(site, colors[curTheme["background"]])
-	term.setTextColor(colors[curTheme["text-color"]])
-	term.setBackgroundColor(colors[curTheme["top-box"]])
+	clearPage(site, colors[theme["background"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	print("\n")
 	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
@@ -1316,7 +1464,7 @@ pages.help = function(site)
 	centerPrint(string.rep(" ", 47))
 	print("")
 
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 	for i = 1, 7 do centerPrint(string.rep(" ", 47)) end
 	local opt = prompt({{"Getting Started", 7, 9}, {"Making a Theme", 7, 11}, 
 		{"API Documentation", 7, 13}})
@@ -1466,9 +1614,9 @@ pages.help = function(site)
 	end
 
 	local function drawPage(page)
-		clearPage(site, colors[curTheme["background"]])
-		term.setTextColor(colors[curTheme["text-color"]])
-		term.setBackgroundColor(colors[curTheme["top-box"]])
+		clearPage(site, colors[theme["background"]])
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
 		print("")
 		centerPrint(string.rep(" ", 47))
 		centerWrite(string.rep(" ", 47))
@@ -1476,7 +1624,7 @@ pages.help = function(site)
 		centerPrint(string.rep(" ", 47))
 		print("")
 
-		term.setBackgroundColor(colors[curTheme["bottom-box"]])
+		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 		for i, v in ipairs(page.content) do
 			term.setCursorPos(4, i + 7)
@@ -1514,10 +1662,10 @@ end
 
 pages.settings = function(site)
 	while true do
-		clearPage(site, colors[curTheme["background"]])
+		clearPage(site, colors[theme["background"]])
 		print("\n")
-		term.setTextColor(colors[curTheme["text-color"]])
-		term.setBackgroundColor(colors[curTheme["top-box"]])
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
 		centerPrint(string.rep(" ", 43))
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Firewolf Settings")
@@ -1532,7 +1680,7 @@ pages.settings = function(site)
 		if incognito == "true" then b = "Record History - Off" end
 		local c = "Homepage - rdnt://" .. homepage
 
-		term.setBackgroundColor(colors[curTheme["bottom-box"]])
+		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 9 do centerPrint(string.rep(" ", 43)) end
 		local opt = prompt({{a, 6, 10}, {b, 6, 12}, {c, 6, 14}, {"Reset Firewolf", 6, 16}})
 		if opt == a then
@@ -1544,21 +1692,23 @@ pages.settings = function(site)
 		elseif opt == c then
 			term.setCursorPos(9, 15)
 			write("rdnt://")
-			openAddressBar = false
-			local a = read():gsub("^%s*(.-)%s*$", "%1")
-			openAddressBar = true
+			local a = modRead(nil, nil, 30)
+			if a == nil then
+				os.queueEvent(event_exitWebsite)
+				return
+			end
 			if a ~= "" then homepage = a end
 		elseif opt == "Reset Firewolf" then
-			clearPage(site, colors[curTheme["background"]])
-			term.setTextColor(colors[curTheme["text-color"]])
-			term.setBackgroundColor(colors[curTheme["top-box"]])
+			clearPage(site, colors[theme["background"]])
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
 			print("")
 			centerPrint(string.rep(" ", 43))
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Reset Firewolf")
 			centerPrint(string.rep(" ", 43))
 			print("")
-			term.setBackgroundColor(colors[curTheme["bottom-box"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
 			for i = 1, 12 do centerPrint(string.rep(" ", 43)) end
 			local opt = prompt({{"Reset History", 7, 8}, {"Reset Servers", 7, 9}, 
 				{"Reset Theme", 7, 10}, {"Reset Cache", 7, 11}, {"Reset Databases", 7, 12}, 
@@ -1591,8 +1741,8 @@ pages.settings = function(site)
 				return
 			end
 
-			clearPage(site, colors[curTheme["background"]])
-			term.setBackgroundColor(colors[curTheme["top-box"]])
+			clearPage(site, colors[theme["background"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
 			print("")
 			centerPrint(string.rep(" ", 43))
 			centerWrite(string.rep(" ", 43))
@@ -1600,7 +1750,7 @@ pages.settings = function(site)
 			centerPrint(string.rep(" ", 43))
 			print("")
 			term.setCursorPos(1, 10)
-			term.setBackgroundColor(colors[curTheme["bottom-box"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
 			centerPrint(string.rep(" ", 43))
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Firewolf has been reset.")
@@ -1624,17 +1774,17 @@ pages.settings = function(site)
 end
 
 pages.update = function(site)
-	clearPage(site, colors[curTheme["background"]])
+	clearPage(site, colors[theme["background"]])
 	print("\n")
-	term.setTextColor(colors[curTheme["text-color"]])
-	term.setBackgroundColor(colors[curTheme["top-box"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerWrite(string.rep(" ", 43))
 	centerPrint("Force Update Firewolf")
 	centerPrint(string.rep(" ", 43))
 
 	print("\n")
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerPrint(string.rep(" ", 43))
 	centerPrint(string.rep(" ", 43))
@@ -1667,16 +1817,16 @@ pages.update = function(site)
 end
 
 pages.credits = function(site)
-	clearPage(site, colors[curTheme["background"]])
+	clearPage(site, colors[theme["background"]])
 	print("\n")
-	term.setTextColor(colors[curTheme["text-color"]])
-	term.setBackgroundColor(colors[curTheme["top-box"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerWrite(string.rep(" ", 43))
 	centerPrint("Firewolf Credits")
 	centerPrint(string.rep(" ", 43))
 	print("\n")
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerPrint("   Coded by:            GravityScore and   ")
 	centerPrint("                                   1lann   ")
@@ -1687,26 +1837,28 @@ pages.credits = function(site)
 end
 
 pages.getinfo = function(site)
-	clearPage(site, colors[curTheme["background"]])
+	clearPage(site, colors[theme["background"]])
 	print("\n")
-	term.setTextColor(colors[curTheme["text-color"]])
-	term.setBackgroundColor(colors[curTheme["top-box"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerWrite(string.rep(" ", 43))
 	centerPrint("Retrieve Website Information")
 	centerPrint(string.rep(" ", 43))
 	print("\n")
 
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerPrint(string.rep(" ", 43))
 	centerWrite(string.rep(" ", 43))
 	local x, y = term.getCursorPos()
 	term.setCursorPos(7, y - 1)
 	write("rdnt://")
-	openAddressBar = false
-	local a = read():gsub("^%s*(.-)%s*$", "%1")
-	openAddressBar = true
+	local a = modRead(nil, nil, 31)
+	if a == nil then
+		os.queueEvent(event_exitWebsite)
+		return
+	end
 	local id, content, status = getWebsite(a)
 
 	if id ~= nil then
@@ -1727,14 +1879,18 @@ pages.getinfo = function(site)
 		if opt == "Save Source" then
 			term.setCursorPos(9, 13)
 			write("Save As: /")
-			openAddressBar = false
-			local loc = "/" .. read():gsub("^%s*(.-)%s*$", "%1")
-			openAddressBar = true
-			local f = io.open(loc, "w")
-			f:write(content)
-			f:close()
-			term.setCursorPos(1, 13)
-			centerWrite(string.rep(" ", 43))
+			local loc = modRead(nil, nil, 24)
+			if loc ~= nil and loc ~= "" then
+				loc = "/" .. loc
+				local f = io.open(loc, "w")
+				f:write(content)
+				f:close()
+				term.setCursorPos(1, 13)
+				centerWrite(string.rep(" ", 43))
+			elseif loc == nil then
+				os.queueEvent(event_exitWebsite)
+				return
+			end
 		elseif opt == "Visit Site" then
 			redirect(a)
 			return
@@ -1754,7 +1910,7 @@ pages.kitteh = function(site)
 	term.setTextColor(colors.white)
 	term.setBackgroundColor(colors.black)
 	term.clear()
-	term.setCursorPos(1, 1)
+	term.setCursorPos(1, 3)
 	centerPrint("       .__....._             _.....__,         ")
 	centerPrint("         .\": o :':         ;': o :\".           ")
 	centerPrint("         '. '-' .'.       .'. '-' .'           ")
@@ -1780,17 +1936,17 @@ errPages.overspeed = function()
 	loadingRate = 0
 	website = "overspeed"
 
-	clearPage("overspeed", colors[curTheme["background"]])
+	clearPage("overspeed", colors[theme["background"]])
 	print("\n")
-	term.setTextColor(colors[curTheme["text-color"]])
-	term.setBackgroundColor(colors[curTheme["top-box"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerWrite(string.rep(" ", 43))
 	centerPrint("Warning! D:")
 	centerPrint(string.rep(" ", 43))
 	print("")
 
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerPrint("  Website browsing sleep limit reached!    ")
 	centerPrint(string.rep(" ", 43))
@@ -1816,29 +1972,29 @@ errPages.overspeed = function()
 end
 
 errPages.crash = function(err)
-	clearPage("crash", colors[curTheme["background"]])
+	clearPage("crash", colors[theme["background"]])
 	print("")
-	term.setTextColor(colors[curTheme["text-color"]])
-	term.setBackgroundColor(colors[curTheme["top-box"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerWrite(string.rep(" ", 43))
 	centerPrint("The Website Has Crashed! D:")
 	centerPrint(string.rep(" ", 43))
 	print("")
 
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerWrite(string.rep(" ", 43))
 	centerPrint("It looks like the website has crashed!")
 	centerWrite(string.rep(" ", 43))
 	centerPrint("Report this error to the website owner:")
 	centerPrint(string.rep(" ", 43))
-	term.setBackgroundColor(colors[curTheme["background"]])
+	term.setBackgroundColor(colors[theme["background"]])
 	print("")
 	print("  " .. err)
 	print("")
 
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerWrite(string.rep(" ", 43))
 	centerPrint("You may now browse normally!")
@@ -1858,17 +2014,17 @@ errPages.checkForModem = function()
 
 		if not(present) then
 			website = "nomodem"
-			clearPage("nomodem", colors[curTheme["background"]])
+			clearPage("nomodem", colors[theme["background"]])
 			print("")
-			term.setTextColor(colors[curTheme["text-color"]])
-			term.setBackgroundColor(colors[curTheme["top-box"]])
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
 			centerPrint(string.rep(" ", 43))
 			centerWrite(string.rep(" ", 43))
 			centerPrint("No Modem Attached! D:")
 			centerPrint(string.rep(" ", 43))
 			print("")
 
-			term.setBackgroundColor(colors[curTheme["bottom-box"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
 			centerPrint(string.rep(" ", 43))
 			centerWrite(string.rep(" ", 43))
 			centerPrint("No wireless modem was found on this")
@@ -2057,9 +2213,9 @@ local function loadSite(site)
 
 	-- Draw
 	openAddressBar = false
-	clearPage(site, colors[curTheme["background"]])
-	term.setTextColor(colors[curTheme["text-color"]])
-	term.setBackgroundColor(colors[curTheme["background"]])
+	clearPage(site, colors[theme["background"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["background"]])
 	print("\n\n")
 	centerPrint("Connecting...")
 
@@ -2077,17 +2233,17 @@ local function loadSite(site)
 		if status == "antivirus" then
 			local offences = verify("antivirus offences", content)
 			if #offences > 0 then
-				clearPage(site, colors[curTheme["background"]])
+				clearPage(site, colors[theme["background"]])
 				print("")
-				term.setTextColor(colors[curTheme["text-color"]])
-				term.setBackgroundColor(colors[curTheme["top-box"]])
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["top-box"]])
 				centerPrint(string.rep(" ", 47))
 				centerWrite(string.rep(" ", 47))
 				centerPrint("Antivirus Triggered!")
 				centerPrint(string.rep(" ", 47))
 				print("")
 
-				term.setBackgroundColor(colors[curTheme["bottom-box"]])
+				term.setBackgroundColor(colors[theme["bottom-box"]])
 				centerPrint(string.rep(" ", 47))
 				centerPrint("  The antivirus has been triggered on this     ")
 				centerPrint("  website! Do you want to give this website    ")
@@ -2103,17 +2259,17 @@ local function loadSite(site)
 				if opt == "Allow" then
 					status = "safe"
 				elseif opt == "Cancel" then
-					clearPage(site, colors[curTheme["background"]])
+					clearPage(site, colors[theme["background"]])
 					print("")
-					term.setTextColor(colors[curTheme["text-color"]])
-					term.setBackgroundColor(colors[curTheme["top-box"]])
+					term.setTextColor(colors[theme["text-color"]])
+					term.setBackgroundColor(colors[theme["top-box"]])
 					centerPrint(string.rep(" ", 47))
 					centerWrite(string.rep(" ", 47))
 					centerPrint("O Noes!")
 					centerPrint(string.rep(" ", 47))
 					print("")
 
-					term.setBackgroundColor(colors[curTheme["bottom-box"]])
+					term.setBackgroundColor(colors[theme["bottom-box"]])
 					centerPrint(string.rep(" ", 47))
 					centerPrint("         ______                          __    ")
 					centerPrint("        / ____/_____ _____ ____   _____ / /    ")
@@ -2145,17 +2301,17 @@ local function loadSite(site)
 		if fs.exists(cacheLoc) and site ~= "" and site ~= "." and site ~= ".." and
 				not(verify("blacklist", site)) then
 			openAddressBar = true
-			clearPage(site, colors[curTheme["background"]])
+			clearPage(site, colors[theme["background"]])
 			print("")
-			term.setTextColor(colors[curTheme["text-color"]])
-			term.setBackgroundColor(colors[curTheme["top-box"]])
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
 			centerPrint(string.rep(" ", 47))
 			centerWrite(string.rep(" ", 47))
 			centerPrint("Cache Exists!")
 			centerPrint(string.rep(" ", 47))
 			print("")
 
-			term.setBackgroundColor(colors[curTheme["bottom-box"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
 			centerPrint(string.rep(" ", 47))
 			centerPrint("       ______              __            __    ")
 			centerPrint("      / ____/____ _ _____ / /_   ___    / /    ")
@@ -2174,17 +2330,17 @@ local function loadSite(site)
 				runSite(cacheLoc)
 				return
 			elseif opt == "Cancel" then
-				clearPage(site, colors[curTheme["background"]])
+				clearPage(site, colors[theme["background"]])
 				print("\n")
-				term.setTextColor(colors[curTheme["text-color"]])
-				term.setBackgroundColor(colors[curTheme["top-box"]])
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["top-box"]])
 				centerPrint(string.rep(" ", 47))
 				centerWrite(string.rep(" ", 47))
 				centerPrint("O Noes!")
 				centerPrint(string.rep(" ", 47))
 				print("")
 
-				term.setBackgroundColor(colors[curTheme["bottom-box"]])
+				term.setBackgroundColor(colors[theme["bottom-box"]])
 				centerPrint(string.rep(" ", 47))
 				centerPrint("         ______                          __    ")
 				centerPrint("        / ____/_____ _____ ____   _____ / /    ")
@@ -2204,10 +2360,10 @@ local function loadSite(site)
 
 			openAddressBar = true
 			if #res > 0 then
-				clearPage(site, colors[curTheme["background"]])
+				clearPage(site, colors[theme["background"]])
 				print("")
-				term.setTextColor(colors[curTheme["text-color"]])
-				term.setBackgroundColor(colors[curTheme["top-box"]])
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["top-box"]])
 				centerPrint(string.rep(" ", 47))
 				centerWrite(string.rep(" ", 47))
 				if #res == 1 then centerPrint("1 Search Result")
@@ -2215,7 +2371,7 @@ local function loadSite(site)
 				centerPrint(string.rep(" ", 47))
 				print("")
 
-				term.setBackgroundColor(colors[curTheme["bottom-box"]])
+				term.setBackgroundColor(colors[theme["bottom-box"]])
 				for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 				local opt = scrollingPrompt(res, 4, 8, 10, 43)
 				if opt then
@@ -2226,25 +2382,25 @@ local function loadSite(site)
 					return
 				end
 			elseif site == "" and #res == 0 then
-				clearPage(site, colors[curTheme["background"]])
+				clearPage(site, colors[theme["background"]])
 				print("\n\n")
-				term.setTextColor(colors[curTheme["text-color"]])
-				term.setBackgroundColor(colors[curTheme["top-box"]])
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["top-box"]])
 				centerPrint(string.rep(" ", 47))
 				centerWrite(string.rep(" ", 47))
 				centerPrint("No Websites are Currently Online! D:")
 				centerPrint(string.rep(" ", 47))
 			else
-				clearPage(site, colors[curTheme["background"]])
+				clearPage(site, colors[theme["background"]])
 				print("\n")
-				term.setTextColor(colors[curTheme["text-color"]])
-				term.setBackgroundColor(colors[curTheme["top-box"]])
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["top-box"]])
 				centerPrint(string.rep(" ", 47))
 				centerWrite(string.rep(" ", 47))
 				centerPrint("O Noes!")
 				centerPrint(string.rep(" ", 47))
 				print("")
-				term.setBackgroundColor(colors[curTheme["bottom-box"]])
+				term.setBackgroundColor(colors[theme["bottom-box"]])
 				centerPrint(string.rep(" ", 47))
 				centerPrint("         ______                          __    ")
 				centerPrint("        / ____/_____ _____ ____   _____ / /    ")
@@ -2326,6 +2482,77 @@ end
 
 --  -------- Address Bar
 
+local curSites = {}
+
+local function retrieveAllWebsites()
+	curSites = getSearchResults("")
+	local a = os.startTimer(15)
+
+	while true do
+		local e, but = os.pullEvent()
+		if e == "timer" and but == a then
+			curSites = getSearchResults("")
+			a = os.startTimer(15)
+		elseif e == event_exitWebsite then
+			break
+		end
+	end
+end
+
+local function addressBarRead()
+	local len = 4
+	local list = {}
+
+	local function draw(l)
+		local ox, oy = term.getCursorPos()
+		for i = 1, len do
+			term.setTextColor(colors[theme["address-bar-text"]])
+			term.setBackgroundColor(colors[theme["address-bar-background"]])
+			term.setCursorPos(1, i + 1)
+			write(string.rep(" ", w))
+		end
+		if theme["address-bar-base"] then term.setBackgroundColor(colors[theme["address-bar-base"]])
+		else term.setBackgroundColor(colors[theme["bottom-box"]]) end
+		term.setCursorPos(1, len + 2)
+		write(string.rep(" ", w))
+		term.setBackgroundColor(colors[theme["address-bar-background"]])
+
+		for i, v in ipairs(l) do
+			term.setCursorPos(2, i + 1)
+			write(v)
+		end
+		term.setCursorPos(ox, oy)
+	end
+
+	local function onLiveUpdate(cur, e, but, x, y, p4, p5)
+		if e == "char" or e == "update_history" or e == "delete" then
+			list = {}
+			for _, v in pairs(curSites) do
+				if #list < len and v:gsub("rdnt://", ""):find(cur:lower(), 1, true) then
+					table.insert(list, v)
+				end
+			end
+			table.sort(list)
+			table.sort(list, function(a, b)
+				local _, ac = a:gsub("rdnt://", ""):gsub(cur:lower(), "")
+				local _, bc = b:gsub("rdnt://", ""):gsub(cur:lower(), "")
+				return ac > bc
+			end)
+			draw(list)
+			return false, nil
+		elseif e == "mouse_click" then
+			for i = 1, len do
+				if y == i + 1 then
+					return true, list[i]:gsub("rdnt://", "")
+				end
+			end
+		end
+	end
+
+	onLiveUpdate("", "delete", nil, nil, nil, nil, nil)
+	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate, true)
+end
+
 local function addressBarMain()
 	while true do
 		local e, but, x, y = os.pullEvent()
@@ -2337,12 +2564,15 @@ local function addressBarMain()
 
 				-- Read
 				term.setCursorPos(2, 1)
-				term.setBackgroundColor(colors[curTheme["address-bar-background"]])
-				term.setTextColor(colors[curTheme["address-bar-text"]])
+				term.setBackgroundColor(colors[theme["address-bar-background"]])
+				term.setTextColor(colors[theme["address-bar-text"]])
 				term.clearLine()
 				write("rdnt://")
-				website = read(nil, addressBarHistory):gsub("^%s*(.-)%s*$", "%1")
-				if website == "home" or website == "homepage" then
+				local oldWebsite = website
+				website = addressBarRead()
+				if website == nil then
+					website = oldWebsite
+				elseif website == "home" or website == "homepage" then
 					website = homepage
 				end
 
@@ -2368,11 +2598,11 @@ end
 
 local function main()
 	-- Logo
-	term.setBackgroundColor(colors[curTheme["background"]])
-	term.setTextColor(colors[curTheme["text-color"]])
+	term.setBackgroundColor(colors[theme["background"]])
+	term.setTextColor(colors[theme["text-color"]])
 	term.clear()
 	term.setCursorPos(1, 2)
-	term.setBackgroundColor(colors[curTheme["top-box"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 47))
 	centerPrint("          ______ ____ ____   ______            ")
 	centerPrint(" ------- / ____//  _// __ \\ / ____/            ")
@@ -2386,7 +2616,7 @@ local function main()
 	centerPrint("              |__/|__/ \\____//_____//_/        ")
 	centerPrint(string.rep(" ", 47))
 	print("\n")
-	term.setBackgroundColor(colors[curTheme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
 
 	-- Download Files
 	centerPrint(string.rep(" ", 47))
@@ -2428,25 +2658,25 @@ local function main()
 	website = homepage
 
 	-- Run
-	parallel.waitForAll(websiteMain, addressBarMain)
+	parallel.waitForAll(websiteMain, addressBarMain, retrieveAllWebsites)
 end
 
 local function startup()
 	-- HTTP API
 	if not(http) then
 		if term.isColor() then
-			term.setTextColor(colors[curTheme["text-color"]])
-			term.setBackgroundColor(colors[curTheme["background"]])
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["background"]])
 			term.clear()
 			term.setCursorPos(1, 2)
-			term.setBackgroundColor(colors[curTheme["top-box"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
 			api.centerPrint(string.rep(" ", 46))
 			api.centerWrite(string.rep(" ", 46))
 			api.centerPrint("HTTP API Not Enabled! D:")
 			api.centerPrint(string.rep(" ", 46))
 			print("")
 
-			term.setBackgroundColor(colors[curTheme["bottom-box"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
 			api.centerPrint(string.rep(" ", 46))
 			api.centerPrint("  Firewolf is unable to run without the HTTP   ")
 			api.centerPrint("  API Enabled! Please enable it in the CC     ")
@@ -2504,8 +2734,8 @@ local function startup()
 					term.setCursorPos(1, 4)
 					api.centerPrint("Downloading...")
 
-					local oldDownloadURL = "https://raw.github.com/1lann/firewolf/master/entities/" .. 
-							"old.lua"
+					local oldDownloadURL = 
+						"http://raw.github.com/1lann/firewolf/master/entities/old.lua"
 					fs.delete("/firewolf-old")
 					fs.delete("/" .. shell.getRunningProgram())
 					local oldDownloadURL = ""
@@ -2554,27 +2784,27 @@ local function startup()
 	-- Run
 	local _, err = pcall(main)
 	if err ~= nil then
-		term.setTextColor(colors[curTheme["text-color"]])
-		term.setBackgroundColor(colors[curTheme["background"]])
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["background"]])
 		term.clear()
 		term.setCursorPos(1, 2)
-		term.setBackgroundColor(colors[curTheme["top-box"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
 		api.centerPrint(string.rep(" ", 46))
 		api.centerWrite(string.rep(" ", 46))
 		api.centerPrint("Firewolf has Crashed! D:")
 		api.centerPrint(string.rep(" ", 46))
 		print("")
 
-		term.setBackgroundColor(colors[curTheme["bottom-box"]])
+		term.setBackgroundColor(colors[theme["bottom-box"]])
 		api.centerPrint(string.rep(" ", 46))
 		api.centerPrint("  Firewolf has encountered a critical error:  ")
 		api.centerPrint(string.rep(" ", 46))
-		term.setBackgroundColor(colors[curTheme["background"]])
+		term.setBackgroundColor(colors[theme["background"]])
 		print("")
 		print("  " .. err)
 		print("")
 
-		term.setBackgroundColor(colors[curTheme["bottom-box"]])
+		term.setBackgroundColor(colors[theme["bottom-box"]])
 		api.centerPrint(string.rep(" ", 46))
 		api.centerPrint("  Please report this error to 1lann or        ")
 		api.centerPrint("  GravityScore so we are able to fix it!      ")
@@ -2594,8 +2824,8 @@ local function startup()
 end
 
 -- Theme
-curTheme = loadTheme(themeLocation)
-if curTheme == nil then curTheme = defaultTheme end
+theme = loadTheme(themeLocation)
+if theme == nil then theme = defaultTheme end
 
 -- Start
 startup()
