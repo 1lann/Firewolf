@@ -268,7 +268,7 @@ setfenv(1, env)
 
 --  -------- Utilities
 
-local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exitOnControl)
+local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exitOnControl, col, tex)
 	term.setCursorBlink(true)
 	local line = ""
 	local hisPos = nil
@@ -281,6 +281,8 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 		local scroll = 0
 		if line:len() >= maxLen then scroll = line:len() - maxLen end
 
+		if col then term.setBackgroundColor(col) end
+		if text then term.setTextColor(tex) end
 		term.setCursorPos(sx, sy)
 		local a = repl or replaceChar
 		if a then term.write(string.rep(a, line:len() - scroll))
@@ -2475,9 +2477,10 @@ local function addressBarRead()
 			local a, b, c = {}, {}, {}
 			for k, v in pairs(curSites) do
 				local _, count = v:gsub(cur, "")
-				table.insert(a, {v, count})
+				if count > 0 then table.insert(a, {v, count}) end
 			end
 			table.sort(a, function(a, b) return a[2] < b[2] end)
+			
 			for k, v in pairs(a) do table.insert(b, v[1]) end
 			for i = 1, 7 do if b[i] ~= nil then table.insert(c, b[i]) end end
 			draw(c)
@@ -2486,7 +2489,8 @@ local function addressBarRead()
 		end
 	end
 
-	return modRead(nil, addressBarHistory, 42, false, onLiveUpdate, true)
+	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate, true, colors[theme["background"]], 
+		colors[theme["address-bar-text"]])
 end
 
 local function addressBarMain()
