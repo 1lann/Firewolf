@@ -324,8 +324,10 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 				if liveUpdates then
 					local a, data = liveUpdates(line, "update_history", nil, nil, nil, nil, nil)
 					if a == true and data == nil then
+						term.setCursorBlink(false)
 						return line
 					elseif a == true and data ~= nil then
+						term.setCursorBlink(false)
 						return data
 					end
 				end
@@ -337,8 +339,10 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 				if liveUpdates then
 					local a, data = liveUpdates(line, "delete", nil, nil, nil, nil, nil)
 					if a == true and data == nil then
+						term.setCursorBlink(false)
 						return line
 					elseif a == true and data ~= nil then
+						term.setCursorBlink(false)
 						return data
 					end
 				end
@@ -352,8 +356,10 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 				if liveUpdates then
 					local a, data = liveUpdates(line, "delete", nil, nil, nil, nil, nil)
 					if a == true and data == nil then
+						term.setCursorBlink(false)
 						return line
 					elseif a == true and data ~= nil then
+						term.setCursorBlink(false)
 						return data
 					end
 				end
@@ -361,13 +367,16 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 				pos = line:len()
 				redraw()
 			elseif (but == 29 or but == 157) and not(exitOnControl == true) then 
+				term.setCursorBlink(false)
 				return nil
 			end
 		end if liveUpdates then
 			local a, data = liveUpdates(line, e, but, x, y, p4, p5)
 			if a == true and data == nil then
+				term.setCursorBlink(false)
 				return line
 			elseif a == true and data ~= nil then
+				term.setCursorBlink(false)
 				return data
 			end
 		end
@@ -2514,11 +2523,11 @@ local function addressBarRead()
 				if #list <= len and v:find(cur, 1, true) then
 					table.insert(list, v)
 				end
-			end for k, _ in pairs(pages) do
+			end --[[for k, _ in pairs(pages) do
 				if #list <= len and k:find(cur, 1, true) then
-					table.insert(list, k)
+					table.insert(list, "rdnt://" .. k)
 				end
-			end
+			end]]
 			draw(list)
 			return false, nil
 		elseif e == "mouse_click" then
