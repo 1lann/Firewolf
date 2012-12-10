@@ -894,6 +894,10 @@ pages.firewolf = function(site)
 	end
 end
 
+pages.firefox = function(site)
+	redirect("firewolf")
+end
+
 pages.history = function(site)
 	clearPage(site, colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
@@ -957,10 +961,6 @@ pages.history = function(site)
 		centerPrint("No Items in History!")
 		centerPrint(string.rep(" ", 43))
 	end
-end
-
-pages.firefox = function(site)
-redirect("firewolf")
 end
 
 pages.downloads = function(site)
@@ -2486,7 +2486,7 @@ local function addressBarRead()
 		end
 	end
 
-	return modRead(nil, addressBarHistory, 42, onLiveUpdate, true)
+	return modRead(nil, addressBarHistory, 42, false, onLiveUpdate, true)
 end
 
 local function addressBarMain()
