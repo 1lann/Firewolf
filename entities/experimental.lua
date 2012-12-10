@@ -2511,11 +2511,11 @@ local function addressBarRead()
 		if e == "char" or e == "update_history" or e == "delete" then
 			list = {}
 			for _, v in pairs(curSites) do
-				if #a <= len and v:find(cur, 1, true) then
+				if #list <= len and v:find(cur, 1, true) then
 					table.insert(list, v)
 				end
 			end for k, _ in pairs(pages) do
-				if #a <= len and k:find(cur, 1, true) then
+				if #list <= len and k:find(cur, 1, true) then
 					table.insert(list, k)
 				end
 			end
