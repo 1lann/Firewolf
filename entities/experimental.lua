@@ -2521,6 +2521,12 @@ local function addressBarRead()
 					table.insert(list, v)
 				end
 			end
+			table.sort(list)
+			table.sort(list, function(a, b)
+				local _, ac = a:gsub("rdnt://", ""):gsub(cur:lower(), "")
+				local _, bc = b:gsub("rdnt://", ""):gsub(cur:lower(), "")
+				return ac < bc
+			end)
 			draw(list)
 			return false, nil
 		elseif e == "mouse_click" then
