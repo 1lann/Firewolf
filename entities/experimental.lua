@@ -268,7 +268,7 @@ setfenv(1, env)
 
 --  -------- Utilities
 
-local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exitOnControl, col, tex)
+local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exitOnControl)
 	term.setCursorBlink(true)
 	local line = ""
 	local hisPos = nil
@@ -281,8 +281,6 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 		local scroll = 0
 		if line:len() >= maxLen then scroll = line:len() - maxLen end
 
-		if col then term.setBackgroundColor(col) end
-		if text then term.setTextColor(tex) end
 		term.setCursorPos(sx, sy)
 		local a = repl or replaceChar
 		if a then term.write(string.rep(a, line:len() - scroll))
@@ -2492,42 +2490,33 @@ local function retrieveAllWebsites()
 end
 
 local function addressBarRead()
-	local len = 4
-	local function draw(list)
+	local len = 5
+	local list = {}
+
+	local function draw(l)
 		local ox, oy = term.getCursorPos()
-		for i = 1, len + 1 do
+		for i = 1, len do
 			term.setTextColor(colors[theme["address-bar-text"]])
 			term.setBackgroundColor(colors[theme["address-bar-background"]])
 			term.setCursorPos(1, i + 1)
 			write(string.rep(" ", w))
 		end
-		term.setCursorPos(1, len + 2)
-		write(string.rep("-", w))
 
-		if #list > 0 then
-			for i, v in ipairs(list) do
-				term.setCursorPos(2, i + 1)
-				write(v)
-			end
+		for i, v in ipairs(l) do
+			term.setCursorPos(2, i + 1)
+			write(v)
 		end
 		term.setCursorPos(ox, oy)
 	end
-
-	local list = {}
-	local ret = ""
 
 	local function onLiveUpdate(cur, e, but, x, y, p4, p5)
 		if e == "char" or e == "update_history" or e == "delete" then
 			list = {}
 			for _, v in pairs(curSites) do
-				if #list <= len and v:find(cur, 1, true) then
+				if #list <= len and v:find(cur:lower(), 1, true) then
 					table.insert(list, v)
 				end
-			end --[[for k, _ in pairs(pages) do
-				if #list <= len and k:find(cur, 1, true) then
-					table.insert(list, "rdnt://" .. k)
-				end
-			end]]
+			end
 			draw(list)
 			return false, nil
 		elseif e == "mouse_click" then
@@ -2540,8 +2529,7 @@ local function addressBarRead()
 	end
 
 	onLiveUpdate("", "delete", nil, nil, nil, nil, nil)
-	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate, true, 
-		colors[theme["address-bar-background"]], colors[theme["address-bar-text"]])
+	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate, true)
 end
 
 local function addressBarMain()
