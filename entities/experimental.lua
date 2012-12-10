@@ -2525,7 +2525,7 @@ local function addressBarRead()
 			table.sort(list, function(a, b)
 				local _, ac = a:gsub("rdnt://", ""):gsub(cur:lower(), "")
 				local _, bc = b:gsub("rdnt://", ""):gsub(cur:lower(), "")
-				return ac < bc
+				return ac > bc
 			end)
 			draw(list)
 			return false, nil
