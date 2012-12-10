@@ -2470,6 +2470,15 @@ local function addressBarRead()
 		end
 	end
 
+	local function updateDisplayList(items, loc, len)
+		local ret = {}
+		for i = 1, len do
+			local item = items[i + loc - 1]
+			if item ~= nil then table.insert(ret, item) end
+		end
+		return ret
+	end
+
 	local function onLiveUpdate(cur, e, but, x, y, p4, p5)
 		if e == "char" or e == "update_history" then
 			local a, b = {}, {}
