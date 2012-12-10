@@ -12,7 +12,7 @@
 --  -------- Variables
 
 -- Version
-local version = "2.1"
+local version = "2.2"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 
@@ -65,6 +65,9 @@ local firewolfURL = "https://raw.github.com/1lann/firewolf/master/entities/" .. 
 local databaseURL = "https://raw.github.com/1lann/firewolf/master/databases/" .. serverID .. 
 		"-database.txt"
 local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server.lua"
+if serverID == "experimental" then 
+	serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-experimental.lua"
+end
 local availableThemesURL = "https://raw.github.com/1lann/firewolf/master/themes/available.txt"
 
 -- Data Locations
