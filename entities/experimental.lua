@@ -327,6 +327,7 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 				line = line:sub(1, pos - 1) .. line:sub(pos + 1, -1)
 				pos = pos - 1
 				redraw()
+				liveUpdates(line, "delete", nil, nil, nil, nil, nil)
 			elseif but == keys.home then
 				pos = 0
 				redraw()
@@ -334,6 +335,7 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 				redraw(" ")
 				line = line:sub(1, pos) .. line:sub(pos + 2, -1)
 				redraw()
+				liveUpdates(line, "delete", nil, nil, nil, nil, nil)
 			elseif but == keys["end"] then
 				pos = line:len()
 				redraw()
@@ -2477,7 +2479,7 @@ local function addressBarRead()
 	end
 
 	local function onLiveUpdate(cur, e, but, x, y, p4, p5)
-		if e == "char" or e == "update_history" then
+		if e == "char" or e == "update_history" or e == "delete" then
 			local a = {}
 			for i, v in ipairs(curSites) do
 				if i <= len and v:find(cur) then
