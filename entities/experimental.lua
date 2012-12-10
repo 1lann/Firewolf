@@ -2455,15 +2455,16 @@ local function retrieveAllWebsites()
 end
 
 local function addressBarRead()
+	local len = 4
 	local function draw(list)
 		local ox, oy = term.getCursorPos()
-		for i = 1, 5 do
+		for i = 1, len + 1 do
 			term.setTextColor(colors[theme["address-bar-text"]])
 			term.setBackgroundColor(colors[theme["address-bar-background"]])
 			term.setCursorPos(1, i + 1)
 			write(string.rep(" ", w))
 		end
-		term.setCursorPos(1, 6)
+		term.setCursorPos(1, len + 2)
 		write(string.rep("-", w))
 
 		if #list > 0 then
@@ -2477,34 +2478,22 @@ local function addressBarRead()
 
 	local function onLiveUpdate(cur, e, but, x, y, p4, p5)
 		if e == "char" or e == "update_history" then
-			--[[local a, b, c = {}, {}, {}
-			for k, v in pairs(curSites) do
-				local _, count = v:gsub(cur, "")
-				if count > 0 then table.insert(a, {v, count}) end
-			end
-			table.sort(a, function(a, b) return a[2] < b[2] end)
-
-			for k, v in pairs(a) do table.insert(b, v[1]) end
-			for i = 1, 7 do if b[i] ~= nil then table.insert(c, b[i]) end end]]
 			local a = {}
-			if cur ~= "" then 
-				for i = 1, 4 do 
-					if curSites[i] ~= nil and curSites[i]:find(cur) then
-						table.insert(a, curSites[i]) 
-					else
-						table.insert(a, "")
-					end
-				end 
+			for i, v in ipairs(curSites) do
+				if i <= len and v:find(cur) then
+					table.insert(a, v)
+				end
 			end
-			table.sort(a)
+
 			draw(a)
 		elseif e == "mouse_click" then
 
 		end
 	end
 
-	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate, true, colors[theme["background"]], 
-		colors[theme["address-bar-text"]])
+	onLiveUpdate("", "update_history", nil, nil, nil, nil, nil)
+	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate, true, 
+		colors[theme["address-bar-background"]], colors[theme["address-bar-text"]])
 end
 
 local function addressBarMain()
