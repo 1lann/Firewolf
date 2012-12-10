@@ -321,13 +321,27 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 					pos = 0
 				end
 				redraw()
-				liveUpdates(line, "update_history", nil, nil, nil, nil, nil)
+				if liveUpdates then
+					local a, data = liveUpdates(line, "update_history", nil, nil, nil, nil, nil)
+					if a == true and data == nil then
+						return line
+					elseif a == true and data ~= nil then
+						return data
+					end
+				end
 			elseif but == keys.backspace and pos > 0 then
 				redraw(" ")
 				line = line:sub(1, pos - 1) .. line:sub(pos + 1, -1)
 				pos = pos - 1
 				redraw()
-				liveUpdates(line, "delete", nil, nil, nil, nil, nil)
+				if liveUpdates then
+					local a, data = liveUpdates(line, "delete", nil, nil, nil, nil, nil)
+					if a == true and data == nil then
+						return line
+					elseif a == true and data ~= nil then
+						return data
+					end
+				end
 			elseif but == keys.home then
 				pos = 0
 				redraw()
@@ -335,15 +349,27 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 				redraw(" ")
 				line = line:sub(1, pos) .. line:sub(pos + 2, -1)
 				redraw()
-				liveUpdates(line, "delete", nil, nil, nil, nil, nil)
+				if liveUpdates then
+					local a, data = liveUpdates(line, "delete", nil, nil, nil, nil, nil)
+					if a == true and data == nil then
+						return line
+					elseif a == true and data ~= nil then
+						return data
+					end
+				end
 			elseif but == keys["end"] then
 				pos = line:len()
 				redraw()
 			elseif (but == 29 or but == 157) and not(exitOnControl == true) then 
 				return nil
 			end
-		end if liveUpdates and e then
-			liveUpdates(line, e, but, x, y, p4, p5)
+		end if liveUpdates then
+			local a, data = liveUpdates(line, e, but, x, y, p4, p5)
+			if a == true and data == nil then
+				return line
+			elseif a == true and data ~= nil then
+				return data
+			end
 		end
 	end
 
@@ -2478,22 +2504,33 @@ local function addressBarRead()
 		term.setCursorPos(ox, oy)
 	end
 
+	local list = {}
+	local ret = ""
+
 	local function onLiveUpdate(cur, e, but, x, y, p4, p5)
 		if e == "char" or e == "update_history" or e == "delete" then
-			local a = {}
-			for i, v in ipairs(curSites) do
-				if i <= len and v:find(cur, 1, true) then
-					table.insert(a, v)
+			list = {}
+			for _, v in pairs(curSites) do
+				if #a <= len and v:find(cur, 1, true) then
+					table.insert(list, v)
+				end
+			end for k, _ in pairs(pages) do
+				if #a <= len and k:find(cur, 1, true) then
+					table.insert(list, k)
 				end
 			end
-
-			draw(a)
+			draw(list)
+			return false, nil
 		elseif e == "mouse_click" then
-
+			for i = 1, len do
+				if y == i + 1 then
+					return true, list[i]:gsub("rdnt://", "")
+				end
+			end
 		end
 	end
 
-	onLiveUpdate("", "update_history", nil, nil, nil, nil, nil)
+	onLiveUpdate("", "delete", nil, nil, nil, nil, nil)
 	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate, true, 
 		colors[theme["address-bar-background"]], colors[theme["address-bar-text"]])
 end
