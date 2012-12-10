@@ -8,6 +8,12 @@
 --  
 
 
+-- Added:
+-- - Live searching
+-- - Prevented read from destroying the background colors
+-- - Control out of reads
+-- - Block IDs from a server
+
 
 --  -------- Variables
 
@@ -853,6 +859,11 @@ local function getSearchResults(input)
 	end
 
 	table.sort(results)
+	table.sort(results, function(a, b)
+		local _, ac = a:gsub("rdnt://", ""):gsub(input:lower(), "")
+		local _, bc = b:gsub("rdnt://", ""):gsub(input:lower(), "")
+		return ac > bc
+	end)
 	return results
 end
 
