@@ -2482,7 +2482,7 @@ local function addressBarRead()
 		if e == "char" or e == "update_history" or e == "delete" then
 			local a = {}
 			for i, v in ipairs(curSites) do
-				if i <= len and v:find(cur) then
+				if i <= len and v:find(cur, 1, true) then
 					table.insert(a, v)
 				end
 			end
