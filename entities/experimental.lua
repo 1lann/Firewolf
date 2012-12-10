@@ -2457,13 +2457,13 @@ end
 local function addressBarRead()
 	local function draw(list)
 		local ox, oy = term.getCursorPos()
-		for i = 1, #list + 1 do
+		for i = 1, 5 do
 			term.setTextColor(colors[theme["address-bar-text"]])
 			term.setBackgroundColor(colors[theme["address-bar-background"]])
 			term.setCursorPos(1, i + 1)
 			write(string.rep(" ", w))
 		end
-		term.setCursorPos(1, #list + 2)
+		term.setCursorPos(1, 6)
 		write(string.rep("-", w))
 
 		if #list > 0 then
