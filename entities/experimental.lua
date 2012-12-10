@@ -2470,26 +2470,17 @@ local function addressBarRead()
 		end
 	end
 
-	local function updateDisplayList(items, loc, len)
-		local ret = {}
-		for i = 1, len do
-			local item = items[i + loc - 1]
-			if item ~= nil then table.insert(ret, item) end
-		end
-		return ret
-	end
-
 	local function onLiveUpdate(cur, e, but, x, y, p4, p5)
 		if e == "char" or e == "update_history" then
-			local a, b = {}, {}
+			local a, b, c = {}, {}, {}
 			for k, v in pairs(curSites) do
 				local _, count = v:gsub(cur, "")
 				table.insert(a, {v, count})
 			end
 			table.sort(a, function(a, b) return a[2] < b[2] end)
 			for k, v in pairs(a) do table.insert(b, v[1]) end
-			list = updateDisplayList(b, 1, maxLen)
-			draw(b)
+			for i = 1, 7 do if b[i] ~= nil then table.insert(c, b[i]) end end
+			draw(c)
 		elseif e == "mouse_click" then
 
 		end
