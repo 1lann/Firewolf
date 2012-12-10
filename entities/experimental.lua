@@ -2490,7 +2490,7 @@ local function retrieveAllWebsites()
 end
 
 local function addressBarRead()
-	local len = 5
+	local len = 4
 	local list = {}
 
 	local function draw(l)
@@ -2501,6 +2501,10 @@ local function addressBarRead()
 			term.setCursorPos(1, i + 1)
 			write(string.rep(" ", w))
 		end
+		if theme["address-bar-base"] then term.setBackgroundColor(colors[theme["address-bar-base"]])
+		else term.setBackgroundColor(colors[theme["bottom-box"]])
+		term.setCursorPos(1, len + 2)
+		write(string.rep(" ", w))
 
 		for i, v in ipairs(l) do
 			term.setCursorPos(2, i + 1)
@@ -2513,7 +2517,7 @@ local function addressBarRead()
 		if e == "char" or e == "update_history" or e == "delete" then
 			list = {}
 			for _, v in pairs(curSites) do
-				if #list <= len and v:find(cur:lower(), 1, true) then
+				if #list <= len and v:gsub("rdnt://", ""):find(cur:lower(), 1, true) then
 					table.insert(list, v)
 				end
 			end

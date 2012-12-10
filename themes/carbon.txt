@@ -1,5 +1,6 @@
 address-bar-text=white
 address-bar-background=black
+address-bar-base=lightGray
 top-box=lightGray
 bottom-box=gray
 background=black
