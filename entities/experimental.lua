@@ -2456,34 +2456,39 @@ end
 
 local function addressBarRead()
 	local function draw(list)
-		if #list > 0 then
-			local ox, oy = term.getCursorPos()
-			term.setTextColor(colors[theme["text-color"]])
-			term.setBackgroundColor(colors[theme["bottom-box"]])
-			for i, v in ipairs(list) do
-				term.setCursorPos(8, i + 1)
-				write(string.rep(" ", 42))
-				term.setCursorPos(9, i + 1)
-				write(v)
-			end
-			term.setCursorPos(8, #list + 1)
-			write(string.rep(" ", 42))
-			term.setCursorPos(ox, oy)
+		local ox, oy = term.getCursorPos()
+		for i = 1, #list + 1 do
+			term.setTextColor(colors[theme["address-bar-text"]])
+			term.setBackgroundColor(colors[theme["address-bar-background"]])
+			term.setCursorPos(1, i + 1)
+			write(string.rep(" ", w))
 		end
+		term.setCursorPos(1, #list + 1)
+		write(string.rep("-", w))
+
+		if #list > 0 then
+			for i, v in ipairs(list) do
+				term.setCursorPos(2, i + 1)
+				write("rdnt://" .. v)
+			end
+		end
+		term.setCursorPos(ox, oy)
 	end
 
 	local function onLiveUpdate(cur, e, but, x, y, p4, p5)
 		if e == "char" or e == "update_history" then
-			local a, b, c = {}, {}, {}
+			--[[local a, b, c = {}, {}, {}
 			for k, v in pairs(curSites) do
 				local _, count = v:gsub(cur, "")
 				if count > 0 then table.insert(a, {v, count}) end
 			end
 			table.sort(a, function(a, b) return a[2] < b[2] end)
-			
+
 			for k, v in pairs(a) do table.insert(b, v[1]) end
-			for i = 1, 7 do if b[i] ~= nil then table.insert(c, b[i]) end end
-			draw(c)
+			for i = 1, 7 do if b[i] ~= nil then table.insert(c, b[i]) end end]]
+			local a = {}
+			for i = 1, 4 do table.insert(a, curSites[i]) end
+			draw(a)
 		elseif e == "mouse_click" then
 
 		end
