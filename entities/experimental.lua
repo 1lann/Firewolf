@@ -2502,7 +2502,7 @@ local function addressBarRead()
 			write(string.rep(" ", w))
 		end
 		if theme["address-bar-base"] then term.setBackgroundColor(colors[theme["address-bar-base"]])
-		else term.setBackgroundColor(colors[theme["bottom-box"]])
+		else term.setBackgroundColor(colors[theme["bottom-box"]]) end
 		term.setCursorPos(1, len + 2)
 		write(string.rep(" ", w))
 
