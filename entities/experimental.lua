@@ -2463,7 +2463,7 @@ local function addressBarRead()
 			term.setCursorPos(1, i + 1)
 			write(string.rep(" ", w))
 		end
-		term.setCursorPos(1, #list + 1)
+		term.setCursorPos(1, #list + 2)
 		write(string.rep("-", w))
 
 		if #list > 0 then
@@ -2487,7 +2487,13 @@ local function addressBarRead()
 			for k, v in pairs(a) do table.insert(b, v[1]) end
 			for i = 1, 7 do if b[i] ~= nil then table.insert(c, b[i]) end end]]
 			local a = {}
-			for i = 1, 4 do table.insert(a, curSites[i]) end
+			if cur ~= "" then 
+				for i = 1, 4 do 
+					if curSites[i] ~= nil and curSites[i]:find(cur) then
+						table.insert(a, curSites[i]) 
+					end
+				end 
+			end
 			draw(a)
 		elseif e == "mouse_click" then
 
