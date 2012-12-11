@@ -2543,6 +2543,8 @@ local function addressBarRead()
 		elseif e == "mouse_click" then
 			for i = 1, len do
 				if y == i + 1 then
+					print(list[i])
+					sleep(20)
 					return true, list[i]:gsub("rdnt://", "")
 				end
 			end
