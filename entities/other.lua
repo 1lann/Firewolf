@@ -33,8 +33,8 @@ local function fwLog(fName, ...)
 	if debugMode then
 		debugFile:write("\n" .. fName .. " : ")
 		for k,v in pairs(lArgs) do 
-			if type(v) == "string" or type(v) == "number" then
-				f:write(v .. ", ")
+			if type(v) == "string" or type(v) == "number" or type(v) == nil then
+				f:write(tostring(v) .. ", ")
 			else 
 				f:write("type-" .. type(v)..", ")
 			end
@@ -1079,7 +1079,9 @@ pages.downloads = function(site)
 			print("")
 			fwLog("Title drawn")
 			term.setBackgroundColor(colors[theme["bottom-box"]])
+			fwLog("BG Colour set")
 			for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
+			fwLog("Center Printing complete")
 			local t = scrollingPrompt(c, 4, 8, 10, 44)
 			fwLog("Scrolling prompt drawn")
 			if t == nil then

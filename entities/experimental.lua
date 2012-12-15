@@ -33,14 +33,15 @@ local function fwLog(fName, ...)
 	if debugMode then
 		debugFile:write("\n" .. fName .. " : ")
 		for k,v in pairs(lArgs) do 
-			if type(v) == "string" or type(v) == "number" then
-				f:write(v .. ", ")
+			if type(v) == "string" or type(v) == "number" or type(v) == nil then
+				f:write(tostring(v) .. ", ")
 			else 
 				f:write("type-" .. type(v)..", ")
 			end
 		end
 	end
 end
+
 
 -- Version
 local version = "2.2"
