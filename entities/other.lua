@@ -17,6 +17,31 @@
 
 --  -------- Variables
 
+local debugFile = nil
+local tArgs = {...}
+local debugMode = false
+if tArgs[1] == "debug" then
+	debugMode = true
+	print("Debug mode enabled")
+	debugFile = io.open("firewolf-logs", "a")
+	debugFile:write("\n-- New Log --")
+	sleep(2)
+end
+
+local function fwLog(fName, ...)
+	local lArgs = {...}
+	if debugMode then
+		debugFile:write("\n" .. fName .. " : ")
+		for k,v in pairs(lArgs) do 
+			if type(v) == "string" or type(v) == "number" then
+				f:write(v)
+			else 
+				f:write("type-" .. type(v))
+			end
+		end
+	end
+end
+
 -- Version
 local version = "2.2"
 local browserAgentTemplate = "Firewolf " .. version
@@ -200,6 +225,7 @@ api.scrollingPrompt = function(list, x, y, len, width)
 	if wid == nil then wid = w - 3 end
 
 	local function draw(a)
+		fwLog("draw", a)
 		for i, v in ipairs(a) do
 			term.setCursorPos(1, y + i - 1)
 			api.centerWrite(string.rep(" ", wid + 2))
@@ -1015,6 +1041,7 @@ pages.downloads = function(site)
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	print("")
+	fwLog("Colours Loaded")
 	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Download Center")
@@ -1025,8 +1052,9 @@ pages.downloads = function(site)
 	for i = 1, 5 do
 		centerPrint(string.rep(" ", 47))
 	end
-
+	fwLog("Start Prompt")
 	local opt = prompt({{"Themes", 7, 8}, {"Plugins", 7, 10}})
+	fwLog("Prompt Success")
 	if opt == "Themes" then
 		while true do
 			local themes = {}
@@ -2837,6 +2865,9 @@ term.clear()
 term.setCursorPos(1, 1)
 api.centerPrint("Thank You for Using Firewolf " .. version)
 api.centerPrint("Made by 1lann and GravityScore")
+if debugFile then
+	debugFile:close()
+end
 term.setCursorPos(1, 3)
 
 -- Close Rednet

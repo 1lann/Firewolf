@@ -17,6 +17,31 @@
 
 --  -------- Variables
 
+local debugFile = nil
+local tArgs = {...}
+local debugMode = false
+if tArgs[1] == "debug" then
+	debugMode = true
+	print("Debug mode enabled")
+	debugFile = io.open("firewolf-logs", "a")
+	debugFile:write("\n-- New Log --")
+	sleep(2)
+end
+
+local function fwLog(fName, ...)
+	local lArgs = {...}
+	if debugMode then
+		debugFile:write("\n" .. fName .. " : ")
+		for k,v in pairs(lArgs) do 
+			if type(v) == "string" or type(v) == "number" then
+				f:write(v)
+			else 
+				f:write("type-" .. type(v))
+			end
+		end
+	end
+end
+
 -- Version
 local version = "2.2"
 local browserAgentTemplate = "Firewolf " .. version
