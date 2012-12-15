@@ -34,9 +34,9 @@ local function fwLog(fName, ...)
 		debugFile:write("\n" .. fName .. " : ")
 		for k,v in pairs(lArgs) do 
 			if type(v) == "string" or type(v) == "number" then
-				f:write(v)
+				f:write(v .. ", ")
 			else 
-				f:write("type-" .. type(v))
+				f:write("type-" .. type(v)..", ")
 			end
 		end
 	end

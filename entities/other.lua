@@ -34,9 +34,9 @@ local function fwLog(fName, ...)
 		debugFile:write("\n" .. fName .. " : ")
 		for k,v in pairs(lArgs) do 
 			if type(v) == "string" or type(v) == "number" then
-				f:write(v)
+				f:write(v .. ", ")
 			else 
-				f:write("type-" .. type(v))
+				f:write("type-" .. type(v)..", ")
 			end
 		end
 	end
@@ -1041,7 +1041,6 @@ pages.downloads = function(site)
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	print("")
-	fwLog("Colours Loaded")
 	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Download Center")
@@ -1052,10 +1051,9 @@ pages.downloads = function(site)
 	for i = 1, 5 do
 		centerPrint(string.rep(" ", 47))
 	end
-	fwLog("Start Prompt")
 	local opt = prompt({{"Themes", 7, 8}, {"Plugins", 7, 10}})
-	fwLog("Prompt Success")
 	if opt == "Themes" then
+		fwLog("Theme selected")
 		while true do
 			local themes = {}
 			local c = {"Make my Own", "Load my Own"}
@@ -1069,7 +1067,7 @@ pages.downloads = function(site)
 				l = f:read("*l")
 			end
 			f:close()
-
+			fwLog("Pre-initialized")
 			clearPage(site, colors[theme["background"]])
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
@@ -1079,10 +1077,11 @@ pages.downloads = function(site)
 			centerPrint("Download Center - Themes")
 			centerPrint(string.rep(" ", 47))
 			print("")
-
+			fwLog("Title drawn")
 			term.setBackgroundColor(colors[theme["bottom-box"]])
 			for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 			local t = scrollingPrompt(c, 4, 8, 10, 44)
+			fwLog("Scrolling prompt drawn")
 			if t == nil then
 				os.queueEvent(event_exitWebsite)
 				return
