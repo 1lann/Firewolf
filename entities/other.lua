@@ -222,7 +222,7 @@ api.scrollingPrompt = function(list, x, y, len, width)
 	end
 
 	local loc = 1
-	local disList = updateDisplayList(list, loc, len)
+	local dis  updateDisplayList(list, loc, len)
 	draw(disList)
 	
 	while true do
@@ -2808,6 +2808,8 @@ local function startup()
 		api.centerPrint(string.rep(" ", 46))
 		api.centerPrint("  Please report this error to 1lann or        ")
 		api.centerPrint("  GravityScore so we are able to fix it!      ")
+		api.centerPrint("  You can manually reset firewolf by          ")
+		api.centerPrint("  deleting /.Firewolf_Data if that helps      ")
 		api.centerPrint(string.rep(" ", 46))
 		api.centerPrint("               Click to Exit...               ")
 		api.centerPrint(string.rep(" ", 46))
