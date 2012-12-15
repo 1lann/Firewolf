@@ -248,7 +248,7 @@ api.scrollingPrompt = function(list, x, y, len, width)
 	end
 
 	local loc = 1
-	local dis  updateDisplayList(list, loc, len)
+	local disList = updateDisplayList(list, loc, len)
 	draw(disList)
 	
 	while true do
