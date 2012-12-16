@@ -2870,7 +2870,7 @@ term.clear()
 if not fs.exists("/main/Config.cfg") then
 	term.setCursorPos(1, 1)
 	api.centerPrint("Thank You for Using Firewolf " .. version)
-	api.centerPrint("Made by 1lann and GravityScore")
+	api.centerPrint("Made by 1lann and GravityScoret")
 else
 	term.setBackgroundColor(colors.white)
 	local w,h = term.getSize()
