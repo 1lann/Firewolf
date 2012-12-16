@@ -8,48 +8,21 @@
 --  
 
 
--- Added:
--- - Live searching
--- - Prevented read from destroying the background colors
--- - Control out of reads
--- - Block IDs from a server
+--  Added:
+--  - Debug mode
+--  - Proper support for NDF-OS
 
 
 --  -------- Variables
-
-local debugFile = nil
-local tArgs = {...}
-local debugMode = false
-if tArgs[1] == "debug" then
-	debugMode = true
-	print("Debug mode enabled")
-	debugFile = io.open("firewolf-logs", "a")
-	debugFile:write("\n-- New Log --")
-	sleep(2)
-end
-
-local function fwLog(fName, ...)
-	local lArgs = {...}
-	if debugMode then
-		debugFile:write("\n" .. fName .. " : ")
-		for k,v in pairs(lArgs) do 
-			if type(v) == "string" or type(v) == "number" or type(v) == nil then
-				f:write(tostring(v) .. ", ")
-			else 
-				f:write("type-" .. type(v)..", ")
-			end
-		end
-	end
-end
-
 
 -- Version
 local version = "2.2"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
+local tArgs = {...}
 
 -- Server Identification
-local serverID = "experimental"
+local serverID = "other"
 local serverList = {m0dz = "Hacker's Paradise", immibis = "turtle.dig()", ctcraft = "CTCraft", 
 					geevancraft = "GeevanCraft", experimental = "Experimental", 
 					other = "Other", old = "None"}
@@ -58,6 +31,9 @@ local serverList = {m0dz = "Hacker's Paradise", immibis = "turtle.dig()", ctcraf
 local w, h = term.getSize()
 local autoupdate = "true"
 local incognito = "false"
+
+-- Debugging
+local debugFile = nil
 
 -- Environment
 local oldEnv = {}
@@ -80,7 +56,7 @@ local homepage = ""
 local timeout = 0.05
 local openAddressBar = true
 local loadingRate = 0
-local loadingClock = nil
+local curSites = {}
 
 -- History
 local history = {}
@@ -95,7 +71,7 @@ local event_redirect = "firewolf_redirectEvent"
 -- Download URLs
 local firewolfURL = "https://raw.github.com/1lann/firewolf/master/entities/" .. serverID .. ".lua"
 local databaseURL = "https://raw.github.com/1lann/firewolf/master/databases/" .. serverID .. 
-		"-database.txt"
+	"-database.txt"
 local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server.lua"
 if serverID == "experimental" then 
 	serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-experimental.lua"
@@ -299,6 +275,18 @@ setfenv(1, env)
 
 
 --  -------- Utilities
+
+local function debugLog(n, ...)
+	local lArgs = {...}
+	if debugFile then
+		debugFile:write("\n" .. n .. " : ")
+		for k, v in pairs(lArgs) do 
+			if type(v) == "string" or type(v) == "number" or type(v) == nil then
+				f:write(tostring(v) .. ", ")
+			else f:write("type-" .. type(v) .. ", ") end
+		end
+	end
+end
 
 local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exitOnControl)
 	term.setCursorBlink(true)
@@ -1051,7 +1039,6 @@ pages.downloads = function(site)
 	for i = 1, 5 do
 		centerPrint(string.rep(" ", 47))
 	end
-
 	local opt = prompt({{"Themes", 7, 8}, {"Plugins", 7, 10}})
 	if opt == "Themes" then
 		while true do
@@ -1067,7 +1054,6 @@ pages.downloads = function(site)
 				l = f:read("*l")
 			end
 			f:close()
-
 			clearPage(site, colors[theme["background"]])
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
@@ -1077,7 +1063,6 @@ pages.downloads = function(site)
 			centerPrint("Download Center - Themes")
 			centerPrint(string.rep(" ", 47))
 			print("")
-
 			term.setBackgroundColor(colors[theme["bottom-box"]])
 			for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 			local t = scrollingPrompt(c, 4, 8, 10, 44)
@@ -1696,7 +1681,8 @@ pages.settings = function(site)
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Firewolf Settings")
 		centerWrite(string.rep(" ", 43))
-		centerPrint("Designed For: " .. serverList[serverID])
+		if not(fs.exists("/main/Config.cfg")) then centerPrint("Designed For: " .. serverList[serverID])
+		else centerPrint("Designed For: NDF-OS") end
 		centerPrint(string.rep(" ", 43))
 		print("")
 
@@ -1958,10 +1944,7 @@ pages.kitteh = function(site)
 end
 
 errPages.overspeed = function()
-	loadingClock = os.clock()
-	loadingRate = 0
 	website = "overspeed"
-
 	clearPage("overspeed", colors[theme["background"]])
 	print("\n")
 	term.setTextColor(colors[theme["text-color"]])
@@ -2141,7 +2124,6 @@ errPages.blacklistRedirectionBots = function()
 end
 
 local function loadSite(site)
-	-- Run site function
 	local function runSite(cacheLoc)
 		-- Clear
 		clearPage(site, colors.black)
@@ -2227,14 +2209,14 @@ local function loadSite(site)
 
 		-- Run
 		local fn, err = loadfile(cacheLoc)
-		setfenv(fn, nenv)
-		if fn then pcall(fn) end
-		setfenv(1, env)
+		if fn and err == nil then
+			setfenv(fn, nenv)
+			_, err = pcall(fn)
+			setfenv(1, env)
+		end
 
 		-- Catch website error
-		if err and not(err:find(event_exitWebsite)) then
-			errPages.crash(err)
-		end
+		if err and not(err:find(event_exitWebsite)) then errPages.crash(err) end
 	end
 
 	-- Draw
@@ -2451,8 +2433,8 @@ end
 --  -------- Websites
 
 local function websiteMain()
-	-- Setup
-	loadingClock = os.clock()
+	-- Variables
+	local loadingClock = os.clock()
 
 	-- Main loop
 	while true do
@@ -2482,6 +2464,8 @@ local function websiteMain()
 			loadingClock = os.clock()
 		elseif loadingRate >= 8 then
 			errPages.overspeed()
+			loadingClock = os.clock()
+			loadingRate = 0
 			skip = true
 		end if not(skip) then
 			appendToHistory(website)
@@ -2508,18 +2492,12 @@ end
 
 --  -------- Address Bar
 
-local curSites = {}
-
-local function retrieveAllWebsites()
-	curSites = getSearchResults("")
-	local a = os.startTimer(15)
-
+local function retrieveSearchResults()
 	while true do
-		local e, but = os.pullEvent()
-		if e == "timer" and but == a then
+		local e = os.pullEvent()
+		if e == event_loadWebsite then
 			curSites = getSearchResults("")
-			a = os.startTimer(15)
-		elseif e == event_exitWebsite then
+		elseif e == event_exitApp then
 			break
 		end
 	end
@@ -2684,7 +2662,7 @@ local function main()
 	website = homepage
 
 	-- Run
-	parallel.waitForAll(websiteMain, addressBarMain, retrieveAllWebsites)
+	parallel.waitForAll(websiteMain, addressBarMain, retrieveSearchResults)
 end
 
 local function startup()
@@ -2830,7 +2808,7 @@ local function startup()
 		api.centerPrint("  Please report this error to 1lann or        ")
 		api.centerPrint("  GravityScore so we are able to fix it!      ")
 		api.centerPrint("  If this problem persists, try deleting      ")
-		api.centerPrint("  /.Firewolf_Data                             ")
+		api.centerPrint("  " .. rootFolder .. "                             ")
 		api.centerPrint(string.rep(" ", 46))
 		api.centerPrint("               Click to Exit...               ")
 		api.centerPrint(string.rep(" ", 46))
@@ -2850,6 +2828,15 @@ end
 theme = loadTheme(themeLocation)
 if theme == nil then theme = defaultTheme end
 
+-- Debugging
+if #tArgs > 0 and tArgs[1] == "debug" then
+	print("Debug Mode Enabled...")
+	if fs.exists("/firewolf-log") then debugFile = io.open("/firewolf-log", "a")
+	else debugFile = io.open("/firewolf-log", "w") end
+	debugFile:write("\n-- [" .. textutils.formatTime(os.time()) .. "] New Log --")
+	sleep(1.1)
+end
+
 -- Start
 startup()
 
@@ -2860,13 +2847,34 @@ if term.isColor() then
 end
 term.setCursorBlink(false)
 term.clear()
-term.setCursorPos(1, 1)
-api.centerPrint("Thank You for Using Firewolf " .. version)
-api.centerPrint("Made by 1lann and GravityScore")
-term.setCursorPos(1, 3)
 
--- Close Rednet
+if not(fs.exists("/main/Config.cfg")) then
+	term.setCursorPos(1, 1)
+	api.centerPrint("Thank You for Using Firewolf " .. version)
+	api.centerPrint("Made by 1lann and GravityScore")
+	term.setCursorPos(1, 3)
+else
+	term.setBackgroundColor(colors[theme["background"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.clear()
+	term.setCursorPos(1, 6)
+	term.setBackgroundColor(colors[theme["top-box"]])
+	api.centerPrint("                                       ")
+	api.centerPrint("   Thank You for Using Firewolf " .. version .. "    ")
+	api.centerPrint("    Made by 1lann and GravityScore     ")
+	api.centerPrint("                                       ")
+	api.centerPrint("            Click to Exit...           ")
+	api.centerPrint("                                       ")
+
+	while true do
+		local e = os.pullEvent()
+		if e == "mouse_click" or e == "key" then break end
+	end
+end
+
+-- Close
 for _, v in pairs(rs.getSides()) do rednet.close(v) end
+if debugFile then debugFile:close() end
 
 -- Reset Environment
 setfenv(1, oldEnv)
