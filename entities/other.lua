@@ -1699,7 +1699,11 @@ pages.settings = function(site)
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Firewolf Settings")
 		centerWrite(string.rep(" ", 43))
-		centerPrint("Designed For: " .. serverList[serverID])
+		if not fs.exists("/main/Config.cfg") then 
+			centerPrint("Designed For: " .. serverList[serverID])
+		else
+			centerPrint("Designed For: NDF-OS")
+		end
 		centerPrint(string.rep(" ", 43))
 		print("")
 
@@ -2863,9 +2867,28 @@ if term.isColor() then
 end
 term.setCursorBlink(false)
 term.clear()
-term.setCursorPos(1, 1)
-api.centerPrint("Thank You for Using Firewolf " .. version)
-api.centerPrint("Made by 1lann and GravityScore")
+if not fs.exists("/main/Config.cfg") then
+	term.setCursorPos(1, 1)
+	api.centerPrint("Thank You for Using Firewolf " .. version)
+	api.centerPrint("Made by 1lann and GravityScore")
+else
+	term.setBackgroundColor(colors.white)
+	local w,h = term.getSize()
+	local clearText = string.rep(" ", w)
+	for i = 1, h do
+		term.setCursorPos(1,i)
+		write(clearText)
+	end
+	term.setBackgroundColor(colors.gray)
+	term.setTextColor(colors.white)
+	term.setCursorPos(1, 4)
+	api.centerPrint("                                       ")
+	api.centerPrint("   Thank You for Using Firewolf ".. version .."    ")
+	api.centerPrint("    Made by 1lann and GravityScore     ")
+	api.centerPrint("                                       ")
+	api.centerPrint("             Click to exit             ")
+	api.centerPrint("                                       ")
+end
 if debugFile then
 	debugFile:close()
 end
