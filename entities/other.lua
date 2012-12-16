@@ -2870,7 +2870,7 @@ term.clear()
 if not fs.exists("/main/Config.cfg") then
 	term.setCursorPos(1, 1)
 	api.centerPrint("Thank You for Using Firewolf " .. version)
-	api.centerPrint("Made by 1lann and GravityScoret")
+	api.centerPrint("Made by 1lann and GravityScore")
 else
 	term.setBackgroundColor(colors.white)
 	local w,h = term.getSize()
@@ -2881,7 +2881,7 @@ else
 	end
 	term.setBackgroundColor(colors.gray)
 	term.setTextColor(colors.white)
-	term.setCursorPos(1, 4)
+	term.setCursorPos(1, 6)
 	api.centerPrint("                                       ")
 	api.centerPrint("   Thank You for Using Firewolf ".. version .."    ")
 	api.centerPrint("    Made by 1lann and GravityScore     ")
