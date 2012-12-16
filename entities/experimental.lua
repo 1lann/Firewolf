@@ -8,9 +8,11 @@
 --  
 
 
---  Added:
+--  Features:
 --  - Debug mode
 --  - Proper support for NDF-OS
+--  - 
+--  * Live Search List Updating
 
 
 --  -------- Variables
@@ -28,9 +30,12 @@ local serverList = {m0dz = "Hacker's Paradise", immibis = "turtle.dig()", ctcraf
 					other = "Other", old = "None"}
 
 -- Updating
-local w, h = term.getSize()
 local autoupdate = "true"
 local incognito = "false"
+
+-- Geometry
+local w, h = term.getSize()
+local boxWidth = w - 4
 
 -- Debugging
 local debugFile = nil
@@ -53,10 +58,14 @@ local verifiedDownloads = {}
 -- Website loading
 local website = ""
 local homepage = ""
-local timeout = 0.05
+local timeout = 0.08
 local openAddressBar = true
 local loadingRate = 0
 local curSites = {}
+
+-- Protocols
+local curProtocol = {}
+local protocols = {}
 
 -- History
 local history = {}
@@ -117,11 +126,12 @@ api.clearPage = function(site, color, redraw)
 	term.setBackgroundColor(colors[theme["address-bar-background"]])
 	term.clearLine()
 	term.setCursorPos(2, 1)
-	if site:len() > 42 then site = site:sub(1, 39) .. "..." end
-	write("rdnt://" .. site)
+	local a = site
+	if a:len() > w - 9 then a = a:sub(1, 39) .. "..." end
+	term.write("rdnt://" .. a)
 	if title ~= nil then
 		term.setCursorPos(w - title:len(), 1)
-		write(title)
+		term.write(title)
 	end
 
 	term.setBackgroundColor(colors.black)
@@ -140,7 +150,7 @@ api.centerWrite = function(text)
 	local w, h = term.getSize()
 	local x, y = term.getCursorPos()
 	term.setCursorPos(math.ceil((w + 1)/2 - text:len()/2), y)
-	write(text)
+	term.write(text)
 end
 
 api.leftPrint = function(text)
@@ -152,7 +162,7 @@ end
 api.leftWrite = function(text)
 	local x, y = term.getCursorPos()
 	term.setCursorPos(4, y)
-	write(text)
+	term.write(text)
 end
 
 api.rightPrint = function(text)
@@ -166,7 +176,7 @@ api.rightWrite = function(text)
 	local x, y = term.getCursorPos()
 	local w, h = term.getSize()
 	term.setCursorPos(w - text:len() - 1, y)
-	write(text)
+	term.write(text)
 end
 
 api.redirect = function(url)
@@ -180,7 +190,7 @@ api.prompt = function(list)
 		if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 6)/2) end
 
 		term.setCursorPos(v[2], v[3])
-		write("[- " .. v[1] .. " -]")
+		term.write("[- " .. v[1] .. " -]")
 	end
 
 	while true do
@@ -206,12 +216,10 @@ api.scrollingPrompt = function(list, x, y, len, width)
 			term.setCursorPos(1, y + i - 1)
 			api.centerWrite(string.rep(" ", wid + 2))
 			term.setCursorPos(x, y + i - 1)
-			write("[ " .. v)
+			term.write("[ " .. v:sub(wid - 5))
 			term.setCursorPos(wid + x - 2, y + i - 1)
-			write("  ]")
+			term.write("  ]")
 		end
-		term.setCursorPos(wid + x - 2, y)
-		write("  ]")
 	end
 
 	local function updateDisplayList(items, loc, len)
@@ -455,10 +463,10 @@ function urlDownload(url)
 	print("\n\n")
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 47))
-	centerWrite(string.rep(" ", 47))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("Processing Download Request...")
-	centerPrint(string.rep(" ", 47))
+	centerPrint(string.rep(" ", boxWidth))
 
 	openAddressBar = false
 	local res = http.get(url)
@@ -469,10 +477,10 @@ function urlDownload(url)
 		res.close()
 	else
 		term.setCursorPos(1, 5)
-		centerWrite(string.rep(" ", 47))
+		centerWrite(string.rep(" ", boxWidth))
 		centerPrint("Download Failed!")
 		centerPrint("Please report this to the website owner!")
-		centerPrint(string.rep(" ", 47))
+		centerPrint(string.rep(" ", boxWidth))
 		openAddressBar = false
 		sleep(1.1)
 		openAddressBar = true
@@ -485,17 +493,17 @@ function urlDownload(url)
 	clearPage(website, colors[theme["background"]])
 	print("")
 	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 47))
-	centerWrite(string.rep(" ", 47))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("Download Files")
-	centerPrint(string.rep(" ", 47))
+	centerPrint(string.rep(" ", boxWidth))
 	print("")
 
 	local a = website
 	if a:find("/") then a = a:sub(1, a:find("/") - 1) end
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	for i = 1, 10 do centerPrint(string.rep(" ", 47)) end
+	for i = 1, 10 do centerPrint(string.rep(" ", boxWidth)) end
 	term.setCursorPos(1, 8)
 	centerPrint("  The website:                                 ")
 	centerPrint("     rdnt://" .. a .. string.rep(" ", w - a:len() - 16))
@@ -508,14 +516,14 @@ function urlDownload(url)
 		print("")
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["top-box"]])
-		centerPrint(string.rep(" ", 47))
-		centerWrite(string.rep(" ", 47))
+		centerPrint(string.rep(" ", boxWidth))
+		centerWrite(string.rep(" ", boxWidth))
 		centerPrint("Download Files")
-		centerPrint(string.rep(" ", 47))
+		centerPrint(string.rep(" ", boxWidth))
 		print("")
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
-		for i = 1, 10 do centerPrint(string.rep(" ", 47)) end
+		for i = 1, 10 do centerPrint(string.rep(" ", boxWidth)) end
 		local a = tostring(math.random(1000, 9999))
 		term.setCursorPos(5, 8)
 		write("This is for security purposes: " .. a)
@@ -530,7 +538,7 @@ function urlDownload(url)
 		if b == a then
 			term.setCursorPos(5, 11)
 			write("Save As: /")
-			local c = modRead(nil, nil, 33, false)
+			local c = modRead(nil, nil, w - 18, false)
 			if c ~= "" and c ~= nil then
 				c = "/" .. c
 				local f = io.open(c, "w")
@@ -832,9 +840,12 @@ local function verify(database, ...)
 end
 
 
---  -------- Searching
+--  -------- Protocols
 
-local function getSearchResults(input)
+protocols.http = {}
+protocols.rdnt = {}
+
+protocols.rdnt.getSearchResults = function(input)
 	local results = {}
 	local resultIDs = {}
 
@@ -881,7 +892,7 @@ local function getSearchResults(input)
 	return results
 end
 
-local function getWebsite(site)
+protocols.rdnt.getWebsite = function(site)
 	local id, content, status = nil, nil, nil
 	local clock = os.clock()
 	rednet.broadcast(site)
@@ -907,6 +918,16 @@ local function getWebsite(site)
 	return id, content, status
 end
 
+protocols.http.getSearchResults = function(input)
+	return {}
+end
+
+protocols.http.getWebsite = function(site)
+	return nil
+end
+
+curProtocol = protocols.rdnt
+
 
 --  -------- Built-In Websites
 
@@ -918,16 +939,22 @@ pages.firewolf = function(site)
 	print("")
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
+	local ox, oy = term.getCursorPos()
+	for i = 1, 4 do centerPrint(string.rep(" ", boxWidth)) end
+	term.setCursorPos(ox, oy)
 	centerPrint("         _,-='\"-.__               /\\_/\\    ")
 	centerPrint("          -.}        =._,.-==-._.,  @ @._, ")
 	centerPrint("             -.__  __,-.   )       _,.-'   ")
 	centerPrint("  Firewolf " .. version .. "    \"     G..m-\"^m m'        ")
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	term.setCursorPos(1, 10)
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
+	local ox, oy = term.getCursorPos()
+	for i = 1, 7 do centerPrint(string.rep(" ", boxWidth)) end
+	term.setCursorPos(ox, oy)
 	centerPrint("  rdnt://firewolf                Homepage  ")
 	centerPrint("  rdnt://history                  History  ")
 	centerPrint("  rdnt://downloads       Downloads Center  ")
@@ -935,7 +962,7 @@ pages.firewolf = function(site)
 	centerPrint("  rdnt://help                   Help Page  ")
 	centerPrint("  rdnt://settings                Settings  ")
 	centerPrint("  rdnt://exit                        Exit  ")
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
 
 	while true do
 		local e, but, x, y = os.pullEvent()
@@ -964,16 +991,16 @@ pages.history = function(site)
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	print("")
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("Firewolf History")
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
 	print("")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 
 	if #history > 0 then
 		for i = 1, 12 do
-			centerPrint(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
 		end
 
 		local a = {"Clear History"}
@@ -992,16 +1019,16 @@ pages.history = function(site)
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
 			print("")
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
+			centerWrite(string.rep(" ", boxWidth))
 			centerPrint("Firewolf History")
-			centerPrint(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
 			print("\n")
 			term.setBackgroundColor(colors[theme["bottom-box"]])
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
+			centerWrite(string.rep(" ", boxWidth))
 			centerPrint("Cleared history.")
-			centerPrint(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
 			openAddressBar = false
 			sleep(1.1)
 
@@ -1017,10 +1044,10 @@ pages.history = function(site)
 		end
 	else
 		print("")
-		centerPrint(string.rep(" ", 43))
-		centerWrite(string.rep(" ", 43))
+		centerPrint(string.rep(" ", boxWidth))
+		centerWrite(string.rep(" ", boxWidth))
 		centerPrint("No Items in History!")
-		centerPrint(string.rep(" ", 43))
+		centerPrint(string.rep(" ", boxWidth))
 	end
 end
 
@@ -1029,15 +1056,15 @@ pages.downloads = function(site)
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	print("")
-	centerPrint(string.rep(" ", 47))
-	centerWrite(string.rep(" ", 47))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("Download Center")
-	centerPrint(string.rep(" ", 47))
+	centerPrint(string.rep(" ", boxWidth))
 	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	for i = 1, 5 do
-		centerPrint(string.rep(" ", 47))
+		centerPrint(string.rep(" ", boxWidth))
 	end
 	local opt = prompt({{"Themes", 7, 8}, {"Plugins", 7, 10}})
 	if opt == "Themes" then
@@ -1058,13 +1085,13 @@ pages.downloads = function(site)
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
 			print("")
-			centerPrint(string.rep(" ", 47))
-			centerWrite(string.rep(" ", 47))
+			centerPrint(string.rep(" ", boxWidth))
+			centerWrite(string.rep(" ", boxWidth))
 			centerPrint("Download Center - Themes")
-			centerPrint(string.rep(" ", 47))
+			centerPrint(string.rep(" ", boxWidth))
 			print("")
 			term.setBackgroundColor(colors[theme["bottom-box"]])
-			for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
+			for i = 1, 12 do centerPrint(string.rep(" ", boxWidth)) end
 			local t = scrollingPrompt(c, 4, 8, 10, 44)
 			if t == nil then
 				os.queueEvent(event_exitWebsite)
@@ -1080,7 +1107,7 @@ pages.downloads = function(site)
 					f:close()
 
 					term.setCursorPos(1, 18)
-					centerWrite(string.rep(" ", 47))
+					centerWrite(string.rep(" ", boxWidth))
 					term.setCursorPos(6, 18)
 					write("File Created!")
 					openAddressBar = false
@@ -1097,7 +1124,7 @@ pages.downloads = function(site)
 				if n ~= "" and n ~= nil then
 					n = "/" .. n
 					term.setCursorPos(1, 18)
-					centerWrite(string.rep(" ", 47))
+					centerWrite(string.rep(" ", boxWidth))
 					
 					if fs.exists(n) and not(fs.isDir(n)) then
 						theme = loadTheme(n)
@@ -1136,7 +1163,7 @@ pages.downloads = function(site)
 				for _, v in pairs(themes) do if v[2] == t then url = v[1] break end end
 				term.setCursorPos(1, 4)
 				term.setBackgroundColor(colors[theme["top-box"]])
-				centerWrite(string.rep(" ", 47))
+				centerWrite(string.rep(" ", boxWidth))
 				centerWrite("Download Center - Downloading...")
 				fs.delete(rootFolder .. "/temp_theme")
 				download(url, rootFolder .. "/temp_theme")
@@ -1144,7 +1171,7 @@ pages.downloads = function(site)
 				if theme == nil then
 					theme = loadTheme(themeLocation)
 					fs.delete(rootFolder .. "/temp_theme")
-					centerWrite(string.rep(" ", 47))
+					centerWrite(string.rep(" ", boxWidth))
 					centerWrite("Download Center - Theme Is Corrupt! D:")
 					openAddressBar = false
 					sleep(1.1)
@@ -1153,7 +1180,7 @@ pages.downloads = function(site)
 					fs.delete(themeLocation)
 					fs.copy(rootFolder .. "/temp_theme", themeLocation)
 					fs.delete(rootFolder .. "/temp_theme")
-					centerWrite(string.rep(" ", 47))
+					centerWrite(string.rep(" ", boxWidth))
 					centerWrite("Download Center - Done! :D")
 					openAddressBar = false
 					sleep(1.1)
@@ -1168,19 +1195,19 @@ pages.downloads = function(site)
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["top-box"]])
 		print("")
-		centerPrint(string.rep(" ", 47))
-		centerWrite(string.rep(" ", 47))
+		centerPrint(string.rep(" ", boxWidth))
+		centerWrite(string.rep(" ", boxWidth))
 		centerPrint("Download Center - Plugins")
-		centerPrint(string.rep(" ", 47))
+		centerPrint(string.rep(" ", boxWidth))
 		print("\n")
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
-		centerPrint(string.rep(" ", 47))
-		centerWrite(string.rep(" ", 47))
+		centerPrint(string.rep(" ", boxWidth))
+		centerWrite(string.rep(" ", boxWidth))
 		centerPrint("Comming Soon! (hopefully :P)")
-		centerPrint(string.rep(" ", 47))
-		centerPrint(string.rep(" ", 47))
-		centerPrint(string.rep(" ", 47))
+		centerPrint(string.rep(" ", boxWidth))
+		centerPrint(string.rep(" ", boxWidth))
+		centerPrint(string.rep(" ", boxWidth))
 
 		local opt = prompt({{"Back", -1, 11}})
 		if opt == nil then
@@ -1200,10 +1227,10 @@ pages.server = function(site)
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	print("")
-	centerPrint(string.rep(" ", 47))
-	centerWrite(string.rep(" ", 47))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("Firewolf Server Management")
-	centerPrint(string.rep(" ", 47))
+	centerPrint(string.rep(" ", boxWidth))
 	print("")
 
 	local servers = {}
@@ -1283,12 +1310,12 @@ pages.server = function(site)
 					term.setBackgroundColor(colors[theme["background"]])
 					for i = 1, 12 do
 						term.setCursorPos(3, i + 6)
-						write(string.rep(" ", 47))
+						write(string.rep(" ", boxWidth))
 					end
 
 					term.setBackgroundColor(colors[theme["bottom-box"]])
 					term.setCursorPos(1, 8)
-					for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
+					for i = 1, 8 do centerPrint(string.rep(" ", boxWidth)) end
 					term.setCursorPos(5, 9)
 					write("Name: ")
 					local name = modRead(nil, nil, 37)
@@ -1453,7 +1480,6 @@ pages.server = function(site)
 			elseif x >= 30 and x <= 41 and y == 16 and #servers > 0 then
 				-- Delete
 				fs.delete(serverFolder .. "/" .. disList[sel])
-
 				redirect("server")
 				return
 			end
@@ -1469,14 +1495,14 @@ pages.help = function(site)
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	print("\n")
-	centerPrint(string.rep(" ", 47))
-	centerWrite(string.rep(" ", 47))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("Firewolf Help")
-	centerPrint(string.rep(" ", 47))
+	centerPrint(string.rep(" ", boxWidth))
 	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	for i = 1, 7 do centerPrint(string.rep(" ", 47)) end
+	for i = 1, 7 do centerPrint(string.rep(" ", boxWidth)) end
 	local opt = prompt({{"Getting Started", 7, 9}, {"Making a Theme", 7, 11}, 
 		{"API Documentation", 7, 13}})
 	local pages = {}
@@ -1629,14 +1655,14 @@ pages.help = function(site)
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["top-box"]])
 		print("")
-		centerPrint(string.rep(" ", 47))
-		centerWrite(string.rep(" ", 47))
+		centerPrint(string.rep(" ", boxWidth))
+		centerWrite(string.rep(" ", boxWidth))
 		centerPrint(page.title)
-		centerPrint(string.rep(" ", 47))
+		centerPrint(string.rep(" ", boxWidth))
 		print("")
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
-		for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
+		for i = 1, 12 do centerPrint(string.rep(" ", boxWidth)) end
 		for i, v in ipairs(page.content) do
 			term.setCursorPos(4, i + 7)
 			write(v)
@@ -1677,13 +1703,13 @@ pages.settings = function(site)
 		print("\n")
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["top-box"]])
-		centerPrint(string.rep(" ", 43))
-		centerWrite(string.rep(" ", 43))
+		centerPrint(string.rep(" ", boxWidth))
+		centerWrite(string.rep(" ", boxWidth))
 		centerPrint("Firewolf Settings")
-		centerWrite(string.rep(" ", 43))
+		centerWrite(string.rep(" ", boxWidth))
 		if not(fs.exists("/main/Config.cfg")) then centerPrint("Designed For: " .. serverList[serverID])
 		else centerPrint("Designed For: NDF-OS") end
-		centerPrint(string.rep(" ", 43))
+		centerPrint(string.rep(" ", boxWidth))
 		print("")
 
 		local a = "Automatic Updating - On"
@@ -1693,7 +1719,7 @@ pages.settings = function(site)
 		local c = "Homepage - rdnt://" .. homepage
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
-		for i = 1, 9 do centerPrint(string.rep(" ", 43)) end
+		for i = 1, 9 do centerPrint(string.rep(" ", boxWidth)) end
 		local opt = prompt({{a, 6, 10}, {b, 6, 12}, {c, 6, 14}, {"Reset Firewolf", 6, 16}})
 		if opt == a then
 			if autoupdate == "true" then autoupdate = "false"
@@ -1715,13 +1741,13 @@ pages.settings = function(site)
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
 			print("")
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
+			centerWrite(string.rep(" ", boxWidth))
 			centerPrint("Reset Firewolf")
-			centerPrint(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
 			print("")
 			term.setBackgroundColor(colors[theme["bottom-box"]])
-			for i = 1, 12 do centerPrint(string.rep(" ", 43)) end
+			for i = 1, 12 do centerPrint(string.rep(" ", boxWidth)) end
 			local opt = prompt({{"Reset History", 7, 8}, {"Reset Servers", 7, 9}, 
 				{"Reset Theme", 7, 10}, {"Reset Cache", 7, 11}, {"Reset Databases", 7, 12}, 
 				{"Reset Settings", 7, 13}, {"Back", 7, 14}, {"Reset All", 7, 16}})
@@ -1756,19 +1782,19 @@ pages.settings = function(site)
 			clearPage(site, colors[theme["background"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
 			print("")
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
+			centerWrite(string.rep(" ", boxWidth))
 			centerPrint("Reset Firewolf")
-			centerPrint(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
 			print("")
 			term.setCursorPos(1, 10)
 			term.setBackgroundColor(colors[theme["bottom-box"]])
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
+			centerWrite(string.rep(" ", boxWidth))
 			centerPrint("Firewolf has been reset.")
-			centerWrite(string.rep(" ", 43))
+			centerWrite(string.rep(" ", boxWidth))
 			centerPrint("Click to Exit...")
-			centerPrint(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
 			while true do
 				local e = os.pullEvent()
 				if e == "mouse_click" or e == "key" then return true end
@@ -1790,28 +1816,28 @@ pages.update = function(site)
 	print("\n")
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("Force Update Firewolf")
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
 
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerPrint(string.rep(" ", 43))
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
+	centerPrint(string.rep(" ", boxWidth))
+	centerPrint(string.rep(" ", boxWidth))
 
 	local opt = prompt({{"Update", 7, 10}, {"Cancel", 34, 10}})
 	if opt == "Update" then
 		openAddressBar = false
 		term.setCursorPos(1, 10)
-		centerWrite(string.rep(" ", 43))
+		centerWrite(string.rep(" ", boxWidth))
 		centerWrite("Updating...")
 
 		local updateLocation = rootFolder .. "/update"
 		fs.delete(updateLocation)
 		download(firewolfURL, updateLocation)
-		centerWrite(string.rep(" ", 43))
+		centerWrite(string.rep(" ", boxWidth))
 		centerWrite("Done! Restarting...")
 		sleep(1.1)
 		fs.delete(firewolfLocation)
@@ -1833,19 +1859,23 @@ pages.credits = function(site)
 	print("\n")
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("Firewolf Credits")
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerPrint("   Coded by:            GravityScore and   ")
-	centerPrint("                                   1lann   ")
-	centerPrint(string.rep(" ", 43))
-	centerPrint("   Based off:       RednetExplorer 2.4.1   ")
-	centerPrint("              Made by ComputerCraftFan11   ")
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
+	centerPrint("Coded by:            GravityScore and")
+	centerWrite(string.rep(" ", boxWidth))
+	centerPrint("                                1lann")
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
+	centerPrint("Based off:       RednetExplorer 2.4.1")
+	centerWrite(string.rep(" ", boxWidth))
+	centerPrint("           Made by ComputerCraftFan11")
+	centerPrint(string.rep(" ", boxWidth))
 end
 
 pages.getinfo = function(site)
@@ -1853,16 +1883,16 @@ pages.getinfo = function(site)
 	print("\n")
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("Retrieve Website Information")
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
 	print("\n")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	local x, y = term.getCursorPos()
 	term.setCursorPos(7, y - 1)
 	write("rdnt://")
@@ -1877,16 +1907,16 @@ pages.getinfo = function(site)
 		term.setCursorPos(1, 10)
 		centerPrint("  rdnt://" .. a .. string.rep(" ", 34 - a:len()))
 		for i = 1, 5 do
-			centerPrint(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
 		end
 		
 		if verify("blacklist", id) then 
-			centerPrint("  Triggers Blacklist" .. string.rep(" ", 23)) end
+			centerPrint("  Triggers Blacklist" .. string.rep(" ", boxWidth - 20)) end
 		if verify("whitelist", id, site) then 
-			centerPrint("  Triggers Whitelist" .. string.rep(" ", 23)) end
+			centerPrint("  Triggers Whitelist" .. string.rep(" ", boxWidth - 20)) end
 		if verify("antivirus", content) then
-			centerPrint("  Triggers Antivirus" .. string.rep(" ", 23)) end
-		centerPrint(string.rep(" ", 43))
+			centerPrint("  Triggers Antivirus" .. string.rep(" ", boxWidth - 20)) end
+		centerPrint(string.rep(" ", boxWidth))
 		local opt = prompt({{"Save Source", 7, 12}, {"Visit Site", 7, 14}})
 		if opt == "Save Source" then
 			term.setCursorPos(9, 13)
@@ -1898,7 +1928,7 @@ pages.getinfo = function(site)
 				f:write(content)
 				f:close()
 				term.setCursorPos(1, 13)
-				centerWrite(string.rep(" ", 43))
+				centerWrite(string.rep(" ", boxWidth))
 			elseif loc == nil then
 				os.queueEvent(event_exitWebsite)
 				return
@@ -1912,15 +1942,15 @@ pages.getinfo = function(site)
 		end
 	else
 		term.setCursorPos(1, 10)
-		centerWrite(string.rep(" ", 43))
+		centerWrite(string.rep(" ", boxWidth))
 		centerPrint("Webpage Not Found! D:")
 	end
 end
 
 pages.kitteh = function(site)
 	openAddressBar = false
-	term.setTextColor(colors.white)
-	term.setBackgroundColor(colors.black)
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["background"]])
 	term.clear()
 	term.setCursorPos(1, 3)
 	centerPrint("       .__....._             _.....__,         ")
@@ -1949,26 +1979,26 @@ errPages.overspeed = function()
 	print("\n")
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("Warning! D:")
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
 	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
 	centerPrint("  Website browsing sleep limit reached!    ")
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
 	centerPrint("  To prevent Firewolf from spamming        ")
 	centerPrint("  rednet, Firewolf has stopped loading     ")
 	centerPrint("  the page.                                ")
-	centerPrint(string.rep(" ", 43))
-	centerPrint(string.rep(" ", 43))
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
+	centerPrint(string.rep(" ", boxWidth))
+	centerPrint(string.rep(" ", boxWidth))
 	openAddressBar = false
 	for i = 1, 5 do
 		term.setCursorPos(1, 14)
-		centerWrite(string.rep(" ", 43))
+		centerWrite(string.rep(" ", boxWidth))
 		if 6 - i == 1 then centerWrite("Please wait 1 second...")
 		else centerWrite("Please wait " .. tostring(6 - i) .. " seconds...") end
 		sleep(1)
@@ -1976,7 +2006,7 @@ errPages.overspeed = function()
 	openAddressBar = true
 
 	term.setCursorPos(1, 14)
-	centerWrite(string.rep(" ", 43))
+	centerWrite(string.rep(" ", boxWidth))
 	centerWrite("You may now browse normally...")
 end
 
@@ -1985,29 +2015,29 @@ errPages.crash = function(err)
 	print("")
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("The Website Has Crashed! D:")
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
 	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("It looks like the website has crashed!")
-	centerWrite(string.rep(" ", 43))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("Report this error to the website owner:")
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
 	term.setBackgroundColor(colors[theme["background"]])
 	print("")
 	print("  " .. err)
 	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("You may now browse normally!")
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", boxWidth))
 end
 
 errPages.checkForModem = function()
@@ -2027,26 +2057,26 @@ errPages.checkForModem = function()
 			print("")
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
+			centerWrite(string.rep(" ", boxWidth))
 			centerPrint("No Modem Attached! D:")
-			centerPrint(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
 			print("")
 
 			term.setBackgroundColor(colors[theme["bottom-box"]])
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
+			centerWrite(string.rep(" ", boxWidth))
 			centerPrint("No wireless modem was found on this")
-			centerWrite(string.rep(" ", 43))
+			centerWrite(string.rep(" ", boxWidth))
 			centerPrint("computer, and Firewolf is not able to")
-			centerWrite(string.rep(" ", 43))
+			centerWrite(string.rep(" ", boxWidth))
 			centerPrint("run without one!")
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
+			centerWrite(string.rep(" ", boxWidth))
 			centerPrint("Waiting for a modem to be attached...")
-			centerWrite(string.rep(" ", 43))
+			centerWrite(string.rep(" ", boxWidth))
 			centerPrint("Click to exit...")
-			centerPrint(string.rep(" ", 43))
+			centerPrint(string.rep(" ", boxWidth))
 
 			while true do
 				local e, id = os.pullEvent()
@@ -2232,7 +2262,7 @@ local function loadSite(site)
 	loadingRate = loadingRate + 1
 
 	-- Get website
-	local id, content, status = getWebsite(site)
+	local id, content, status = curProtocol.getWebsite(site)
 
 	-- Display website
 	local cacheLoc = cacheFolder .. "/" .. site:gsub("/", "$slazh$")
@@ -2245,18 +2275,18 @@ local function loadSite(site)
 				print("")
 				term.setTextColor(colors[theme["text-color"]])
 				term.setBackgroundColor(colors[theme["top-box"]])
-				centerPrint(string.rep(" ", 47))
-				centerWrite(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
+				centerWrite(string.rep(" ", boxWidth))
 				centerPrint("Antivirus Triggered!")
-				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
 				print("")
 
 				term.setBackgroundColor(colors[theme["bottom-box"]])
-				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
 				centerPrint("  The antivirus has been triggered on this     ")
 				centerPrint("  website! Do you want to give this website    ")
 				centerPrint("  permissions to:                              ")
-				for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
+				for i = 1, 8 do centerPrint(string.rep(" ", boxWidth)) end
 				for i, v in ipairs(offences) do
 					if i > 3 then term.setCursorPos(w - 21, i + 8)
 					else term.setCursorPos(6, i + 11) end
@@ -2271,24 +2301,24 @@ local function loadSite(site)
 					print("")
 					term.setTextColor(colors[theme["text-color"]])
 					term.setBackgroundColor(colors[theme["top-box"]])
-					centerPrint(string.rep(" ", 47))
-					centerWrite(string.rep(" ", 47))
+					centerPrint(string.rep(" ", boxWidth))
+					centerWrite(string.rep(" ", boxWidth))
 					centerPrint("O Noes!")
-					centerPrint(string.rep(" ", 47))
+					centerPrint(string.rep(" ", boxWidth))
 					print("")
 
 					term.setBackgroundColor(colors[theme["bottom-box"]])
-					centerPrint(string.rep(" ", 47))
+					centerPrint(string.rep(" ", boxWidth))
 					centerPrint("         ______                          __    ")
 					centerPrint("        / ____/_____ _____ ____   _____ / /    ")
 					centerPrint("       / __/  / ___// ___// __ \\ / ___// /     ")
 					centerPrint("      / /___ / /   / /   / /_/ // /   /_/      ")
 					centerPrint("     /_____//_/   /_/    \\____//_/   (_)       ")
-					centerPrint(string.rep(" ", 47))
+					centerPrint(string.rep(" ", boxWidth))
 					centerPrint("  Could not connect to the website! The        ")
 					centerPrint("  website was not given enough permissions to  ")
 					centerPrint("  execute properly!                            ")
-					centerPrint(string.rep(" ", 47))
+					centerPrint(string.rep(" ", boxWidth))
 				elseif opt == nil then
 					os.queueEvent(event_exitWebsite)
 					return
@@ -2313,25 +2343,25 @@ local function loadSite(site)
 			print("")
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
-			centerPrint(string.rep(" ", 47))
-			centerWrite(string.rep(" ", 47))
+			centerPrint(string.rep(" ", boxWidth))
+			centerWrite(string.rep(" ", boxWidth))
 			centerPrint("Cache Exists!")
-			centerPrint(string.rep(" ", 47))
+			centerPrint(string.rep(" ", boxWidth))
 			print("")
 
 			term.setBackgroundColor(colors[theme["bottom-box"]])
-			centerPrint(string.rep(" ", 47))
+			centerPrint(string.rep(" ", boxWidth))
 			centerPrint("       ______              __            __    ")
 			centerPrint("      / ____/____ _ _____ / /_   ___    / /    ")
 			centerPrint("     / /    / __ '// ___// __ \\ / _ \\  / /     ")
 			centerPrint("    / /___ / /_/ // /__ / / / //  __/ /_/      ")
 			centerPrint("    \\____/ \\__,_/ \\___//_/ /_/ \\___/ (_)       ")
-			centerPrint(string.rep(" ", 47))
+			centerPrint(string.rep(" ", boxWidth))
 			centerPrint("  Could not connect to the website! It may be  ")
 			centerPrint("  down, or not exist! A cached version was     ")
 			centerPrint("  found!                                       ")
-			centerPrint(string.rep(" ", 47))
-			centerPrint(string.rep(" ", 47))
+			centerPrint(string.rep(" ", boxWidth))
+			centerPrint(string.rep(" ", boxWidth))
 
 			local opt = prompt({{"Load Cache", 6, 17}, {"Cancel", w - 16, 17}})
 			if opt == "Load Cache" then
@@ -2342,29 +2372,29 @@ local function loadSite(site)
 				print("\n")
 				term.setTextColor(colors[theme["text-color"]])
 				term.setBackgroundColor(colors[theme["top-box"]])
-				centerPrint(string.rep(" ", 47))
-				centerWrite(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
+				centerWrite(string.rep(" ", boxWidth))
 				centerPrint("O Noes!")
-				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
 				print("")
 
 				term.setBackgroundColor(colors[theme["bottom-box"]])
-				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
 				centerPrint("         ______                          __    ")
 				centerPrint("        / ____/_____ _____ ____   _____ / /    ")
 				centerPrint("       / __/  / ___// ___// __ \\ / ___// /     ")
 				centerPrint("      / /___ / /   / /   / /_/ // /   /_/      ")
 				centerPrint("     /_____//_/   /_/    \\____//_/   (_)       ")
-				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
 				centerPrint("  Could not connect to the website! The        ")
 				centerPrint("  cached version was not loaded!               ")
-				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
 			elseif opt == nil then
 				os.queueEvent(event_exitWebsite)
 				return
 			end
 		else
-			local res = getSearchResults(site)
+			local res = curProtocol.getSearchResults(site)
 
 			openAddressBar = true
 			if #res > 0 then
@@ -2372,16 +2402,16 @@ local function loadSite(site)
 				print("")
 				term.setTextColor(colors[theme["text-color"]])
 				term.setBackgroundColor(colors[theme["top-box"]])
-				centerPrint(string.rep(" ", 47))
-				centerWrite(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
+				centerWrite(string.rep(" ", boxWidth))
 				if #res == 1 then centerPrint("1 Search Result")
 				else centerPrint(#res .. " Search Results") end
-				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
 				print("")
 
 				term.setBackgroundColor(colors[theme["bottom-box"]])
-				for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
-				local opt = scrollingPrompt(res, 4, 8, 10, 43)
+				for i = 1, 12 do centerPrint(string.rep(" ", boxWidth)) end
+				local opt = scrollingPrompt(res, 4, 8, 10, boxWidth)
 				if opt then
 					redirect(opt:gsub("rdnt://", ""))
 					return
@@ -2394,28 +2424,28 @@ local function loadSite(site)
 				print("\n\n")
 				term.setTextColor(colors[theme["text-color"]])
 				term.setBackgroundColor(colors[theme["top-box"]])
-				centerPrint(string.rep(" ", 47))
-				centerWrite(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
+				centerWrite(string.rep(" ", boxWidth))
 				centerPrint("No Websites are Currently Online! D:")
-				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
 			else
 				clearPage(site, colors[theme["background"]])
 				print("\n")
 				term.setTextColor(colors[theme["text-color"]])
 				term.setBackgroundColor(colors[theme["top-box"]])
-				centerPrint(string.rep(" ", 47))
-				centerWrite(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
+				centerWrite(string.rep(" ", boxWidth))
 				centerPrint("O Noes!")
-				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
 				print("")
 				term.setBackgroundColor(colors[theme["bottom-box"]])
-				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
 				centerPrint("         ______                          __    ")
 				centerPrint("        / ____/_____ _____ ____   _____ / /    ")
 				centerPrint("       / __/  / ___// ___// __ \\ / ___// /     ")
 				centerPrint("      / /___ / /   / /   / /_/ // /   /_/      ")
 				centerPrint("     /_____//_/   /_/    \\____//_/   (_)       ")
-				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
 				if verify("blacklist", id) then
 					centerPrint("  Could not connect to the website! It has     ")
 					centerPrint("  been blocked by a database admin!            ")
@@ -2423,7 +2453,7 @@ local function loadSite(site)
 					centerPrint("  Could not connect to the website! It may     ")
 					centerPrint("  be down, or not exist!                       ")
 				end
-				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", boxWidth))
 			end
 		end
 	end
@@ -2496,7 +2526,10 @@ local function retrieveSearchResults()
 	while true do
 		local e = os.pullEvent()
 		if e == event_loadWebsite then
-			curSites = getSearchResults("")
+			local a = curProtocol.getSearchResults("")
+			if #a ~= #curSites and #a > 0 then
+				curSites = a
+			end
 		elseif e == event_exitApp then
 			break
 		end
@@ -2607,7 +2640,8 @@ local function main()
 	term.clear()
 	term.setCursorPos(1, 2)
 	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 47))
+	centerPrint(string.rep(" ", boxWidth))
+	for i = 1, 10 do centerPrint(string.rep(" ", boxWidth)) end
 	centerPrint("          ______ ____ ____   ______            ")
 	centerPrint(" ------- / ____//  _// __ \\ / ____/            ")
 	centerPrint(" ------ / /_    / / / /_/ // __/               ")
@@ -2618,34 +2652,34 @@ local function main()
 	centerPrint("              | | /| / // / / // /    / /_     ")
 	centerPrint("              | |/ |/ // /_/ // /___ / __/     ")
 	centerPrint("              |__/|__/ \\____//_____//_/        ")
-	centerPrint(string.rep(" ", 47))
+	centerPrint(string.rep(" ", boxWidth))
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 
 	-- Download Files
-	centerPrint(string.rep(" ", 47))
-	centerWrite(string.rep(" ", 47))
+	centerPrint(string.rep(" ", boxWidth))
+	centerWrite(string.rep(" ", boxWidth))
 	centerPrint("Downloading Required Files...")
-	centerWrite(string.rep(" ", 47))
+	centerWrite(string.rep(" ", boxWidth))
 	migrateFilesystem()
 	resetFilesystem()
 
 	-- Download Databases
 	local x, y = term.getCursorPos()
 	term.setCursorPos(1, y - 1)
-	centerWrite(string.rep(" ", 47))
+	centerWrite(string.rep(" ", boxWidth))
 	centerWrite("Downloading Databases...")
 	loadDatabases()
 
 	-- Load Settings
-	centerWrite(string.rep(" ", 47))
+	centerWrite(string.rep(" ", boxWidth))
 	centerWrite("Loading Data...")
 	local f = io.open(settingsLocation, "r")
 	local a = textutils.unserialize(f:read("*l"))
 	autoupdate = a.auto
 	incognito = a.incog
 	homepage = a.home
-	curSites = getSearchResults("")
+	curSites = curProtocol.getSearchResults("")
 	f:close()
 
 	-- Load history
@@ -2654,7 +2688,7 @@ local function main()
 	b:close()
 
 	-- Update
-	centerWrite(string.rep(" ", 47))
+	centerWrite(string.rep(" ", boxWidth))
 	centerWrite("Checking For Updates...")
 	if autoupdate then updateClient() end
 
@@ -2675,22 +2709,25 @@ local function startup()
 			term.clear()
 			term.setCursorPos(1, 2)
 			term.setBackgroundColor(colors[theme["top-box"]])
-			api.centerPrint(string.rep(" ", 46))
-			api.centerWrite(string.rep(" ", 46))
+			api.centerPrint(string.rep(" ", boxWidth))
+			api.centerWrite(string.rep(" ", boxWidth))
 			api.centerPrint("HTTP API Not Enabled! D:")
-			api.centerPrint(string.rep(" ", 46))
+			api.centerPrint(string.rep(" ", boxWidth))
 			print("")
 
 			term.setBackgroundColor(colors[theme["bottom-box"]])
-			api.centerPrint(string.rep(" ", 46))
+			api.centerPrint(string.rep(" ", boxWidth))
+			local ox, oy = term.getCursorPos()
+			for i = 1, 3 do centerPrint(string.rep(" ", boxWidth)) end
+			term.setCursorPos(ox, oy)
 			api.centerPrint("  Firewolf is unable to run without the HTTP   ")
 			api.centerPrint("  API Enabled! Please enable it in the CC     ")
 			api.centerPrint("  Config!                                     ")
-			api.centerPrint(string.rep(" ", 46))
+			api.centerPrint(string.rep(" ", boxWidth))
 
-			api.centerPrint(string.rep(" ", 46))
+			api.centerPrint(string.rep(" ", boxWidth))
 			api.centerPrint("               Click to Exit...               ")
-			api.centerPrint(string.rep(" ", 46))
+			api.centerPrint(string.rep(" ", boxWidth))
 
 			while true do
 				local e, but, x, y = os.pullEvent()
@@ -2701,9 +2738,9 @@ local function startup()
 			term.setCursorPos(1, 4)
 			api.centerPrint("HTTP API Not Enabled! D:")
 			print("\n")
-			api.centerPrint("Firewolf is unable to run without the HTTP")
-			api.centerPrint("API Enabled! Please enable it in the CC")
-			api.centerPrint("Config!")
+			api.centerPrint("Firewolf is unable to run without")
+			api.centerPrint("the HTTP API Enabled! Please enable")
+			api.centerPrint("it in the ComputerCraft Config!")
 			print("\n\n")
 			centerPrint("Press Any Key to Exit...")
 			while true do
@@ -2715,17 +2752,35 @@ local function startup()
 		return false 
 	end
 
+	-- Turtle
+	if turtle then
+		term.clear()
+		term.setCursorPos(1, 2)
+		api.centerPrint("Advanced Comptuer Required!")
+		print("\n")
+		api.centerPrint("This version of Firewolf requires")
+		api.centerPrint("an Advanced Comptuer to run!")
+		print("")
+		api.centerPrint("Turtles may not be used to run")
+		api.centerPrint("Firewolf! :(")
+		print("")
+		api.centerPrint("Press any key to exit...")
+
+		os.pullEvent("key")
+		return false
+	end
+
 	-- Advanced Comptuer
 	if not(term.isColor()) then
 		term.clear()
 		term.setCursorPos(1, 4)
 		api.centerPrint("Advanced Comptuer Required!")
 		print("\n")
-		api.centerPrint("This version of Firewolf (" .. version .. ")")
-		api.centerPrint("requires an Advanced Comptuer to run!")
+		api.centerPrint("This version of Firewolf requires")
+		api.centerPrint("an Advanced Comptuer to run!")
 		print("")
-		api.centerPrint("You may download Firewolf 1.4.5 to use on")
-		api.centerPrint("this computer...")
+		api.centerPrint("You may download Firewolf 1.4.5 to")
+		api.centerPrint("use on this computer...")
 
 		print("\n\n")
 		term.clearLine()
@@ -2770,22 +2825,6 @@ local function startup()
 		return false
 	end
 
-	-- Turtle
-	if turtle then
-		term.clear()
-		term.setCursorPos(1, 4)
-		api.centerPrint("Advanced Comptuer Required!")
-		print("\n")
-		api.centerPrint("This version of Firewolf (" .. version .. ")")
-		api.centerPrint("requires an Advanced Comptuer to run!")
-		print("")
-		api.centerPrint("Turtles may not be used to run Firewolf! :(")
-		api.centerPrint("Press any key to exit...")
-
-		os.pullEvent("key")
-		return false
-	end
-
 	-- Run
 	local _, err = pcall(main)
 	if err ~= nil then
@@ -2794,10 +2833,10 @@ local function startup()
 		term.clear()
 		term.setCursorPos(1, 2)
 		term.setBackgroundColor(colors[theme["top-box"]])
-		api.centerPrint(string.rep(" ", 46))
-		api.centerWrite(string.rep(" ", 46))
+		api.centerPrint(string.rep(" ", boxWidth))
+		api.centerWrite(string.rep(" ", boxWidth))
 		api.centerPrint("Firewolf has Crashed! D:")
-		api.centerPrint(string.rep(" ", 46))
+		api.centerPrint(string.rep(" ", boxWidth))
 		print("")
 		term.setBackgroundColor(colors[theme["background"]])
 		print("")
@@ -2805,14 +2844,18 @@ local function startup()
 		print("")
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
-		api.centerPrint(string.rep(" ", 46))
-		api.centerPrint("  Please report this error to 1lann or        ")
-		api.centerPrint("  GravityScore so we are able to fix it!      ")
-		api.centerPrint("  If this problem persists, try deleting      ")
-		api.centerPrint("  " .. rootFolder .. "                             ")
-		api.centerPrint(string.rep(" ", 46))
-		api.centerPrint("               Click to Exit...               ")
-		api.centerPrint(string.rep(" ", 46))
+		api.centerPrint(string.rep(" ", boxWidth))
+		local ox, oy = term.getCursorPos()
+		for i = 1, 6 do centerPrint(string.rep(" ", boxWidth)) end
+		term.setCursorPos(ox, oy)
+		api.centerPrint("  Please report this error to 1lann or      ")
+		api.centerPrint("  GravityScore so we are able to fix it!    ")
+		api.centerPrint("  If this problem persists, try deleting    ")
+		api.centerPrint(rootFolder .. "                           ")
+		api.centerPrint(string.rep(" ", boxWidth))
+		api.centerWrite(string.rep(" ", boxWidth))
+		api.centerPrint("Click to Exit...")
+		api.centerPrint(string.rep(" ", boxWidth))
 
 		while true do
 			local e, but, x, y = os.pullEvent()
@@ -2858,14 +2901,16 @@ else
 	term.setBackgroundColor(colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
 	term.clear()
-	term.setCursorPos(1, 6)
+	term.setCursorPos(1, 5)
 	term.setBackgroundColor(colors[theme["top-box"]])
-	api.centerPrint("                                       ")
-	api.centerPrint("   Thank You for Using Firewolf " .. version .. "    ")
-	api.centerPrint("    Made by 1lann and GravityScore     ")
-	api.centerPrint("                                       ")
-	api.centerPrint("            Click to Exit...           ")
-	api.centerPrint("                                       ")
+	local ox, oy = term.getCursorPos()
+	for i = 1, 4 do centerPrint(string.rep(" ", boxWidth)) end
+	term.setCursorPos(ox, oy)
+	print("")
+	api.centerPrint("Thank You for Using Firewolf " .. version)
+	api.centerPrint("Made by 1lann and GravityScore")
+	print("")
+	api.centerPrint("Click to Exit...")
 
 	while true do
 		local e = os.pullEvent()
