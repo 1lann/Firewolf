@@ -876,6 +876,22 @@ local function startup()
 		return false 
 	end
 
+	-- Turtle
+	if turtle then
+		term.clear()
+		term.setCursorPos(1, 4)
+		centerPrint("Advanced Comptuer Required!")
+		print("\n")
+		centerPrint("This version of Firewolf (" .. version .. ") requires")
+		centerPrint("an Advanced Comptuer to run!")
+		print("")
+		centerPrint("Turtles may not be used to run Firewolf! :(")
+		centerPrint("Press any key to exit...")
+
+		os.pullEvent("key")
+		return false
+	end
+
 	-- Advanced Comptuer
 	if not(term.isColor()) then
 		term.clear()
@@ -927,22 +943,6 @@ local function startup()
 			end
 		end
 
-		return false
-	end
-
-	-- Turtle
-	if turtle then
-		term.clear()
-		term.setCursorPos(1, 4)
-		centerPrint("Advanced Comptuer Required!")
-		print("\n")
-		centerPrint("This version of Firewolf (" .. version .. ") requires")
-		centerPrint("an Advanced Comptuer to run!")
-		print("")
-		centerPrint("Turtles may not be used to run Firewolf! :(")
-		centerPrint("Press any key to exit...")
-
-		os.pullEvent("key")
 		return false
 	end
 
