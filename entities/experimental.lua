@@ -2639,12 +2639,13 @@ local function main()
 
 	-- Load Settings
 	centerWrite(string.rep(" ", 47))
-	centerWrite("Loading Settings...")
+	centerWrite("Loading Data...")
 	local f = io.open(settingsLocation, "r")
 	local a = textutils.unserialize(f:read("*l"))
 	autoupdate = a.auto
 	incognito = a.incog
 	homepage = a.home
+	curSites = getSearchResults("")
 	f:close()
 
 	-- Load history
