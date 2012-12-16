@@ -1,0 +1,7 @@
+address-bar-text=yellow
+address-bar-background=gray
+address-bar-base=lightGray
+top-box=red
+bottom-box=green
+background=gray
+text-color=yellow
