@@ -214,7 +214,7 @@ api.scrollingPrompt = function(list, x, y, len, width)
 			term.setCursorPos(1, y + i - 1)
 			api.centerWrite(string.rep(" ", wid + 2))
 			term.setCursorPos(x, y + i - 1)
-			write("[ " .. v)
+			write("[ " .. v:sub(1, wid - 5))
 			term.setCursorPos(wid + x - 2, y + i - 1)
 			write("  ]")
 		end
@@ -501,6 +501,7 @@ function urlDownload(url)
 	if a:find("/") then a = a:sub(1, a:find("/") - 1) end
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
+	for i = 1, 10 do centerPrint(string.rep(" ", 47)) end
 	term.setCursorPos(1, 8)
 	centerPrint("  The website:                                 ")
 	centerPrint("     rdnt://" .. a .. string.rep(" ", w - a:len() - 16))
@@ -2517,7 +2518,7 @@ local function retrieveSearchResults()
 	curSites = curProtocol.getSearchResults("")
 	while true do
 		local e = os.pullEvent()
-		if e == event_loadWebsite then
+		if e == event_loadWebsite and website ~= "exit" then
 			local a = curProtocol.getSearchResults("")
 			if #a > 0 then curSites = a end
 		elseif e == event_exitApp then
