@@ -18,7 +18,7 @@
 --  -------- Variables
 
 -- Version
-local version = "2.2"
+local version = "2.3"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -2410,8 +2410,10 @@ local function loadSite(site)
 				print("")
 
 				term.setBackgroundColor(colors[theme["bottom-box"]])
+				local ox, oy = term.getCursorPos()
 				for i = 1, 12 do centerPrint(string.rep(" ", boxWidth)) end
-				local opt = scrollingPrompt(res, 4, 8, 10, boxWidth)
+				term.setCursorPos(ox, oy)
+				local opt = scrollingPrompt(res, 4, 8, 10, 43)
 				if opt then
 					redirect(opt:gsub("rdnt://", ""))
 					return
@@ -2523,15 +2525,15 @@ end
 --  -------- Address Bar
 
 local function retrieveSearchResults()
+	curSites = curProtocol.getSearchResults("")
 	while true do
 		local e = os.pullEvent()
 		if e == event_loadWebsite then
-			local a = curProtocol.getSearchResults("")
-			if #a > 0 then
-				curSites = a
-			end
+			local a, _ = curProtocol.getSearchResults("")
+			if #a > 0 then curSites = a end
 		elseif e == event_exitApp then
-			break
+			print("exiting...")
+			return
 		end
 	end
 end
