@@ -2532,7 +2532,7 @@ local function retrieveSearchResults()
 			local a, _ = curProtocol.getSearchResults("")
 			if #a > 0 then curSites = a end
 		elseif e == event_exitApp then
-			print("exiting...")
+			os.queueEvent(event_exitApp)
 			return
 		end
 	end
@@ -2627,6 +2627,7 @@ local function addressBarMain()
 				os.queueEvent(event_loadWebsite)
 			end
 		elseif e == event_exitApp then
+			os.queueEvent(event_exitApp)
 			break
 		end
 	end
