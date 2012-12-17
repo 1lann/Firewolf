@@ -43,6 +43,7 @@ local oldEnv = {}
 local env = {}
 local backupEnv = {}
 local api = {}
+local override = {}
 
 -- Themes
 local theme = {}
@@ -271,11 +272,16 @@ api.lWrite = function(text) api.leftWrite(text) end
 api.rPrint = function(text) api.rightPrint(text) end
 api.rWrite = function(text) api.rightWrite(text) end
 
+override.term = {}
+
+
+
 -- Set Environment
 for k, v in pairs(getfenv(0)) do env[k] = v end
 for k, v in pairs(getfenv(1)) do env[k] = v end
 for k, v in pairs(env) do oldEnv[k] = v end
 for k, v in pairs(api) do env[k] = v end
+for k, v in pairs(override) do env[k] = v end
 for k, v in pairs(env) do backupEnv[k] = v end
 setfenv(1, env)
 
@@ -923,8 +929,6 @@ end
 protocols.http.getWebsite = function(site)
 	return nil
 end
-
-curProtocol = protocols.rdnt
 
 
 --  -------- Built-In Websites
@@ -2464,6 +2468,7 @@ local function websiteMain()
 		setfenv(1, backupEnv)
 		browserAgent = browserAgentTemplate
 		clearPage(website)
+		w, h = term.getSize()
 		term.setBackgroundColor(colors.black)
 		term.setTextColor(colors.white)
 
@@ -2496,12 +2501,14 @@ local function websiteMain()
 			clearPage(website)
 			term.setBackgroundColor(colors.black)
 			term.setTextColor(colors.white)
-			local ex = false
-			if pages[website] then ex = pages[website](website)
-			else loadSite(website) end
-			if ex == true then 
-				os.queueEvent(event_exitApp)
-				return
+			if pages[website] then 
+				local ex = pages[website](website)
+				if ex == true then 
+					os.queueEvent(event_exitApp)
+					return
+				end
+			else
+				loadSite(website)
 			end
 		end
 
@@ -2518,9 +2525,8 @@ local function retrieveSearchResults()
 	curSites = curProtocol.getSearchResults("")
 	while true do
 		local e = os.pullEvent()
-		if e == event_loadWebsite and website ~= "exit" then
-			local a = curProtocol.getSearchResults("")
-			if #a > 0 then curSites = a end
+		if website ~= "exit" and e == event_loadWebsite then
+			curSites = curProtocol.getSearchResults("")
 		elseif e == event_exitApp then
 			os.queueEvent(event_exitApp)
 			return
@@ -2671,7 +2677,7 @@ local function main()
 	autoupdate = a.auto
 	incognito = a.incog
 	homepage = a.home
-	curSites = curProtocol.getSearchResults("")
+	curProtocol = protocols.rdnt
 	f:close()
 
 	-- Load history
@@ -2834,10 +2840,10 @@ local function startup()
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		api.centerPrint(string.rep(" ", 47))
-		api.centerPrint("  Please report this error to 1lann or      ")
-		api.centerPrint("  GravityScore so we are able to fix it!    ")
-		api.centerPrint("  If this problem persists, try deleting    ")
-		api.centerPrint(rootFolder .. "                           ")
+		api.centerPrint("  Please report this error to 1lann or         ")
+		api.centerPrint("  GravityScore so we are able to fix it!       ")
+		api.centerPrint("  If this problem persists, try deleting       ")
+		api.centerPrint("  " .. rootFolder .. "                              ")
 		api.centerPrint(string.rep(" ", 47))
 		api.centerWrite(string.rep(" ", 47))
 		api.centerPrint("Click to Exit...")
