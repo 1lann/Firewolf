@@ -24,7 +24,7 @@ browserAgent = browserAgentTemplate
 local tArgs = {...}
 
 -- Server Identification
-local serverID = "other"
+local serverID = "experimental"
 local serverList = {m0dz = "Hacker's Paradise", immibis = "turtle.dig()", ctcraft = "CTCraft", 
 					geevancraft = "GeevanCraft", experimental = "Experimental", 
 					other = "Other", old = "None"}
