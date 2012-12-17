@@ -2527,7 +2527,7 @@ local function retrieveSearchResults()
 		local e = os.pullEvent()
 		if e == event_loadWebsite then
 			local a = curProtocol.getSearchResults("")
-			if #a ~= #curSites and #a > 0 then
+			if #a > 0 then
 				curSites = a
 			end
 		elseif e == event_exitApp then
