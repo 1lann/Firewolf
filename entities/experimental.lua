@@ -2401,6 +2401,7 @@ local function loadSite(site)
 				print("")
 
 				term.setBackgroundColor(colors[theme["bottom-box"]])
+				for i = 1, 12 do centerPrint(string.rep(" ", boxWidth)) end
 				local opt = scrollingPrompt(res, 4, 8, 10, 43)
 				if opt then
 					redirect(opt:gsub("rdnt://", ""))
