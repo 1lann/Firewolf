@@ -1,4 +1,4 @@
-address-bar-text=white
+address-bar-text=green
 address-bar-background=yellow
 address-bar-base=lightGray
 top-box=red
