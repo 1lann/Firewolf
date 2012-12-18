@@ -2655,7 +2655,7 @@ local function main()
 	centerPrint([[                 `:(_>()<_):'                  ]])
 	centerPrint([[                   `'//\\''                    ]])
 	centerPrint([[                    //  \\                     ]])
-	centerPrint([[                   /'    `\                    ]])
+	centerPrint([[                   /'    '\                    ]])
 	centerPrint(string.rep(" ", 47))
 
 	print("\n")
