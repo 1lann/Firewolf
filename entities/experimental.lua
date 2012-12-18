@@ -1832,6 +1832,7 @@ pages.settings = function(site)
 				fs.delete(themeLocation)
 				fs.copy(defaultThemeLocation, themeLocation)
 			elseif opt == "Back" then
+				openAddressBar = true
 				redirect("settings")
 				return
 			elseif opt == nil then
