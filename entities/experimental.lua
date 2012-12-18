@@ -190,7 +190,7 @@ api.prompt = function(list, dir)
 
 			term.setCursorPos(v[2], v[3])
 			write("[- " .. v[1])
-			term.setCursorPos(v[2] + v[1]:len() + 2, v[3])
+			term.setCursorPos(v[2] + v[1]:len() + 3, v[3])
 			write(" -]")
 		end
 
