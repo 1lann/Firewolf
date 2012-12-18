@@ -258,17 +258,6 @@ api.scrollingPrompt = function(list, x, y, len, width)
 	local wid = width
 	if wid == nil then wid = w - 3 end
 
-	local function draw(a)
-		for i, v in ipairs(a) do
-			term.setCursorPos(1, y + i - 1)
-			api.centerWrite(string.rep(" ", wid + 2))
-			term.setCursorPos(x, y + i - 1)
-			write("[ " .. v:sub(1, wid - 5))
-			term.setCursorPos(wid + x - 2, y + i - 1)
-			write("  ]")
-		end
-	end
-
 	local function updateDisplayList(items, loc, len)
 		local ret = {}
 		for i = 1, len do
@@ -278,36 +267,85 @@ api.scrollingPrompt = function(list, x, y, len, width)
 		return ret
 	end
 
-	local loc = 1
-	local disList = updateDisplayList(list, loc, len)
-	draw(disList)
-	
-	while true do
-		local e, but, clx, cly = os.pullEvent()
-		if e == "key" and but == 200 and loc > 1 then
-			loc = loc - 1
-			disList = updateDisplayList(list, loc, len)
-			draw(disList)
-		elseif e == "key" and but == 208 and loc + len - 1 < #list then
-			loc = loc + 1
-			disList = updateDisplayList(list, loc, len)
-			draw(disList)
-		elseif e == "mouse_scroll" and but > 0 and loc + len - 1 < #list then
-			loc = loc + but
-			disList = updateDisplayList(list, loc, len)
-			draw(disList)
-		elseif e == "mouse_scroll" and but < 0 and loc > 1 then
-			loc = loc + but
-			disList = updateDisplayList(list, loc, len)
-			draw(disList)
-		elseif e == "mouse_click" then
-			for i, v in ipairs(disList) do
-				if clx >= x and clx <= x + wid and cly == i + y - 1 then
-					return v
-				end
+	if term.isColor() then
+		local function draw(a)
+			for i, v in ipairs(a) do
+				term.setCursorPos(1, y + i - 1)
+				api.centerWrite(string.rep(" ", wid + 2))
+				term.setCursorPos(x, y + i - 1)
+				write("[ " .. v:sub(1, wid - 5))
+				term.setCursorPos(wid + x - 2, y + i - 1)
+				write("  ]")
 			end
-		elseif e == event_exitWebsite then
-			return nil
+		end
+
+		local loc = 1
+		local disList = updateDisplayList(list, loc, len)
+		draw(disList)
+		
+		while true do
+			local e, but, clx, cly = os.pullEvent()
+			if e == "key" and but == 200 and loc > 1 then
+				loc = loc - 1
+				disList = updateDisplayList(list, loc, len)
+				draw(disList)
+			elseif e == "key" and but == 208 and loc + len - 1 < #list then
+				loc = loc + 1
+				disList = updateDisplayList(list, loc, len)
+				draw(disList)
+			elseif e == "mouse_scroll" and but > 0 and loc + len - 1 < #list then
+				loc = loc + but
+				disList = updateDisplayList(list, loc, len)
+				draw(disList)
+			elseif e == "mouse_scroll" and but < 0 and loc > 1 then
+				loc = loc + but
+				disList = updateDisplayList(list, loc, len)
+				draw(disList)
+			elseif e == "mouse_click" then
+				for i, v in ipairs(disList) do
+					if clx >= x and clx <= x + wid and cly == i + y - 1 then
+						return v
+					end
+				end
+			elseif e == event_exitWebsite then
+				return nil
+			end
+		end
+	else
+		local function draw(a)
+			for i, v in ipairs(a) do
+				term.setCursorPos(1, y + i - 1)
+				api.centerWrite(string.rep(" ", wid + 2))
+				term.setCursorPos(x, y + i - 1)
+				write("[ ] " .. v:sub(1, wid - 5))
+			end
+		end
+
+		local loc = 1
+		local curSel = 1
+		local disList = updateDisplayList(list, loc, len)
+		draw(disList)
+
+		while true do
+			local e, key = os.pullEvent()
+			term.setCursorPos()
+			if e == "key" and key == 200 then
+				if curSel > 1 then
+
+				elseif loc > 1 then
+
+				end
+			elseif e == "key" and key == 208 then
+				if curSel < len then
+
+				elseif loc + len - 1 < #list then
+
+				end
+			elseif e == "key" and key == 28 then
+				return list[curSel + loc - 1]
+			elseif e == event_exitWebsite then
+				return nil
+			end
 		end
 	end
 end
