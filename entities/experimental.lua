@@ -339,7 +339,7 @@ api.scrollingPrompt = function(list, x, y, len, width)
 					draw(disList)
 				end
 			elseif e == "key" and key == 208 then
-				if curSel < len then
+				if curSel < #disList then
 					curSel = curSel + 1
 				elseif loc + len - 1 < #list then
 					loc = loc + 1
