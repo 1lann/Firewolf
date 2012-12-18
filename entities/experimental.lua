@@ -2276,7 +2276,7 @@ local function loadSite(site)
 				api.clearPage(website, curBackgroundColor)
 				env.term.setCursorPos(1, 2)
 			else
-				env.shell.run(file, unpack(...))
+				env.shell.run(file, unpack({...}))
 			end
 		end
 
