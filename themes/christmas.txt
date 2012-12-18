@@ -1,5 +1,5 @@
-address-bar-text=black
-address-bar-background=white
+address-bar-text=white
+address-bar-background=yellow
 address-bar-base=lightGray
 top-box=red
 bottom-box=green
