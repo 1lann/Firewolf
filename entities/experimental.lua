@@ -190,7 +190,7 @@ api.prompt = function(list, dir)
 
 			term.setCursorPos(v[2], v[3])
 			write("[- " .. v[1])
-			term.setCursorPos(v[2] + v[1]:len(), v[3])
+			term.setCursorPos(v[2] + v[1]:len() + 2, v[3])
 			write(" -]")
 		end
 
@@ -207,7 +207,6 @@ api.prompt = function(list, dir)
 			end
 		end
 	else
-		local ox, oy = term.getCursorPos()
 		for _, v in pairs(list) do
 			term.setBackgroundColor(colors.black)
 			term.setTextColor(colors.white)
@@ -236,7 +235,7 @@ api.prompt = function(list, dir)
 			local e, key = os.pullEvent()
 			term.setCursorPos(list[curSel][2], list[curSel][3])
 			write(" ")
-			term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 1, list[curSel][3])
+			term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
 			write(" ")
 			if e == "key" and key == key1 and curSel > 1 then
 				curSel = curSel - 1
@@ -246,12 +245,11 @@ api.prompt = function(list, dir)
 				term.setCursorPos(ox, oy)
 				return list[curSel][1]
 			elseif e == event_exitWebsite then
-				term.setCursorPos(ox, oy)
 				return nil
 			end
 			term.setCursorPos(list[curSel][2], list[curSel][3])
 			write("[")
-			term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 1, list[curSel][3])
+			term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
 			write("]")
 		end
 	end
