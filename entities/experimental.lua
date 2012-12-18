@@ -11,6 +11,10 @@
 --  Features:
 --  - Debug mode
 --  - Proper support for NDF-OS
+--  - Support for normal computers
+--  - Christmas Theme
+--  - Christmas startup icon
+--  * Other Bugs
 --  * Live Search List Updating
 
 
@@ -2774,7 +2778,7 @@ local function main()
 	centerPrint([[                  `:(_>()<_):'                  ]])
 	centerPrint([[                    `'//\\''                    ]])
 	centerPrint([[                     //  \\                     ]])
-	centerPrint([[                    /'    `\                    ]])
+	centerPrint([[                    /'    '\                    ]])
 	centerPrint([[                                                ]])
 	centerPrint([[       Merry Christmas! -The Firewolf Team      ]])
 	centerPrint(string.rep(" ", 47))
