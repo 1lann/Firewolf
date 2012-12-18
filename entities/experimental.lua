@@ -43,7 +43,6 @@ local oldEnv = {}
 local env = {}
 local backupEnv = {}
 local api = {}
-local override = {}
 
 -- Themes
 local theme = {}
@@ -272,16 +271,12 @@ api.lWrite = function(text) api.leftWrite(text) end
 api.rPrint = function(text) api.rightPrint(text) end
 api.rWrite = function(text) api.rightWrite(text) end
 
-override.term = {}
-
-
 
 -- Set Environment
 for k, v in pairs(getfenv(0)) do env[k] = v end
 for k, v in pairs(getfenv(1)) do env[k] = v end
 for k, v in pairs(env) do oldEnv[k] = v end
 for k, v in pairs(api) do env[k] = v end
-for k, v in pairs(override) do env[k] = v end
 for k, v in pairs(env) do backupEnv[k] = v end
 setfenv(1, env)
 
