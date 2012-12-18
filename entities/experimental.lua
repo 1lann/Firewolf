@@ -181,26 +181,75 @@ api.redirect = function(url)
 	os.queueEvent(event_redirect, url:gsub("rdnt://", ""))
 end
 
-api.prompt = function(list)
-	for _, v in pairs(list) do
-		if v.bg then term.setBackgroundColor(v.bg) end
-		if v.tc then term.setTextColor(v.tc) end
-		if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 6)/2) end
+api.prompt = function(list, dir)
+	if term.isColor() then
+		for _, v in pairs(list) do
+			if v.bg then term.setBackgroundColor(v.bg) end
+			if v.tc then term.setTextColor(v.tc) end
+			if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 6)/2) end
 
-		term.setCursorPos(v[2], v[3])
-		write("[- " .. v[1] .. " -]")
-	end
+			term.setCursorPos(v[2], v[3])
+			write("[- " .. v[1])
+			term.setCursorPos(v[2] + v[1]:len(), v[3])
+			write(" -]")
+		end
 
-	while true do
-		local e, but, x, y = os.pullEvent()
-		if e == "mouse_click" then
-			for _, v in pairs(list) do
-				if x >= v[2] and x <= v[2] + v[1]:len() + 5 and y == v[3] then
-					return v[1]
+		while true do
+			local e, but, x, y = os.pullEvent()
+			if e == "mouse_click" then
+				for _, v in pairs(list) do
+					if x >= v[2] and x <= v[2] + v[1]:len() + 5 and y == v[3] then
+						return v[1]
+					end
 				end
+			elseif e == event_exitWebsite then
+				return nil
 			end
-		elseif e == event_exitWebsite then
-			return nil
+		end
+	else
+		for _, v in pairs(list) do
+			term.setBackgroundColor(colors.black)
+			term.setTextColor(colors.white)
+			if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 4)/2) end
+
+			term.setCursorPos(v[2], v[3])
+			write("  " .. v[1])
+			term.setCursorPos(v[2] + v[1]:len(), v[3])
+			write("  ")
+		end
+
+		local key1 = 200
+		local key2 = 208
+		if dir == "horizontal" then
+			key1 = 203
+			key2 = 205
+		end
+
+		local curSel = 1
+		term.setCursorPos(list[curSel][2], list[curSel][3])
+		write("[")
+		term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 1, list[curSel][3])
+		write("]")
+
+		while true do
+			local e, key = os.pullEvent()
+			term.setCursorPos(list[curSel][2], list[curSel][3])
+			write(" ")
+			term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 1, list[curSel][3])
+			write(" ")
+			if e == "key" and key == key1 and curSel > 1 then
+				curSel = curSel - 1
+			elseif e == "key" and key == key2 and curSel < #list then
+				curSel = curSel + 1
+			elseif e == "key" and key == 28 then
+				return list[curSel][1]
+			elseif e == event_exitWebsite then
+				return nil
+			end
+			term.setCursorPos(list[curSel][2], list[curSel][3])
+			write("[")
+			term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 1, list[curSel][3])
+			write("]")
 		end
 	end
 end
@@ -511,7 +560,7 @@ function urlDownload(url)
 	centerPrint("  Is attempting to download a file to this     ")
 	centerPrint("  computer!                                    ")
 
-	local opt = prompt({{"Download", 6, 14}, {"Cancel", w - 16, 14}})
+	local opt = prompt({{"Download", 6, 14}, {"Cancel", w - 16, 14}}, "horizontal")
 	if opt == "Download" then
 		clearPage(website, colors[theme["background"]])
 		print("")
@@ -1059,7 +1108,7 @@ pages.downloads = function(site)
 	for i = 1, 5 do
 		centerPrint(string.rep(" ", 47))
 	end
-	local opt = prompt({{"Themes", 7, 8}, {"Plugins", 7, 10}})
+	local opt = prompt({{"Themes", 7, 8}, {"Plugins", 7, 10}}, "vertical")
 	if opt == "Themes" and term.isColor() then
 		while true do
 			local themes = {}
@@ -1219,7 +1268,7 @@ pages.downloads = function(site)
 		centerPrint(string.rep(" ", 47))
 		centerPrint(string.rep(" ", 47))
 
-		local opt = prompt({{"Back", -1, 11}})
+		local opt = prompt({{"Back", -1, 11}}, "vertical")
 		if opt == nil then
 			os.queueEvent(event_exitWebsite)
 			return
@@ -1514,7 +1563,7 @@ pages.help = function(site)
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	for i = 1, 7 do centerPrint(string.rep(" ", 47)) end
 	local opt = prompt({{"Getting Started", 7, 9}, {"Making a Theme", 7, 11}, 
-		{"API Documentation", 7, 13}})
+		{"API Documentation", 7, 13}}, "vertical")
 	local pages = {}
 	if opt == "Getting Started" then
 		pages[1] = {title = "Getting Started - Intoduction", content = {
@@ -1624,7 +1673,7 @@ pages.help = function(site)
 			"rightWrite(text)         rWrite(text)",
 			"  - Writes text to the right of the screen"
 		}} pages[4] = {title = "API Documentation - 4", content = {
-			"prompt(list)",
+			"prompt(list, direction)",
 			"  - Prompts the user to choose an option",
 			"    from a list formatted like:",
 			"    { { \"Option 1\", [x], [y] }, ... }",
@@ -1689,7 +1738,7 @@ pages.help = function(site)
 		elseif curPage == #pages then table.insert(b, a[1])
 		else table.insert(b, a[1]) table.insert(b, a[2]) end
 
-		local opt = prompt(b)
+		local opt = prompt(b, "horizontal")
 		if opt == "Prev" then
 			curPage = curPage - 1
 		elseif opt == "Next" then
@@ -1730,7 +1779,7 @@ pages.settings = function(site)
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 9 do centerPrint(string.rep(" ", 43)) end
-		local opt = prompt({{a, 6, 10}, {b, 6, 12}, {c, 6, 14}, {"Reset Firewolf", 6, 16}})
+		local opt = prompt({{a, 6, 10}, {b, 6, 12}, {c, 6, 14}, {"Reset Firewolf", 6, 16}}, "vertical")
 		if opt == a then
 			if autoupdate == "true" then autoupdate = "false"
 			elseif autoupdate == "false" then autoupdate = "true" end
@@ -1760,7 +1809,7 @@ pages.settings = function(site)
 			for i = 1, 12 do centerPrint(string.rep(" ", 43)) end
 			local opt = prompt({{"Reset History", 7, 8}, {"Reset Servers", 7, 9}, 
 				{"Reset Theme", 7, 10}, {"Reset Cache", 7, 11}, {"Reset Databases", 7, 12}, 
-				{"Reset Settings", 7, 13}, {"Back", 7, 14}, {"Reset All", 7, 16}})
+				{"Reset Settings", 7, 13}, {"Back", 7, 14}, {"Reset All", 7, 16}}, "vertical")
 
 			openAddressBar = false
 			if opt == "Reset All" then
@@ -1837,7 +1886,7 @@ pages.update = function(site)
 	centerPrint(string.rep(" ", 43))
 	centerPrint(string.rep(" ", 43))
 
-	local opt = prompt({{"Update", 7, 10}, {"Cancel", 34, 10}})
+	local opt = prompt({{"Update", 7, 10}, {"Cancel", 34, 10}}, "horizontal")
 	if opt == "Update" then
 		openAddressBar = false
 		term.setCursorPos(1, 10)
@@ -1927,7 +1976,7 @@ pages.getinfo = function(site)
 		if verify("antivirus", content) then
 			centerPrint("  Triggers Antivirus" .. string.rep(" ", 43 - 20)) end
 		centerPrint(string.rep(" ", 43))
-		local opt = prompt({{"Save Source", 7, 12}, {"Visit Site", 7, 14}})
+		local opt = prompt({{"Save Source", 7, 12}, {"Visit Site", 7, 14}}, "vertical")
 		if opt == "Save Source" then
 			term.setCursorPos(9, 13)
 			write("Save As: /")
@@ -2303,7 +2352,7 @@ local function loadSite(site)
 					write("[ " .. v)
 				end
 
-				local opt = prompt({{"Allow", 6, 17}, {"Cancel", w - 16, 17}})
+				local opt = prompt({{"Allow", 6, 17}, {"Cancel", w - 16, 17}}, "horizontal")
 				if opt == "Allow" then
 					status = "safe"
 				elseif opt == "Cancel" then
@@ -2373,7 +2422,7 @@ local function loadSite(site)
 			centerPrint(string.rep(" ", 47))
 			centerPrint(string.rep(" ", 47))
 
-			local opt = prompt({{"Load Cache", 6, 17}, {"Cancel", w - 16, 17}})
+			local opt = prompt({{"Load Cache", 6, 17}, {"Cancel", w - 16, 17}}, "horizontal")
 			if opt == "Load Cache" then
 				runSite(cacheLoc)
 				return
