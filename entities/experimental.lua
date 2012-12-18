@@ -417,6 +417,8 @@ end
 
 local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
 	["top-box"] = "red", ["bottom-box"] = "orange", ["text-color"] = "white", ["background"] = "gray"}
+local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "black", 
+	["top-box"] = "black", ["bottom-box"] = "black", ["text-color"] = "white", ["background"] = "black"}
 
 local ownThemeFileContent = [[
 address-bar-text=
@@ -1058,7 +1060,7 @@ pages.downloads = function(site)
 		centerPrint(string.rep(" ", 47))
 	end
 	local opt = prompt({{"Themes", 7, 8}, {"Plugins", 7, 10}})
-	if opt == "Themes" then
+	if opt == "Themes" and term.isColor() then
 		while true do
 			local themes = {}
 			local c = {"Make my Own", "Load my Own"}
@@ -1181,6 +1183,23 @@ pages.downloads = function(site)
 				end
 			end
 		end
+	elseif opt == "Themes" and not(term.isColor()) then
+		clearPage(site, colors[theme["background"]])
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
+		print("")
+		centerPrint(string.rep(" ", 47))
+		centerWrite(string.rep(" ", 47))
+		centerPrint("Download Center")
+		centerPrint(string.rep(" ", 47))
+		print("\n")
+
+		centerPrint(string.rep(" ", 47))
+		centerWrite(string.rep(" ", 47))
+		centerPrint("Themes are not available on normal")
+		centerWrite(string.rep(" ", 47))
+		centerPrint("computers! :(")
+		centerPrint(string.rep(" ", 47))
 	elseif opt == "Plugins" then
 		clearPage(site, colors[theme["background"]])
 		term.setTextColor(colors[theme["text-color"]])
@@ -2761,7 +2780,7 @@ local function startup()
 	end
 
 	-- Advanced Comptuer
-	if not(term.isColor()) then
+	--[[if not(term.isColor()) then
 		term.clear()
 		term.setCursorPos(1, 4)
 		api.centerPrint("Advanced Comptuer Required!")
@@ -2813,7 +2832,7 @@ local function startup()
 		end
 
 		return false
-	end
+	end]]
 
 	-- Run
 	local _, err = pcall(main)
@@ -2856,8 +2875,12 @@ local function startup()
 end
 
 -- Theme
-theme = loadTheme(themeLocation)
-if theme == nil then theme = defaultTheme end
+if not(term.isColor()) then 
+	theme = originalTheme
+else
+	theme = loadTheme(themeLocation)
+	if theme == nil then theme = defaultTheme end
+end
 
 -- Debugging
 if #tArgs > 0 and tArgs[1] == "debug" then
