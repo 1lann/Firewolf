@@ -325,6 +325,8 @@ api.scrollingPrompt = function(list, x, y, len, width)
 		local curSel = 1
 		local disList = updateDisplayList(list, loc, len)
 		draw(disList)
+		term.setCursorPos(x + 1, y + curSel - 1)
+		write("x")
 
 		while true do
 			local e, key = os.pullEvent()
