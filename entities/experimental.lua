@@ -328,24 +328,31 @@ api.scrollingPrompt = function(list, x, y, len, width)
 
 		while true do
 			local e, key = os.pullEvent()
-			term.setCursorPos()
+			term.setCursorPos(x + 1, y + curSel - 1)
+			write(" ")
 			if e == "key" and key == 200 then
 				if curSel > 1 then
-
+					curSel = curSel - 1
 				elseif loc > 1 then
-
+					loc = loc - 1
+					disList = updateDisplayList(list, loc, len)
+					draw(disList)
 				end
 			elseif e == "key" and key == 208 then
 				if curSel < len then
-
+					curSel = curSel + 1
 				elseif loc + len - 1 < #list then
-
+					loc = loc + 1
+					disList = updateDisplayList(list, loc, len)
+					draw(disList)
 				end
 			elseif e == "key" and key == 28 then
 				return list[curSel + loc - 1]
 			elseif e == event_exitWebsite then
 				return nil
 			end
+			term.setCursorPos(x + 1, y + curSel - 1)
+			write("x")
 		end
 	end
 end
