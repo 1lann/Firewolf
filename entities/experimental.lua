@@ -242,7 +242,6 @@ api.prompt = function(list, dir)
 			elseif e == "key" and key == key2 and curSel < #list then
 				curSel = curSel + 1
 			elseif e == "key" and key == 28 then
-				term.setCursorPos(ox, oy)
 				return list[curSel][1]
 			elseif e == event_exitWebsite then
 				return nil
@@ -441,7 +440,7 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 			elseif but == keys["end"] then
 				pos = line:len()
 				redraw()
-			elseif (but == 29 or but == 157) and not(exitOnControl == true) then 
+			elseif (but == 29 or but == 157) and exitOnControl == true then 
 				term.setCursorBlink(false)
 				return nil
 			end
@@ -690,19 +689,21 @@ local function resetFilesystem()
 	end
 
 	-- Themes
-	if autoupdate == "true" then
-		fs.delete(availableThemesLocation)
-		fs.delete(defaultThemeLocation)
-	end if not(fs.exists(availableThemesLocation)) then
-		download(availableThemesURL, availableThemesLocation)
-	end if not(fs.exists(defaultThemeLocation)) then
-		local f = io.open(availableThemesLocation, "r")
-		local a = f:read("*l")
-		f:close()
-		a = a:sub(1, a:find("| |") - 1)
-		download(a, defaultThemeLocation)
-	end if not (fs.exists(themeLocation)) then
-		fs.copy(defaultThemeLocation, themeLocation)
+	if term.isColor() then
+		if autoupdate == "true" then
+			fs.delete(availableThemesLocation)
+			fs.delete(defaultThemeLocation)
+		end if not(fs.exists(availableThemesLocation)) then
+			download(availableThemesURL, availableThemesLocation)
+		end if not(fs.exists(defaultThemeLocation)) then
+			local f = io.open(availableThemesLocation, "r")
+			local a = f:read("*l")
+			f:close()
+			a = a:sub(1, a:find("| |") - 1)
+			download(a, defaultThemeLocation)
+		end if not(fs.exists(themeLocation)) then
+			fs.copy(defaultThemeLocation, themeLocation)
+		end
 	end
 
 	-- Databases
@@ -2650,6 +2651,7 @@ local function addressBarRead()
 	end
 
 	onLiveUpdate("", "delete", nil, nil, nil, nil, nil)
+	term.setCursorPos(9, 1)
 	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate, true)
 end
 
@@ -2663,9 +2665,9 @@ local function addressBarMain()
 				os.queueEvent(event_exitWebsite)
 
 				-- Read
-				term.setCursorPos(2, 1)
 				term.setBackgroundColor(colors[theme["address-bar-background"]])
 				term.setTextColor(colors[theme["address-bar-text"]])
+				term.setCursorPos(2, 1)
 				term.clearLine()
 				write("rdnt://")
 				local oldWebsite = website
@@ -2766,47 +2768,33 @@ end
 local function startup()
 	-- HTTP API
 	if not(http) then
-		if term.isColor() then
-			term.setTextColor(colors[theme["text-color"]])
-			term.setBackgroundColor(colors[theme["background"]])
-			term.clear()
-			term.setCursorPos(1, 2)
-			term.setBackgroundColor(colors[theme["top-box"]])
-			api.centerPrint(string.rep(" ", 47))
-			api.centerWrite(string.rep(" ", 47))
-			api.centerPrint("HTTP API Not Enabled! D:")
-			api.centerPrint(string.rep(" ", 47))
-			print("")
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["background"]])
+		term.clear()
+		term.setCursorPos(1, 2)
+		term.setBackgroundColor(colors[theme["top-box"]])
+		api.centerPrint(string.rep(" ", 47))
+		api.centerWrite(string.rep(" ", 47))
+		api.centerPrint("HTTP API Not Enabled! D:")
+		api.centerPrint(string.rep(" ", 47))
+		print("")
 
-			term.setBackgroundColor(colors[theme["bottom-box"]])
-			api.centerPrint(string.rep(" ", 47))
-			api.centerPrint("  Firewolf is unable to run without the HTTP   ")
-			api.centerPrint("  API Enabled! Please enable it in the CC     ")
-			api.centerPrint("  Config!                                     ")
-			api.centerPrint(string.rep(" ", 47))
+		term.setBackgroundColor(colors[theme["bottom-box"]])
+		api.centerPrint(string.rep(" ", 47))
+		api.centerPrint("  Firewolf is unable to run without the HTTP   ")
+		api.centerPrint("  API Enabled! Please enable it in the CC     ")
+		api.centerPrint("  Config!                                     ")
+		api.centerPrint(string.rep(" ", 47))
 
-			api.centerPrint(string.rep(" ", 47))
-			api.centerPrint("               Click to Exit...               ")
-			api.centerPrint(string.rep(" ", 47))
+		api.centerPrint(string.rep(" ", 47))
+		api.centerWrite(string.rep(" ", 47))
+		if term.isColor() then api.centerPrint("Click to Exit...")
+		else api.centerPrint("Press any key to exit...") end
+		api.centerPrint(string.rep(" ", 47))
 
-			while true do
-				local e, but, x, y = os.pullEvent()
-				if e == "mouse_click" or e == "key" then break end
-			end	
-		else
-			term.clear()
-			term.setCursorPos(1, 4)
-			api.centerPrint("HTTP API Not Enabled! D:")
-			print("\n")
-			api.centerPrint("Firewolf is unable to run without")
-			api.centerPrint("the HTTP API Enabled! Please enable")
-			api.centerPrint("it in the ComputerCraft Config!")
-			print("\n\n")
-			centerPrint("Press Any Key to Exit...")
-			while true do
-				local e, but, x, y = os.pullEvent()
-				if e == "key" then break end
-			end
+		while true do
+			local e, but, x, y = os.pullEvent()
+			if e == "mouse_click" or e == "key" then break end
 		end
 
 		return false 
@@ -2829,61 +2817,6 @@ local function startup()
 		os.pullEvent("key")
 		return false
 	end
-
-	-- Advanced Comptuer
-	--[[if not(term.isColor()) then
-		term.clear()
-		term.setCursorPos(1, 4)
-		api.centerPrint("Advanced Comptuer Required!")
-		print("\n")
-		api.centerPrint("This version of Firewolf requires")
-		api.centerPrint("an Advanced Comptuer to run!")
-		print("")
-		api.centerPrint("You may download Firewolf 1.4.5 to")
-		api.centerPrint("use on this computer...")
-
-		print("\n\n")
-		term.clearLine()
-		api.centerWrite("[Download Firewolf 1.4.5]         Exit Firewolf ")
-		local curOpt = 1
-		while true do
-			local _, key = os.pullEvent("key")
-			if key == 28 then
-				if curOpt == 1 then
-					term.clear()
-					term.setCursorPos(1, 4)
-					api.centerPrint("Downloading...")
-
-					local oldDownloadURL = 
-						"http://raw.github.com/1lann/firewolf/master/entities/old.lua"
-					fs.delete("/firewolf-old")
-					fs.delete("/" .. shell.getRunningProgram())
-					local oldDownloadURL = ""
-					download(oldDownloadURL, "/firewolf-old")
-
-					term.clear()
-					term.setCursorPos(1, 4)
-					api.centerPrint("Download Successful!")
-					openAddressBar = false
-					sleep(1.1)
-					openAddressBar = true
-					break
-				elseif curOpt == 2 then
-					break
-				end
-			elseif key == 203 and curOpt == 2 then
-				curOpt = 1
-				term.clearLine()
-				api.centerWrite("[Download Firewolf 1.4.5]         Exit Firewolf ")
-			elseif key == 205 and curOpt == 1 then
-				curOpt = 2
-				term.clearLine()
-				api.centerWrite(" Download Firewolf 1.4.5         [Exit Firewolf]")
-			end
-		end
-
-		return false
-	end]]
 
 	-- Run
 	local _, err = pcall(main)
@@ -2911,7 +2844,8 @@ local function startup()
 		api.centerPrint("  " .. rootFolder .. "                              ")
 		api.centerPrint(string.rep(" ", 47))
 		api.centerWrite(string.rep(" ", 47))
-		api.centerPrint("Click to Exit...")
+		if term.isColor() then api.centerPrint("Click to Exit...")
+		else api.centerPrint("Press any key to exit...") end
 		api.centerPrint(string.rep(" ", 47))
 
 		while true do
@@ -2935,11 +2869,19 @@ end
 
 -- Debugging
 if #tArgs > 0 and tArgs[1] == "debug" then
-	print("Debug Mode Enabled...")
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["background"]])
+	term.clear()
+	term.setCursorPos(1, 4)
+	api.centerPrint(string.rep(" ", 43))
+	api.centerWrite(string.rep(" ", 43))
+	api.centerPrint("Debug Mode Enabled...")
+	api.centerPrint(string.rep(" ", 43))
+
 	if fs.exists("/firewolf-log") then debugFile = io.open("/firewolf-log", "a")
 	else debugFile = io.open("/firewolf-log", "w") end
 	debugFile:write("\n-- [" .. textutils.formatTime(os.time()) .. "] New Log --")
-	sleep(1.1)
+	sleep(1.8)
 end
 
 -- Start
@@ -2968,7 +2910,8 @@ else
 	api.centerPrint("Thank You for Using Firewolf " .. version)
 	api.centerPrint("Made by 1lann and GravityScore")
 	print("")
-	api.centerPrint("Click to Exit...")
+	if term.isColor() then api.centerPrint("Click to Exit...")
+	else api.centerPrint("Press any key to exit...") end
 
 	while true do
 		local e = os.pullEvent()
