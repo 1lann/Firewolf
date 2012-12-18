@@ -2629,6 +2629,19 @@ end
 
 --  -------- Main
 
+--[[
+centerPrint("          ______ ____ ____   ______            ")
+centerPrint(" ------- / ____//  _// __ \\ / ____/            ")
+centerPrint(" ------ / /_    / / / /_/ // __/               ")
+centerPrint(" ----- / __/  _/ / / _  _// /___               ")
+centerPrint(" ---- / /    /___//_/ |_|/_____/               ")
+centerPrint(" --- / /       _       __ ____   __     ______ ")
+centerPrint(" -- /_/       | |     / // __ \\ / /    / ____/ ")
+centerPrint("              | | /| / // / / // /    / /_     ")
+centerPrint("              | |/ |/ // /_/ // /___ / __/     ")
+centerPrint("              |__/|__/ \\____//_____//_/        ")
+]]--
+
 local function main()
 	-- Logo
 	term.setBackgroundColor(colors[theme["background"]])
@@ -2637,6 +2650,7 @@ local function main()
 	term.setCursorPos(1, 2)
 	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 47))
+<<<<<<< HEAD
 	--[[
 	centerPrint("          ______ ____ ____   ______            ")
 	centerPrint(" ------- / ____//  _// __ \\ / ____/            ")
@@ -2656,17 +2670,24 @@ local function main()
 	centerPrint([[                   `'//\\''                    ]])
 	centerPrint([[                    //  \\                     ]])
 	centerPrint([[                   /'    '\                    ]])
+=======
+	centerPrint([[                     _...._                     ]])
+	centerPrint([[                   .::o:::::.                   ]])
+	centerPrint([[                  .:::'''':o:.                  ]])
+	centerPrint([[                  :o:_    _:::                  ]])
+	centerPrint([[                  `:(_>()<_):'                  ]])
+	centerPrint([[                    `'//\\''                    ]])
+	centerPrint([[                     //  \\                     ]])
+	centerPrint([[                    /'    `\                    ]])
+	centerPrint([[                                                ]])
+	centerPrint([[       Merry Christmas! -The Firewolf Team      ]])
+>>>>>>> updated eperimneoijweoij00
 	centerPrint(string.rep(" ", 47))
 
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 
 	-- Download Files
-	centerPrint(string.rep(" ", 47))
-	centerWrite(string.rep(" ", 47))
-	centerPrint("Merry Christmas -The Firewolf Team")
-	centerWrite(string.rep(" ", 47))
-	sleep(2)
 	local x, y = term.getCursorPos()
 	term.setCursorPos(1, y - 1)
 	centerWrite(string.rep(" ", 47))
