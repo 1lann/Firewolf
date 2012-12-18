@@ -2671,7 +2671,7 @@ local function main()
 	term.setCursorPos(1, y - 1)
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Downloading Required Files...")
-	centerWrite(string.rep(" ", 47)
+	centerWrite(string.rep(" ", 47))
 	migrateFilesystem()
 	resetFilesystem()
 
