@@ -1578,7 +1578,7 @@ pages.server = function(site)
 					redirect("server")
 					return
 				elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
-					editPages(disList[curSel])
+					editPages(disList[sel])
 				elseif x >= 30 and x <= 46 and y == 14 and #servers > 0 then
 					-- Startup
 					fs.delete("/old-startup")
