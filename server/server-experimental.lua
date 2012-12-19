@@ -673,7 +673,8 @@ local function edit()
 	while true do
 		shell.setDir(serverFolder .. "/" .. website)
 		term.setBackgroundColor(colors.black)
-		term.setTextColor(colors.yellow)
+		if term.isColor() then term.setTextColor(colors.yellow)
+		else term.setTextColor(colors.white) end
 		write("> ")
 		term.setTextColor(colors.white)
 		local line = read(nil, commandHis)
