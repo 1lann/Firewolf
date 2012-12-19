@@ -1350,15 +1350,15 @@ pages.server = function(site)
 		if fs.isDir(serverFolder .. "/" .. v) then table.insert(servers, v) end
 	end
 
-	term.setBackgroundColor(colors[theme["bottom-box"]])
-	for i = 1, 12 do
-		term.setCursorPos(3, i + 6)
-		write(string.rep(" ", 24))
-		term.setCursorPos(29, i + 6)
-		write(string.rep(" ", 21))
-	end
-
 	if term.isColor() then
+		term.setBackgroundColor(colors[theme["bottom-box"]])
+		for i = 1, 12 do
+			term.setCursorPos(3, i + 6)
+			write(string.rep(" ", 24))
+			term.setCursorPos(29, i + 6)
+			write(string.rep(" ", 21))
+		end
+
 		local function draw(l, sel)
 			term.setBackgroundColor(colors[theme["bottom-box"]])
 			term.setCursorPos(4, 8)
@@ -1604,8 +1604,36 @@ pages.server = function(site)
 	else
 		local a = {"New Server"}
 		for _, v in pairs(servers) do table.insert(a, v) end
-		local sOpt = scrollingPrompt(a, 4, 8, 10)
-		
+		local server = scrollingPrompt(a, 4, 8, 10)
+		if server == nil then
+			os.queueEvent(event_exitWebsite)
+			return
+		end
+
+		local opt = prompt({{"Start", 30, 8}, {"Edit", 30, 10}, {"Run on Boot", 30, 12}, 
+			{"Delete", 30, 14}, {"Back", 30, 16}})
+		if opt == "Start" then
+
+		elseif opt == "Edit" then
+
+		elseif opt == "Run on Boot" then
+			fs.delete("/old-startup")
+			if fs.exists("/startup") then fs.move("/startup", "/old-startup") end
+			local f = io.open("/startup", "w")
+			f:write("shell.run(\"" .. serverSoftwareLocation .. "\", \"" .. 
+				disList[sel] .. "\", \"" .. serverFolder .. "/" .. disList[sel] .. "\")")
+			f:close()
+		elseif opt == "Delete" then
+			fs.delete(serverFolder .. "/" .. server)
+		elseif opt == "Back" then
+			-- Do nothing
+		elseif opt == nil then
+			os.queueEvent(event_exitWebsite)
+			return
+		end
+
+		redirect("server")
+		return
 	end
 end
 
