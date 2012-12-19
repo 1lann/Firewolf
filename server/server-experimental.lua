@@ -13,6 +13,7 @@
 
 -- Version
 local version = "2.3"
+local serverID = "experimental"
 
 -- Updating
 local autoupdate = true
@@ -23,7 +24,7 @@ local enableResponse = true
 local enableRecording = true
 
 -- Download URLs
-local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-experimental.lua"
+local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-" .. serverID .. ".lua"
 
 -- Events
 local event_stopServer = "firewolf_stopServerEvent"

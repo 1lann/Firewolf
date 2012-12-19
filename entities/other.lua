@@ -8,55 +8,37 @@
 --  
 
 
--- Added:
--- - Live searching
--- - Prevented read from destroying the background colors
--- - Control out of reads
--- - Block IDs from a server
+--  Features:
+--  - Debug mode
+--  - Proper support for NDF-OS
+--  - Support for normal computers
+--  - Christmas Theme
+--  - Christmas startup icon
+--  * Live Search List Updating
 
 
 --  -------- Variables
 
-local debugFile = nil
-local tArgs = {...}
-local debugMode = false
-if tArgs[1] == "debug" then
-	debugMode = true
-	print("Debug mode enabled")
-	debugFile = io.open("firewolf-logs", "a")
-	debugFile:write("\n-- New Log --")
-	sleep(2)
-end
-
-local function fwLog(fName, ...)
-	local lArgs = {...}
-	if debugMode then
-		debugFile:write("\n" .. fName .. " : ")
-		for k,v in pairs(lArgs) do 
-			if type(v) == "string" or type(v) == "number" or type(v) == nil then
-				f:write(tostring(v) .. ", ")
-			else 
-				f:write("type-" .. type(v)..", ")
-			end
-		end
-	end
-end
-
 -- Version
-local version = "2.2"
+local version = "2.3"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
+local tArgs = {...}
 
 -- Server Identification
 local serverID = "other"
-local serverList = {m0dz = "Hacker's Paradise", immibis = "turtle.dig()", ctcraft = "CTCraft", 
-					geevancraft = "GeevanCraft", experimental = "Experimental", 
-					other = "Other", old = "None"}
+local serverList = {blackwolf = "BlackWolf", geevancraft = "GeevanCraft", 
+		experimental = "Experimental", other = "Other"}
 
 -- Updating
-local w, h = term.getSize()
 local autoupdate = "true"
 local incognito = "false"
+
+-- Geometry
+local w, h = term.getSize()
+
+-- Debugging
+local debugFile = nil
 
 -- Environment
 local oldEnv = {}
@@ -76,10 +58,14 @@ local verifiedDownloads = {}
 -- Website loading
 local website = ""
 local homepage = ""
-local timeout = 0.05
+local timeout = 0.08
 local openAddressBar = true
 local loadingRate = 0
-local loadingClock = nil
+local curSites = {}
+
+-- Protocols
+local curProtocol = {}
+local protocols = {}
 
 -- History
 local history = {}
@@ -94,7 +80,7 @@ local event_redirect = "firewolf_redirectEvent"
 -- Download URLs
 local firewolfURL = "https://raw.github.com/1lann/firewolf/master/entities/" .. serverID .. ".lua"
 local databaseURL = "https://raw.github.com/1lann/firewolf/master/databases/" .. serverID .. 
-		"-database.txt"
+	"-database.txt"
 local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server.lua"
 if serverID == "experimental" then 
 	serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-experimental.lua"
@@ -140,8 +126,9 @@ api.clearPage = function(site, color, redraw)
 	term.setBackgroundColor(colors[theme["address-bar-background"]])
 	term.clearLine()
 	term.setCursorPos(2, 1)
-	if site:len() > 42 then site = site:sub(1, 39) .. "..." end
-	write("rdnt://" .. site)
+	local a = site
+	if a:len() > w - 9 then a = a:sub(1, 39) .. "..." end
+	write("rdnt://" .. a)
 	if title ~= nil then
 		term.setCursorPos(w - title:len(), 1)
 		write(title)
@@ -196,26 +183,75 @@ api.redirect = function(url)
 	os.queueEvent(event_redirect, url:gsub("rdnt://", ""))
 end
 
-api.prompt = function(list)
-	for _, v in pairs(list) do
-		if v.bg then term.setBackgroundColor(v.bg) end
-		if v.tc then term.setTextColor(v.tc) end
-		if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 6)/2) end
+api.prompt = function(list, dir)
+	if term.isColor() then
+		for _, v in pairs(list) do
+			if v.bg then term.setBackgroundColor(v.bg) end
+			if v.tc then term.setTextColor(v.tc) end
+			if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 6)/2) end
 
-		term.setCursorPos(v[2], v[3])
-		write("[- " .. v[1] .. " -]")
-	end
+			term.setCursorPos(v[2], v[3])
+			write("[- " .. v[1])
+			term.setCursorPos(v[2] + v[1]:len() + 3, v[3])
+			write(" -]")
+		end
 
-	while true do
-		local e, but, x, y = os.pullEvent()
-		if e == "mouse_click" then
-			for _, v in pairs(list) do
-				if x >= v[2] and x <= v[2] + v[1]:len() + 5 and y == v[3] then
-					return v[1]
+		while true do
+			local e, but, x, y = os.pullEvent()
+			if e == "mouse_click" then
+				for _, v in pairs(list) do
+					if x >= v[2] and x <= v[2] + v[1]:len() + 5 and y == v[3] then
+						return v[1]
+					end
 				end
+			elseif e == event_exitWebsite then
+				return nil
 			end
-		elseif e == event_exitWebsite then
-			return nil
+		end
+	else
+		for _, v in pairs(list) do
+			term.setBackgroundColor(colors.black)
+			term.setTextColor(colors.white)
+			if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 4)/2) end
+
+			term.setCursorPos(v[2], v[3])
+			write("  " .. v[1])
+			term.setCursorPos(v[2] + v[1]:len() + 2, v[3])
+			write("  ")
+		end
+
+		local key1 = 200
+		local key2 = 208
+		if dir == "horizontal" then
+			key1 = 203
+			key2 = 205
+		end
+
+		local curSel = 1
+		term.setCursorPos(list[curSel][2], list[curSel][3])
+		write("[")
+		term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
+		write("]")
+
+		while true do
+			local e, key = os.pullEvent()
+			term.setCursorPos(list[curSel][2], list[curSel][3])
+			write(" ")
+			term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
+			write(" ")
+			if e == "key" and key == key1 and curSel > 1 then
+				curSel = curSel - 1
+			elseif e == "key" and key == key2 and curSel < #list then
+				curSel = curSel + 1
+			elseif e == "key" and key == 28 then
+				return list[curSel][1]
+			elseif e == event_exitWebsite then
+				return nil
+			end
+			term.setCursorPos(list[curSel][2], list[curSel][3])
+			write("[")
+			term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
+			write("]")
 		end
 	end
 end
@@ -223,20 +259,6 @@ end
 api.scrollingPrompt = function(list, x, y, len, width)
 	local wid = width
 	if wid == nil then wid = w - 3 end
-
-	local function draw(a)
-		fwLog("draw", a)
-		for i, v in ipairs(a) do
-			term.setCursorPos(1, y + i - 1)
-			api.centerWrite(string.rep(" ", wid + 2))
-			term.setCursorPos(x, y + i - 1)
-			write("[ " .. v)
-			term.setCursorPos(wid + x - 2, y + i - 1)
-			write("  ]")
-		end
-		term.setCursorPos(wid + x - 2, y)
-		write("  ]")
-	end
 
 	local function updateDisplayList(items, loc, len)
 		local ret = {}
@@ -247,36 +269,94 @@ api.scrollingPrompt = function(list, x, y, len, width)
 		return ret
 	end
 
-	local loc = 1
-	local disList = updateDisplayList(list, loc, len)
-	draw(disList)
-	
-	while true do
-		local e, but, clx, cly = os.pullEvent()
-		if e == "key" and but == 200 and loc > 1 then
-			loc = loc - 1
-			disList = updateDisplayList(list, loc, len)
-			draw(disList)
-		elseif e == "key" and but == 208 and loc + len - 1 < #list then
-			loc = loc + 1
-			disList = updateDisplayList(list, loc, len)
-			draw(disList)
-		elseif e == "mouse_scroll" and but > 0 and loc + len - 1 < #list then
-			loc = loc + but
-			disList = updateDisplayList(list, loc, len)
-			draw(disList)
-		elseif e == "mouse_scroll" and but < 0 and loc > 1 then
-			loc = loc + but
-			disList = updateDisplayList(list, loc, len)
-			draw(disList)
-		elseif e == "mouse_click" then
-			for i, v in ipairs(disList) do
-				if clx >= x and clx <= x + wid and cly == i + y - 1 then
-					return v
-				end
+	if term.isColor() then
+		local function draw(a)
+			for i, v in ipairs(a) do
+				term.setCursorPos(1, y + i - 1)
+				api.centerWrite(string.rep(" ", wid + 2))
+				term.setCursorPos(x, y + i - 1)
+				write("[ " .. v:sub(1, wid - 5))
+				term.setCursorPos(wid + x - 2, y + i - 1)
+				write("  ]")
 			end
-		elseif e == event_exitWebsite then
-			return nil
+		end
+
+		local loc = 1
+		local disList = updateDisplayList(list, loc, len)
+		draw(disList)
+		
+		while true do
+			local e, but, clx, cly = os.pullEvent()
+			if e == "key" and but == 200 and loc > 1 then
+				loc = loc - 1
+				disList = updateDisplayList(list, loc, len)
+				draw(disList)
+			elseif e == "key" and but == 208 and loc + len - 1 < #list then
+				loc = loc + 1
+				disList = updateDisplayList(list, loc, len)
+				draw(disList)
+			elseif e == "mouse_scroll" and but > 0 and loc + len - 1 < #list then
+				loc = loc + but
+				disList = updateDisplayList(list, loc, len)
+				draw(disList)
+			elseif e == "mouse_scroll" and but < 0 and loc > 1 then
+				loc = loc + but
+				disList = updateDisplayList(list, loc, len)
+				draw(disList)
+			elseif e == "mouse_click" then
+				for i, v in ipairs(disList) do
+					if clx >= x and clx <= x + wid and cly == i + y - 1 then
+						return v
+					end
+				end
+			elseif e == event_exitWebsite then
+				return nil
+			end
+		end
+	else
+		local function draw(a)
+			for i, v in ipairs(a) do
+				term.setCursorPos(1, y + i - 1)
+				api.centerWrite(string.rep(" ", wid + 2))
+				term.setCursorPos(x, y + i - 1)
+				write("[ ] " .. v:sub(1, wid - 5))
+			end
+		end
+
+		local loc = 1
+		local curSel = 1
+		local disList = updateDisplayList(list, loc, len)
+		draw(disList)
+		term.setCursorPos(x + 1, y + curSel - 1)
+		write("x")
+
+		while true do
+			local e, key = os.pullEvent()
+			term.setCursorPos(x + 1, y + curSel - 1)
+			write(" ")
+			if e == "key" and key == 200 then
+				if curSel > 1 then
+					curSel = curSel - 1
+				elseif loc > 1 then
+					loc = loc - 1
+					disList = updateDisplayList(list, loc, len)
+					draw(disList)
+				end
+			elseif e == "key" and key == 208 then
+				if curSel < #disList then
+					curSel = curSel + 1
+				elseif loc + len - 1 < #list then
+					loc = loc + 1
+					disList = updateDisplayList(list, loc, len)
+					draw(disList)
+				end
+			elseif e == "key" and key == 28 then
+				return list[curSel + loc - 1]
+			elseif e == event_exitWebsite then
+				return nil
+			end
+			term.setCursorPos(x + 1, y + curSel - 1)
+			write("x")
 		end
 	end
 end
@@ -289,6 +369,7 @@ api.lWrite = function(text) api.leftWrite(text) end
 api.rPrint = function(text) api.rightPrint(text) end
 api.rWrite = function(text) api.rightWrite(text) end
 
+
 -- Set Environment
 for k, v in pairs(getfenv(0)) do env[k] = v end
 for k, v in pairs(getfenv(1)) do env[k] = v end
@@ -299,6 +380,18 @@ setfenv(1, env)
 
 
 --  -------- Utilities
+
+local function debugLog(n, ...)
+	local lArgs = {...}
+	if debugFile then
+		debugFile:write("\n" .. n .. " : ")
+		for k, v in pairs(lArgs) do 
+			if type(v) == "string" or type(v) == "number" or type(v) == nil then
+				f:write(tostring(v) .. ", ")
+			else f:write("type-" .. type(v) .. ", ") end
+		end
+	end
+end
 
 local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exitOnControl)
 	term.setCursorBlink(true)
@@ -396,7 +489,7 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 			elseif but == keys["end"] then
 				pos = line:len()
 				redraw()
-			elseif (but == 29 or but == 157) and not(exitOnControl == true) then 
+			elseif (but == 29 or but == 157) and exitOnControl == true then 
 				term.setCursorBlink(false)
 				return nil
 			end
@@ -422,6 +515,8 @@ end
 
 local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
 	["top-box"] = "red", ["bottom-box"] = "orange", ["text-color"] = "white", ["background"] = "gray"}
+local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "black", 
+	["top-box"] = "black", ["bottom-box"] = "black", ["text-color"] = "white", ["background"] = "black"}
 
 local ownThemeFileContent = [[
 address-bar-text=
@@ -514,7 +609,7 @@ function urlDownload(url)
 	centerPrint("  Is attempting to download a file to this     ")
 	centerPrint("  computer!                                    ")
 
-	local opt = prompt({{"Download", 6, 14}, {"Cancel", w - 16, 14}})
+	local opt = prompt({{"Download", 6, 14}, {"Cancel", w - 16, 14}}, "horizontal")
 	if opt == "Download" then
 		clearPage(website, colors[theme["background"]])
 		print("")
@@ -542,7 +637,7 @@ function urlDownload(url)
 		if b == a then
 			term.setCursorPos(5, 11)
 			write("Save As: /")
-			local c = modRead(nil, nil, 33, false)
+			local c = modRead(nil, nil, w - 18, false)
 			if c ~= "" and c ~= nil then
 				c = "/" .. c
 				local f = io.open(c, "w")
@@ -643,19 +738,21 @@ local function resetFilesystem()
 	end
 
 	-- Themes
-	if autoupdate == "true" then
-		fs.delete(availableThemesLocation)
-		fs.delete(defaultThemeLocation)
-	end if not(fs.exists(availableThemesLocation)) then
-		download(availableThemesURL, availableThemesLocation)
-	end if not(fs.exists(defaultThemeLocation)) then
-		local f = io.open(availableThemesLocation, "r")
-		local a = f:read("*l")
-		f:close()
-		a = a:sub(1, a:find("| |") - 1)
-		download(a, defaultThemeLocation)
-	end if not (fs.exists(themeLocation)) then
-		fs.copy(defaultThemeLocation, themeLocation)
+	if term.isColor() then
+		if autoupdate == "true" then
+			fs.delete(availableThemesLocation)
+			fs.delete(defaultThemeLocation)
+		end if not(fs.exists(availableThemesLocation)) then
+			download(availableThemesURL, availableThemesLocation)
+		end if not(fs.exists(defaultThemeLocation)) then
+			local f = io.open(availableThemesLocation, "r")
+			local a = f:read("*l")
+			f:close()
+			a = a:sub(1, a:find("| |") - 1)
+			download(a, defaultThemeLocation)
+		end if not(fs.exists(themeLocation)) then
+			fs.copy(defaultThemeLocation, themeLocation)
+		end
 	end
 
 	-- Databases
@@ -844,9 +941,12 @@ local function verify(database, ...)
 end
 
 
---  -------- Searching
+--  -------- Protocols
 
-local function getSearchResults(input)
+protocols.http = {}
+protocols.rdnt = {}
+
+protocols.rdnt.getSearchResults = function(input)
 	local results = {}
 	local resultIDs = {}
 
@@ -893,7 +993,7 @@ local function getSearchResults(input)
 	return results
 end
 
-local function getWebsite(site)
+protocols.rdnt.getWebsite = function(site)
 	local id, content, status = nil, nil, nil
 	local clock = os.clock()
 	rednet.broadcast(site)
@@ -917,6 +1017,14 @@ local function getWebsite(site)
 	end
 
 	return id, content, status
+end
+
+protocols.http.getSearchResults = function(input)
+	return {}
+end
+
+protocols.http.getWebsite = function(site)
+	return nil
 end
 
 
@@ -976,16 +1084,16 @@ pages.history = function(site)
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	print("")
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
+	centerPrint(string.rep(" ", 47))
+	centerWrite(string.rep(" ", 47))
 	centerPrint("Firewolf History")
-	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", 47))
 	print("")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 
 	if #history > 0 then
 		for i = 1, 12 do
-			centerPrint(string.rep(" ", 43))
+			centerPrint(string.rep(" ", 47))
 		end
 
 		local a = {"Clear History"}
@@ -1004,16 +1112,16 @@ pages.history = function(site)
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
 			print("")
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
+			centerPrint(string.rep(" ", 47))
+			centerWrite(string.rep(" ", 47))
 			centerPrint("Firewolf History")
-			centerPrint(string.rep(" ", 43))
+			centerPrint(string.rep(" ", 47))
 			print("\n")
 			term.setBackgroundColor(colors[theme["bottom-box"]])
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
+			centerPrint(string.rep(" ", 47))
+			centerWrite(string.rep(" ", 47))
 			centerPrint("Cleared history.")
-			centerPrint(string.rep(" ", 43))
+			centerPrint(string.rep(" ", 47))
 			openAddressBar = false
 			sleep(1.1)
 
@@ -1029,10 +1137,10 @@ pages.history = function(site)
 		end
 	else
 		print("")
-		centerPrint(string.rep(" ", 43))
-		centerWrite(string.rep(" ", 43))
+		centerPrint(string.rep(" ", 47))
+		centerWrite(string.rep(" ", 47))
 		centerPrint("No Items in History!")
-		centerPrint(string.rep(" ", 43))
+		centerPrint(string.rep(" ", 47))
 	end
 end
 
@@ -1051,9 +1159,8 @@ pages.downloads = function(site)
 	for i = 1, 5 do
 		centerPrint(string.rep(" ", 47))
 	end
-	local opt = prompt({{"Themes", 7, 8}, {"Plugins", 7, 10}})
-	if opt == "Themes" then
-		fwLog("Theme selected")
+	local opt = prompt({{"Themes", 7, 8}, {"Plugins", 7, 10}}, "vertical")
+	if opt == "Themes" and term.isColor() then
 		while true do
 			local themes = {}
 			local c = {"Make my Own", "Load my Own"}
@@ -1067,7 +1174,6 @@ pages.downloads = function(site)
 				l = f:read("*l")
 			end
 			f:close()
-			fwLog("Pre-initialized")
 			clearPage(site, colors[theme["background"]])
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
@@ -1077,13 +1183,9 @@ pages.downloads = function(site)
 			centerPrint("Download Center - Themes")
 			centerPrint(string.rep(" ", 47))
 			print("")
-			fwLog("Title drawn")
 			term.setBackgroundColor(colors[theme["bottom-box"]])
-			fwLog("BG Colour set")
 			for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
-			fwLog("Center Printing complete")
 			local t = scrollingPrompt(c, 4, 8, 10, 44)
-			fwLog("Scrolling prompt drawn")
 			if t == nil then
 				os.queueEvent(event_exitWebsite)
 				return
@@ -1181,6 +1283,23 @@ pages.downloads = function(site)
 				end
 			end
 		end
+	elseif opt == "Themes" and not(term.isColor()) then
+		clearPage(site, colors[theme["background"]])
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
+		print("")
+		centerPrint(string.rep(" ", 47))
+		centerWrite(string.rep(" ", 47))
+		centerPrint("Download Center")
+		centerPrint(string.rep(" ", 47))
+		print("\n")
+
+		centerPrint(string.rep(" ", 47))
+		centerWrite(string.rep(" ", 47))
+		centerPrint("Themes are not available on normal")
+		centerWrite(string.rep(" ", 47))
+		centerPrint("computers! :(")
+		centerPrint(string.rep(" ", 47))
 	elseif opt == "Plugins" then
 		clearPage(site, colors[theme["background"]])
 		term.setTextColor(colors[theme["text-color"]])
@@ -1200,7 +1319,7 @@ pages.downloads = function(site)
 		centerPrint(string.rep(" ", 47))
 		centerPrint(string.rep(" ", 47))
 
-		local opt = prompt({{"Back", -1, 11}})
+		local opt = prompt({{"Back", -1, 11}}, "vertical")
 		if opt == nil then
 			os.queueEvent(event_exitWebsite)
 			return
@@ -1214,6 +1333,140 @@ pages.downloads = function(site)
 end
 
 pages.server = function(site)
+	local function editPages(server)
+		-- Edit
+		openAddressBar = false
+		local oldLoc = shell.dir()
+		local commandHis = {}
+		local dir = serverFolder .. "/" .. server
+		term.setBackgroundColor(colors.black)
+		term.setTextColor(colors.white)
+		term.clear()
+		term.setCursorPos(1, 1)
+		print("")
+		print("Server Shell Editing")
+		print("Type 'exit' to return to Firewolf.")
+		print("")
+
+		local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
+			"eject", "exit", "help", "id", "mkdir", "monitor", "rename", "alias", "clear",
+			"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", 
+			"programs", "redset", "reboot", "hello", "label", "list", "ls", "easter"}
+		
+		while true do
+			shell.setDir(serverFolder .. "/" .. server)
+			term.setBackgroundColor(colors.black)
+			if term.isColor() then term.setTextColor(colors.yellow)
+			else term.setTextColor(colors.white) end
+			write("> ")
+			term.setTextColor(colors.white)
+			local line = read(nil, commandHis)
+			table.insert(commandHis, line)
+
+			local words = {}
+			for m in string.gmatch(line, "[^ \t]+") do
+				local a = m:gsub("^%s*(.-)%s*$", "%1")
+				table.insert(words, a)
+			end
+
+			local com = words[1]
+			if com == "exit" then
+				break
+			elseif com == "firewolf" or (com == "easter" and words[2] == "egg") then
+				-- Easter egg
+			elseif com then
+				local a = false
+				for _, v in pairs(allowed) do
+					if com == v then a = true break end
+				end
+
+				if a then
+					term.setBackgroundColor(colors.black)
+					term.setTextColor(colors.white)
+					shell.run(com, unpack(words, 2))
+				else
+					print("Program Not Allowed!")
+				end
+			end
+		end
+		shell.setDir(oldLoc)
+
+		openAddressBar = true
+		redirect("server")
+		return
+	end
+
+	local function newServer()
+		-- New server
+		term.setBackgroundColor(colors[theme["background"]])
+		for i = 1, 12 do
+			term.setCursorPos(3, i + 6)
+			write(string.rep(" ", 47))
+		end
+
+		term.setBackgroundColor(colors[theme["bottom-box"]])
+		term.setCursorPos(1, 8)
+		for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
+		term.setCursorPos(5, 9)
+		write("Name: ")
+		local name = modRead(nil, nil, 37)
+		if name == nil then
+			os.queueEvent(event_exitWebsite)
+			return
+		end
+		term.setCursorPos(5, 11)
+		write("URL:")
+		term.setCursorPos(8, 12)
+		write("rdnt://")
+		local url = modRead(nil, nil, 33)
+		if url == nil then
+			os.queueEvent(event_exitWebsite)
+			return
+		end
+		url = url:gsub(" ", "")
+
+		local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
+			"[", "]", "{", "}", "\\", "\"", ":", ";", "?", "<", ">", ",", "`"}
+		local b = false
+		for k, v in pairs(a) do
+			if url:find(v, 1, true) then
+				term.setCursorPos(5, 13)
+				write("URL Contains Illegal '" .. v .. "'!")
+				openAddressBar = false
+				sleep(1.1)
+				openAddressBar = true
+				b = true
+				break
+			elseif name == "" or url == "" then
+				term.setCursorPos(5, 13)
+				write("URL or Name Is Empty!")
+				openAddressBar = false
+				sleep(1.1)
+				openAddressBar = true
+				b = true
+				break
+			elseif fs.exists(serverFolder .. "/" .. url) then
+				term.setCursorPos(5, 13)
+				write("Server Already Exists!")
+				openAddressBar = false
+				sleep(1.1)
+				openAddressBar = true
+				b = true
+				break
+			end
+		end
+
+		if not(b) then
+			fs.makeDir(serverFolder .. "/" .. url)
+			local f = io.open(serverFolder .. "/" .. url .. "/home", "w")
+			f:write("print(\"\")\ncenterPrint(\"Welcome To " .. name .. "!\")\n")
+			f:close()
+
+			term.setCursorPos(5, 13)
+			write("Successfully Created Server! :D")
+		end
+	end
+
 	clearPage(site, colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
@@ -1229,154 +1482,146 @@ pages.server = function(site)
 		if fs.isDir(serverFolder .. "/" .. v) then table.insert(servers, v) end
 	end
 
-	term.setBackgroundColor(colors[theme["bottom-box"]])
-	for i = 1, 12 do
-		term.setCursorPos(3, i + 6)
-		write(string.rep(" ", 24))
-		term.setCursorPos(29, i + 6)
-		write(string.rep(" ", 21))
-	end
-
-	local function draw(l, sel)
+	if term.isColor() then
 		term.setBackgroundColor(colors[theme["bottom-box"]])
-		term.setCursorPos(4, 8)
-		write("[- New Server -]")
-		for i, v in ipairs(l) do
-			term.setCursorPos(3, i + 8)
+		for i = 1, 12 do
+			term.setCursorPos(3, i + 6)
 			write(string.rep(" ", 24))
-			term.setCursorPos(4, i + 8)
-			if i == sel then
-				write("[- " .. v)
-			else
-				write("   " .. v)
+			term.setCursorPos(29, i + 6)
+			write(string.rep(" ", 21))
+		end
+
+		local function draw(l, sel)
+			term.setBackgroundColor(colors[theme["bottom-box"]])
+			term.setCursorPos(4, 8)
+			write("[- New Server -]")
+			for i, v in ipairs(l) do
+				term.setCursorPos(3, i + 8)
+				write(string.rep(" ", 24))
+				term.setCursorPos(4, i + 8)
+				if i == sel then
+					write("[- " .. v)
+				else
+					write("   " .. v)
+				end
 			end
+
+			term.setCursorPos(30, 8)
+			write(string.rep(" ", 19))
+			term.setCursorPos(30, 8)
+			if l[sel] then write(l[sel])
+			else write("No Server Selected!") end
+			term.setCursorPos(30, 10)
+			write("[- Start -]")
+			term.setCursorPos(30, 12)
+			write("[- Edit -]")
+			term.setCursorPos(30, 14)
+			write("[- Run on Boot -]")
+			term.setCursorPos(30, 16)
+			write("[- Delete -]")
 		end
 
-		term.setCursorPos(30, 8)
-		write(string.rep(" ", 19))
-		term.setCursorPos(30, 8)
-		if l[sel] then write(l[sel])
-		else write("No Server Selected!") end
-		term.setCursorPos(30, 10)
-		write("[- Start -]")
-		term.setCursorPos(30, 12)
-		write("[- Edit -]")
-		term.setCursorPos(30, 14)
-		write("[- Run on Boot -]")
-		term.setCursorPos(30, 16)
-		write("[- Delete -]")
-	end
-
-	local function updateDisplayList(items, loc, len)
-		local ret = {}
-		for i = 1, len do
-			local item = items[i + loc - 1]
-			if item ~= nil then table.insert(ret, item) end
+		local function updateDisplayList(items, loc, len)
+			local ret = {}
+			for i = 1, len do
+				local item = items[i + loc - 1]
+				if item ~= nil then table.insert(ret, item) end
+			end
+			return ret
 		end
-		return ret
-	end
 
-	local sel = 1
-	local loc = 1
-	local len = 10
-	local disList = updateDisplayList(servers, loc, len)
-	draw(disList, sel)
+		local sel = 1
+		local loc = 1
+		local len = 10
+		local disList = updateDisplayList(servers, loc, len)
+		draw(disList, sel)
 
-	while true do
-		local e, but, x, y = os.pullEvent()
-		if e == "key" and but == 200 and #servers > 0 and loc > 1 then
-			-- Up
-			loc = loc - 1
-			disList = updateDisplayList(servers, loc, len)
-			draw(disList, sel)
-		elseif e == "key" and but == 208 and #servers > 0 and loc + len - 1 < #servers then
-			-- Down
-			loc = loc + 1
-			disList = updateDisplayList(servers, loc, len)
-			draw(disList, sel)
-		elseif e == "mouse_click" then
-			if x >= 4 and x <= 25 then
-				if y == 8 then
-					-- New server
-					term.setBackgroundColor(colors[theme["background"]])
-					for i = 1, 12 do
-						term.setCursorPos(3, i + 6)
-						write(string.rep(" ", 47))
-					end
-
-					term.setBackgroundColor(colors[theme["bottom-box"]])
-					term.setCursorPos(1, 8)
-					for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
-					term.setCursorPos(5, 9)
-					write("Name: ")
-					local name = modRead(nil, nil, 37)
-					if name == nil then
-						os.queueEvent(event_exitWebsite)
+		while true do
+			local e, but, x, y = os.pullEvent()
+			if e == "key" and but == 200 and #servers > 0 and loc > 1 then
+				-- Up
+				loc = loc - 1
+				disList = updateDisplayList(servers, loc, len)
+				draw(disList, sel)
+			elseif e == "key" and but == 208 and #servers > 0 and loc + len - 1 < #servers then
+				-- Down
+				loc = loc + 1
+				disList = updateDisplayList(servers, loc, len)
+				draw(disList, sel)
+			elseif e == "mouse_click" then
+				if x >= 4 and x <= 25 then
+					if y == 8 then
+						newServer()
+						redirect("server")
 						return
-					end
-					term.setCursorPos(5, 11)
-					write("URL:")
-					term.setCursorPos(8, 12)
-					write("rdnt://")
-					local url = modRead(nil, nil, 33)
-					if url == nil then
-						os.queueEvent(event_exitWebsite)
-						return
-					end
-					url = url:gsub(" ", "")
-
-					local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
-						"[", "]", "{", "}", "\\", "\"", ":", ";", "?", "<", ">", ",", "`"}
-					local b = false
-					for k, v in pairs(a) do
-						if url:find(v, 1, true) then
-							term.setCursorPos(5, 13)
-							write("URL Contains Illegal '" .. v .. "'! D:")
-							openAddressBar = false
-							sleep(1.1)
-							openAddressBar = true
-							b = true
-							break
-						elseif name == "" or url == "" then
-							term.setCursorPos(5, 13)
-							write("URL or Name Is Empty!")
-							openAddressBar = false
-							sleep(1.1)
-							openAddressBar = true
-							b = true
-							break
-						elseif fs.exists(serverFolder .. "/" .. url) then
-							term.setCursorPos(5, 13)
-							write("Server Already Exists!")
-							openAddressBar = false
-							sleep(1.1)
-							openAddressBar = true
-							b = true
-							break
+					elseif #servers > 0 then
+						for i, v in ipairs(disList) do
+							if y == i + 8 then 
+								sel = i 
+								draw(disList, sel)
+							end
 						end
 					end
-
-					if not(b) then
-						fs.makeDir(serverFolder .. "/" .. url)
-						local f = io.open(serverFolder .. "/" .. url .. "/home", "w")
-						f:write("print(\"\")\ncenterPrint(\"Welcome To " .. name .. "!\")\n")
-						f:close()
-
-						term.setCursorPos(5, 13)
-						write("Successfully Created Server! :D")
-					end
+				elseif x >= 30 and x <= 40 and y == 10 and #servers > 0 then
+					-- Start
+					term.clear()
+					term.setCursorPos(1, 1)
+					term.setBackgroundColor(colors.black)
+					term.setTextColor(colors.white)
+					openAddressBar = false
+					setfenv(1, oldEnv)
+					shell.run(serverSoftwareLocation, disList[sel], serverFolder .. "/" .. disList[sel])
+					setfenv(1, env)
+					openAddressBar = true
+					errPages.checkForModem()
 
 					redirect("server")
 					return
-				elseif #servers > 0 then
-					for i, v in ipairs(disList) do
-						if y == i + 8 then 
-							sel = i 
-							draw(disList, sel)
-						end
-					end
+				elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
+					editPages(disList[curSel])
+				elseif x >= 30 and x <= 46 and y == 14 and #servers > 0 then
+					-- Startup
+					fs.delete("/old-startup")
+					if fs.exists("/startup") then fs.move("/startup", "/old-startup") end
+					local f = io.open("/startup", "w")
+					f:write("shell.run(\"" .. serverSoftwareLocation .. "\", \"" .. 
+						disList[sel] .. "\", \"" .. serverFolder .. "/" .. disList[sel] .. "\")")
+					f:close()
+
+					term.setBackgroundColor(colors[theme["bottom-box"]])
+					term.setCursorPos(32, 15)
+					write("Will Run on Boot!")
+					openAddressBar = false
+					sleep(1.1)
+					openAddressBar = true
+					term.setCursorPos(32, 15)
+					write(string.rep(" ", 18))
+				elseif x >= 30 and x <= 41 and y == 16 and #servers > 0 then
+					-- Delete
+					fs.delete(serverFolder .. "/" .. disList[sel])
+					redirect("server")
+					return
 				end
-			elseif x >= 30 and x <= 40 and y == 10 and #servers > 0 then
+			elseif e == event_exitWebsite then
+				os.queueEvent(event_exitWebsite)
+				return
+			end
+		end
+	else
+		local a = {"New Server"}
+		for _, v in pairs(servers) do table.insert(a, v) end
+		local server = scrollingPrompt(a, 4, 8, 10)
+		if server == nil then
+			os.queueEvent(event_exitWebsite)
+			return
+		elseif server == "New Server" then
+			newServer()
+		else
+			term.setCursorPos(30, 8)
+			write(server)
+			local opt = prompt({{"Start", 30, 10}, {"Edit", 30, 12}, {"Run on Boot", 30, 13}, 
+				{"Delete", 30, 14}, {"Back", 30, 16}})
+			if opt == "Start" then
 				-- Start
 				term.clear()
 				term.setCursorPos(1, 1)
@@ -1384,101 +1629,37 @@ pages.server = function(site)
 				term.setTextColor(colors.white)
 				openAddressBar = false
 				setfenv(1, oldEnv)
-				shell.run(serverSoftwareLocation, disList[sel], serverFolder .. "/" .. disList[sel])
+				shell.run(serverSoftwareLocation, server, serverFolder .. "/" .. server)
 				setfenv(1, env)
 				openAddressBar = true
 				errPages.checkForModem()
-
-				redirect("server")
-				return
-			elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
-				-- Edit
-				openAddressBar = false
-				local oldLoc = shell.dir()
-				local commandHis = {}
-				local dir = serverFolder .. "/" .. disList[sel]
-				term.setBackgroundColor(colors.black)
-				term.setTextColor(colors.white)
-				term.clear()
-				term.setCursorPos(1, 1)
-				print("")
-				print(" Server Shell Editing")
-				print(" Type 'exit' to return to Firewolf.")
-				print("")
-
-				local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
-					"eject", "exit", "help", "id", "mkdir", "monitor", "rename", "alias", "clear",
-					"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", "programs",
-					"redset", "reboot", "hello", "label", "list", "ls", "easter"}
-				
-				while true do
-					shell.setDir(serverFolder .. "/" .. disList[sel])
-					term.setBackgroundColor(colors.black)
-					term.setTextColor(colors.yellow)
-					write("> ")
-					term.setTextColor(colors.white)
-					local line = read(nil, commandHis)
-					table.insert(commandHis, line)
-
-					local words = {}
-					for m in string.gmatch(line, "[^ \t]+") do
-						local a = m:gsub("^%s*(.-)%s*$", "%1")
-						table.insert(words, a)
-					end
-
-					local com = words[1]
-					if com == "exit" then
-						break
-					elseif com == "firewolf" or (com == "easter" and words[2] == "egg") then
-						-- Easter egg
-					elseif com then
-						local a = false
-						for _, v in pairs(allowed) do
-							if com == v then a = true break end
-						end
-
-						if a then
-							term.setBackgroundColor(colors.black)
-							term.setTextColor(colors.white)
-							shell.run(com, unpack(words, 2))
-						else
-							print("Program Not Allowed!")
-						end
-					end
-				end
-				shell.setDir(oldLoc)
-
-				openAddressBar = true
-				redirect("server")
-				return
-			elseif x >= 30 and x <= 46 and y == 14 and #servers > 0 then
-				-- Startup
+			elseif opt == "Edit" then
+				editPages(server)
+			elseif opt == "Run on Boot" then
 				fs.delete("/old-startup")
 				if fs.exists("/startup") then fs.move("/startup", "/old-startup") end
 				local f = io.open("/startup", "w")
 				f:write("shell.run(\"" .. serverSoftwareLocation .. "\", \"" .. 
-					disList[sel] .. "\", \"" .. serverFolder .. "/" .. disList[sel] .. "\")")
+					server .. "\", \"" .. serverFolder .. "/" .. server .. "\")")
 				f:close()
 
-				term.setBackgroundColor(colors[theme["bottom-box"]])
-				term.setCursorPos(32, 15)
+				term.setCursorPos(32, 17)
 				write("Will Run on Boot!")
 				openAddressBar = false
 				sleep(1.1)
 				openAddressBar = true
-				term.setCursorPos(32, 15)
-				write(string.rep(" ", 18))
-			elseif x >= 30 and x <= 41 and y == 16 and #servers > 0 then
-				-- Delete
-				fs.delete(serverFolder .. "/" .. disList[sel])
-
-				redirect("server")
+			elseif opt == "Delete" then
+				fs.delete(serverFolder .. "/" .. server)
+			elseif opt == "Back" then
+				-- Do nothing
+			elseif opt == nil then
+				os.queueEvent(event_exitWebsite)
 				return
 			end
-		elseif e == event_exitWebsite then
-			os.queueEvent(event_exitWebsite)
-			return
 		end
+
+		redirect("server")
+		return
 	end
 end
 
@@ -1496,7 +1677,7 @@ pages.help = function(site)
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	for i = 1, 7 do centerPrint(string.rep(" ", 47)) end
 	local opt = prompt({{"Getting Started", 7, 9}, {"Making a Theme", 7, 11}, 
-		{"API Documentation", 7, 13}})
+		{"API Documentation", 7, 13}}, "vertical")
 	local pages = {}
 	if opt == "Getting Started" then
 		pages[1] = {title = "Getting Started - Intoduction", content = {
@@ -1606,7 +1787,7 @@ pages.help = function(site)
 			"rightWrite(text)         rWrite(text)",
 			"  - Writes text to the right of the screen"
 		}} pages[4] = {title = "API Documentation - 4", content = {
-			"prompt(list)",
+			"prompt(list, direction)",
 			"  - Prompts the user to choose an option",
 			"    from a list formatted like:",
 			"    { { \"Option 1\", [x], [y] }, ... }",
@@ -1671,7 +1852,7 @@ pages.help = function(site)
 		elseif curPage == #pages then table.insert(b, a[1])
 		else table.insert(b, a[1]) table.insert(b, a[2]) end
 
-		local opt = prompt(b)
+		local opt = prompt(b, "horizontal")
 		if opt == "Prev" then
 			curPage = curPage - 1
 		elseif opt == "Next" then
@@ -1699,11 +1880,8 @@ pages.settings = function(site)
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Firewolf Settings")
 		centerWrite(string.rep(" ", 43))
-		if not fs.exists("/main/Config.cfg") then 
-			centerPrint("Designed For: " .. serverList[serverID])
-		else
-			centerPrint("Designed For: NDF-OS")
-		end
+		if not(fs.exists("/.var/settings")) then centerPrint("Designed For: " .. serverList[serverID])
+		else centerPrint("Designed For: NDF-OS") end
 		centerPrint(string.rep(" ", 43))
 		print("")
 
@@ -1715,7 +1893,7 @@ pages.settings = function(site)
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 9 do centerPrint(string.rep(" ", 43)) end
-		local opt = prompt({{a, 6, 10}, {b, 6, 12}, {c, 6, 14}, {"Reset Firewolf", 6, 16}})
+		local opt = prompt({{a, 6, 10}, {b, 6, 12}, {c, 6, 14}, {"Reset Firewolf", 6, 16}}, "vertical")
 		if opt == a then
 			if autoupdate == "true" then autoupdate = "false"
 			elseif autoupdate == "false" then autoupdate = "true" end
@@ -1745,7 +1923,7 @@ pages.settings = function(site)
 			for i = 1, 12 do centerPrint(string.rep(" ", 43)) end
 			local opt = prompt({{"Reset History", 7, 8}, {"Reset Servers", 7, 9}, 
 				{"Reset Theme", 7, 10}, {"Reset Cache", 7, 11}, {"Reset Databases", 7, 12}, 
-				{"Reset Settings", 7, 13}, {"Back", 7, 14}, {"Reset All", 7, 16}})
+				{"Reset Settings", 7, 13}, {"Back", 7, 14}, {"Reset All", 7, 16}}, "vertical")
 
 			openAddressBar = false
 			if opt == "Reset All" then
@@ -1767,6 +1945,7 @@ pages.settings = function(site)
 				fs.delete(themeLocation)
 				fs.copy(defaultThemeLocation, themeLocation)
 			elseif opt == "Back" then
+				openAddressBar = true
 				redirect("settings")
 				return
 			elseif opt == nil then
@@ -1788,7 +1967,8 @@ pages.settings = function(site)
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Firewolf has been reset.")
 			centerWrite(string.rep(" ", 43))
-			centerPrint("Click to Exit...")
+			if term.isColor() then centerPrint("Click to exit...")
+			else centerPrint("Press any key to exit...") end
 			centerPrint(string.rep(" ", 43))
 			while true do
 				local e = os.pullEvent()
@@ -1822,7 +2002,7 @@ pages.update = function(site)
 	centerPrint(string.rep(" ", 43))
 	centerPrint(string.rep(" ", 43))
 
-	local opt = prompt({{"Update", 7, 10}, {"Cancel", 34, 10}})
+	local opt = prompt({{"Update", 7, 10}, {"Cancel", 34, 10}}, "horizontal")
 	if opt == "Update" then
 		openAddressBar = false
 		term.setCursorPos(1, 10)
@@ -1861,11 +2041,15 @@ pages.credits = function(site)
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
-	centerPrint("   Coded by:            GravityScore and   ")
-	centerPrint("                                   1lann   ")
+	centerWrite(string.rep(" ", 43))
+	centerPrint("Coded by:            GravityScore and")
+	centerWrite(string.rep(" ", 43))
+	centerPrint("                                1lann")
 	centerPrint(string.rep(" ", 43))
-	centerPrint("   Based off:       RednetExplorer 2.4.1   ")
-	centerPrint("              Made by ComputerCraftFan11   ")
+	centerWrite(string.rep(" ", 43))
+	centerPrint("Based off:       RednetExplorer 2.4.1")
+	centerWrite(string.rep(" ", 43))
+	centerPrint("           Made by ComputerCraftFan11")
 	centerPrint(string.rep(" ", 43))
 end
 
@@ -1902,13 +2086,13 @@ pages.getinfo = function(site)
 		end
 		
 		if verify("blacklist", id) then 
-			centerPrint("  Triggers Blacklist" .. string.rep(" ", 23)) end
+			centerPrint("  Triggers Blacklist" .. string.rep(" ", 43 - 20)) end
 		if verify("whitelist", id, site) then 
-			centerPrint("  Triggers Whitelist" .. string.rep(" ", 23)) end
+			centerPrint("  Triggers Whitelist" .. string.rep(" ", 43 - 20)) end
 		if verify("antivirus", content) then
-			centerPrint("  Triggers Antivirus" .. string.rep(" ", 23)) end
+			centerPrint("  Triggers Antivirus" .. string.rep(" ", 43 - 20)) end
 		centerPrint(string.rep(" ", 43))
-		local opt = prompt({{"Save Source", 7, 12}, {"Visit Site", 7, 14}})
+		local opt = prompt({{"Save Source", 7, 12}, {"Visit Site", 7, 14}}, "vertical")
 		if opt == "Save Source" then
 			term.setCursorPos(9, 13)
 			write("Save As: /")
@@ -1940,8 +2124,8 @@ end
 
 pages.kitteh = function(site)
 	openAddressBar = false
-	term.setTextColor(colors.white)
-	term.setBackgroundColor(colors.black)
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["background"]])
 	term.clear()
 	term.setCursorPos(1, 3)
 	centerPrint("       .__....._             _.....__,         ")
@@ -1965,10 +2149,7 @@ pages.kitteh = function(site)
 end
 
 errPages.overspeed = function()
-	loadingClock = os.clock()
-	loadingRate = 0
 	website = "overspeed"
-
 	clearPage("overspeed", colors[theme["background"]])
 	print("\n")
 	term.setTextColor(colors[theme["text-color"]])
@@ -2069,7 +2250,8 @@ errPages.checkForModem = function()
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Waiting for a modem to be attached...")
 			centerWrite(string.rep(" ", 43))
-			centerPrint("Click to exit...")
+			if term.isColor() then centerPrint("Click to exit...")
+			else centerPrint("Press any key to exit...") end
 			centerPrint(string.rep(" ", 43))
 
 			while true do
@@ -2148,7 +2330,6 @@ errPages.blacklistRedirectionBots = function()
 end
 
 local function loadSite(site)
-	-- Run site function
 	local function runSite(cacheLoc)
 		-- Clear
 		clearPage(site, colors.black)
@@ -2209,7 +2390,7 @@ local function loadSite(site)
 				api.clearPage(website, curBackgroundColor)
 				env.term.setCursorPos(1, 2)
 			else
-				env.shell.run(file, unpack(...))
+				env.shell.run(file, unpack({...}))
 			end
 		end
 
@@ -2234,14 +2415,14 @@ local function loadSite(site)
 
 		-- Run
 		local fn, err = loadfile(cacheLoc)
-		setfenv(fn, nenv)
-		if fn then pcall(fn) end
-		setfenv(1, env)
+		if fn and err == nil then
+			setfenv(fn, nenv)
+			_, err = pcall(fn)
+			setfenv(1, env)
+		end
 
 		-- Catch website error
-		if err and not(err:find(event_exitWebsite)) then
-			errPages.crash(err)
-		end
+		if err and not(err:find(event_exitWebsite)) then errPages.crash(err) end
 	end
 
 	-- Draw
@@ -2257,7 +2438,7 @@ local function loadSite(site)
 	loadingRate = loadingRate + 1
 
 	-- Get website
-	local id, content, status = getWebsite(site)
+	local id, content, status = curProtocol.getWebsite(site)
 
 	-- Display website
 	local cacheLoc = cacheFolder .. "/" .. site:gsub("/", "$slazh$")
@@ -2288,7 +2469,7 @@ local function loadSite(site)
 					write("[ " .. v)
 				end
 
-				local opt = prompt({{"Allow", 6, 17}, {"Cancel", w - 16, 17}})
+				local opt = prompt({{"Allow", 6, 17}, {"Cancel", w - 16, 17}}, "horizontal")
 				if opt == "Allow" then
 					status = "safe"
 				elseif opt == "Cancel" then
@@ -2358,7 +2539,7 @@ local function loadSite(site)
 			centerPrint(string.rep(" ", 47))
 			centerPrint(string.rep(" ", 47))
 
-			local opt = prompt({{"Load Cache", 6, 17}, {"Cancel", w - 16, 17}})
+			local opt = prompt({{"Load Cache", 6, 17}, {"Cancel", w - 16, 17}}, "horizontal")
 			if opt == "Load Cache" then
 				runSite(cacheLoc)
 				return
@@ -2389,7 +2570,7 @@ local function loadSite(site)
 				return
 			end
 		else
-			local res = getSearchResults(site)
+			local res = curProtocol.getSearchResults(site)
 
 			openAddressBar = true
 			if #res > 0 then
@@ -2458,8 +2639,8 @@ end
 --  -------- Websites
 
 local function websiteMain()
-	-- Setup
-	loadingClock = os.clock()
+	-- Variables
+	local loadingClock = os.clock()
 
 	-- Main loop
 	while true do
@@ -2467,6 +2648,7 @@ local function websiteMain()
 		setfenv(1, backupEnv)
 		browserAgent = browserAgentTemplate
 		clearPage(website)
+		w, h = term.getSize()
 		term.setBackgroundColor(colors.black)
 		term.setTextColor(colors.white)
 
@@ -2489,6 +2671,8 @@ local function websiteMain()
 			loadingClock = os.clock()
 		elseif loadingRate >= 8 then
 			errPages.overspeed()
+			loadingClock = os.clock()
+			loadingRate = 0
 			skip = true
 		end if not(skip) then
 			appendToHistory(website)
@@ -2497,12 +2681,14 @@ local function websiteMain()
 			clearPage(website)
 			term.setBackgroundColor(colors.black)
 			term.setTextColor(colors.white)
-			local ex = false
-			if pages[website] then ex = pages[website](website)
-			else loadSite(website) end
-			if ex == true then 
-				os.queueEvent(event_exitApp)
-				return
+			if pages[website] then 
+				local ex = pages[website](website)
+				if ex == true then 
+					os.queueEvent(event_exitApp)
+					return
+				end
+			else
+				loadSite(website)
 			end
 		end
 
@@ -2515,19 +2701,15 @@ end
 
 --  -------- Address Bar
 
-local curSites = {}
-
-local function retrieveAllWebsites()
-	curSites = getSearchResults("")
-	local a = os.startTimer(15)
-
+local function retrieveSearchResults()
+	curSites = curProtocol.getSearchResults("")
 	while true do
-		local e, but = os.pullEvent()
-		if e == "timer" and but == a then
-			curSites = getSearchResults("")
-			a = os.startTimer(15)
-		elseif e == event_exitWebsite then
-			break
+		local e = os.pullEvent()
+		if website ~= "exit" and e == event_loadWebsite then
+			curSites = curProtocol.getSearchResults("")
+		elseif e == event_exitApp then
+			os.queueEvent(event_exitApp)
+			return
 		end
 	end
 end
@@ -2583,6 +2765,7 @@ local function addressBarRead()
 	end
 
 	onLiveUpdate("", "delete", nil, nil, nil, nil, nil)
+	term.setCursorPos(9, 1)
 	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate, true)
 end
 
@@ -2596,9 +2779,9 @@ local function addressBarMain()
 				os.queueEvent(event_exitWebsite)
 
 				-- Read
-				term.setCursorPos(2, 1)
 				term.setBackgroundColor(colors[theme["address-bar-background"]])
 				term.setTextColor(colors[theme["address-bar-text"]])
+				term.setCursorPos(2, 1)
 				term.clearLine()
 				write("rdnt://")
 				local oldWebsite = website
@@ -2621,6 +2804,7 @@ local function addressBarMain()
 				os.queueEvent(event_loadWebsite)
 			end
 		elseif e == event_exitApp then
+			os.queueEvent(event_exitApp)
 			break
 		end
 	end
@@ -2629,18 +2813,16 @@ end
 
 --  -------- Main
 
---[[
-centerPrint("          ______ ____ ____   ______            ")
-centerPrint(" ------- / ____//  _// __ \\ / ____/            ")
-centerPrint(" ------ / /_    / / / /_/ // __/               ")
-centerPrint(" ----- / __/  _/ / / _  _// /___               ")
-centerPrint(" ---- / /    /___//_/ |_|/_____/               ")
-centerPrint(" --- / /       _       __ ____   __     ______ ")
-centerPrint(" -- /_/       | |     / // __ \\ / /    / ____/ ")
-centerPrint("              | | /| / // / / // /    / /_     ")
-centerPrint("              | |/ |/ // /_/ // /___ / __/     ")
-centerPrint("              |__/|__/ \\____//_____//_/        ")
-]]--
+--  centerPrint([[          ______ ____ ____   ______            ]])
+--  centerPrint([[ ------- / ____//  _// __ \ / ____/            ]])
+--  centerPrint([[ ------ / /_    / / / /_/ // __/               ]])
+--  centerPrint([[ ----- / __/  _/ / / _  _// /___               ]])
+--  centerPrint([[ ---- / /    /___//_/ |_|/_____/               ]])
+--  centerPrint([[ --- / /       _       __ ____   __     ______ ]])
+--  centerPrint([[ -- /_/       | |     / // __ \ / /    / ____/ ]])
+--  centerPrint([[              | | /| / // / / // /    / /_     ]])
+--  centerPrint([[              | |/ |/ // /_/ // /___ / __/     ]])
+--  centerPrint([[              |__/|__/ \____//_____//_/        ]])
 
 local function main()
 	-- Logo
@@ -2650,24 +2832,22 @@ local function main()
 	term.setCursorPos(1, 2)
 	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 47))
-	centerPrint([[                     _...._                     ]])
-	centerPrint([[                   .::o:::::.                   ]])
-	centerPrint([[                  .:::'''':o:.                  ]])
-	centerPrint([[                  :o:_    _:::                  ]])
-	centerPrint([[                  `:(_>()<_):'                  ]])
-	centerPrint([[                    `'//\\''                    ]])
-	centerPrint([[                     //  \\                     ]])
-	centerPrint([[                    /'    `\                    ]])
-	centerPrint([[                                                ]])
-	centerPrint([[       Merry Christmas! -The Firewolf Team      ]])
+	centerPrint([[                    _...._                     ]])
+	centerPrint([[                  .::o:::::.                   ]])
+	centerPrint([[                 .:::'''':o:.                  ]])
+	centerPrint([[                 :o:_    _:::                  ]])
+	centerPrint([[                 `:(_>()<_):'                  ]])
+	centerPrint([[                   `'//\\''                    ]])
+	centerPrint([[                    //  \\                     ]])
+	centerPrint([[                   /'    '\                    ]])
+	centerPrint([[                                               ]])
+	centerPrint([[      Merry Christmas! -The Firewolf Team      ]])
 	centerPrint(string.rep(" ", 47))
-
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 
 	-- Download Files
-	local x, y = term.getCursorPos()
-	term.setCursorPos(1, y - 1)
+	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Downloading Required Files...")
 	centerWrite(string.rep(" ", 47))
@@ -2675,6 +2855,7 @@ local function main()
 	resetFilesystem()
 
 	-- Download Databases
+	local x, y = term.getCursorPos()
 	term.setCursorPos(1, y - 1)
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Downloading Databases...")
@@ -2682,12 +2863,13 @@ local function main()
 
 	-- Load Settings
 	centerWrite(string.rep(" ", 47))
-	centerWrite("Loading Settings...")
+	centerWrite("Loading Data...")
 	local f = io.open(settingsLocation, "r")
 	local a = textutils.unserialize(f:read("*l"))
 	autoupdate = a.auto
 	incognito = a.incog
 	homepage = a.home
+	curProtocol = protocols.rdnt
 	f:close()
 
 	-- Load history
@@ -2705,123 +2887,56 @@ local function main()
 	website = homepage
 
 	-- Run
-	parallel.waitForAll(websiteMain, addressBarMain, retrieveAllWebsites)
+	parallel.waitForAll(websiteMain, addressBarMain, retrieveSearchResults)
 end
 
 local function startup()
 	-- HTTP API
 	if not(http) then
-		if term.isColor() then
-			term.setTextColor(colors[theme["text-color"]])
-			term.setBackgroundColor(colors[theme["background"]])
-			term.clear()
-			term.setCursorPos(1, 2)
-			term.setBackgroundColor(colors[theme["top-box"]])
-			api.centerPrint(string.rep(" ", 46))
-			api.centerWrite(string.rep(" ", 46))
-			api.centerPrint("HTTP API Not Enabled! D:")
-			api.centerPrint(string.rep(" ", 46))
-			print("")
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["background"]])
+		term.clear()
+		term.setCursorPos(1, 2)
+		term.setBackgroundColor(colors[theme["top-box"]])
+		api.centerPrint(string.rep(" ", 47))
+		api.centerWrite(string.rep(" ", 47))
+		api.centerPrint("HTTP API Not Enabled! D:")
+		api.centerPrint(string.rep(" ", 47))
+		print("")
 
-			term.setBackgroundColor(colors[theme["bottom-box"]])
-			api.centerPrint(string.rep(" ", 46))
-			api.centerPrint("  Firewolf is unable to run without the HTTP   ")
-			api.centerPrint("  API Enabled! Please enable it in the CC     ")
-			api.centerPrint("  Config!                                     ")
-			api.centerPrint(string.rep(" ", 46))
+		term.setBackgroundColor(colors[theme["bottom-box"]])
+		api.centerPrint(string.rep(" ", 47))
+		api.centerPrint("  Firewolf is unable to run without the HTTP   ")
+		api.centerPrint("  API Enabled! Please enable it in the CC     ")
+		api.centerPrint("  Config!                                     ")
+		api.centerPrint(string.rep(" ", 47))
 
-			api.centerPrint(string.rep(" ", 46))
-			api.centerPrint("               Click to Exit...               ")
-			api.centerPrint(string.rep(" ", 46))
+		api.centerPrint(string.rep(" ", 47))
+		api.centerWrite(string.rep(" ", 47))
+		if term.isColor() then api.centerPrint("Click to exit...")
+		else api.centerPrint("Press any key to exit...") end
+		api.centerPrint(string.rep(" ", 47))
 
-			while true do
-				local e, but, x, y = os.pullEvent()
-				if e == "mouse_click" or e == "key" then break end
-			end	
-		else
-			term.clear()
-			term.setCursorPos(1, 4)
-			api.centerPrint("HTTP API Not Enabled! D:")
-			print("\n")
-			api.centerPrint("Firewolf is unable to run without the HTTP")
-			api.centerPrint("API Enabled! Please enable it in the CC")
-			api.centerPrint("Config!")
-			print("\n\n")
-			centerPrint("Press Any Key to Exit...")
-			while true do
-				local e, but, x, y = os.pullEvent()
-				if e == "key" then break end
-			end
+		while true do
+			local e, but, x, y = os.pullEvent()
+			if e == "mouse_click" or e == "key" then break end
 		end
 
 		return false 
 	end
 
-	-- Advanced Comptuer
-	if not(term.isColor()) then
-		term.clear()
-		term.setCursorPos(1, 4)
-		api.centerPrint("Advanced Comptuer Required!")
-		print("\n")
-		api.centerPrint("This version of Firewolf (" .. version .. ")")
-		api.centerPrint("requires an Advanced Comptuer to run!")
-		print("")
-		api.centerPrint("You may download Firewolf 1.4.5 to use on")
-		api.centerPrint("this computer...")
-
-		print("\n\n")
-		term.clearLine()
-		api.centerWrite("[Download Firewolf 1.4.5]         Exit Firewolf ")
-		local curOpt = 1
-		while true do
-			local _, key = os.pullEvent("key")
-			if key == 28 then
-				if curOpt == 1 then
-					term.clear()
-					term.setCursorPos(1, 4)
-					api.centerPrint("Downloading...")
-
-					local oldDownloadURL = 
-						"http://raw.github.com/1lann/firewolf/master/entities/old.lua"
-					fs.delete("/firewolf-old")
-					fs.delete("/" .. shell.getRunningProgram())
-					local oldDownloadURL = ""
-					download(oldDownloadURL, "/firewolf-old")
-
-					term.clear()
-					term.setCursorPos(1, 4)
-					api.centerPrint("Download Successful!")
-					openAddressBar = false
-					sleep(1.1)
-					openAddressBar = true
-					break
-				elseif curOpt == 2 then
-					break
-				end
-			elseif key == 203 and curOpt == 2 then
-				curOpt = 1
-				term.clearLine()
-				api.centerWrite("[Download Firewolf 1.4.5]         Exit Firewolf ")
-			elseif key == 205 and curOpt == 1 then
-				curOpt = 2
-				term.clearLine()
-				api.centerWrite(" Download Firewolf 1.4.5         [Exit Firewolf]")
-			end
-		end
-
-		return false
-	end
-
 	-- Turtle
 	if turtle then
 		term.clear()
-		term.setCursorPos(1, 4)
+		term.setCursorPos(1, 2)
 		api.centerPrint("Advanced Comptuer Required!")
 		print("\n")
-		api.centerPrint("This version of Firewolf (" .. version .. ")")
-		api.centerPrint("requires an Advanced Comptuer to run!")
+		api.centerPrint("This version of Firewolf requires")
+		api.centerPrint("an Advanced Comptuer to run!")
 		print("")
-		api.centerPrint("Turtles may not be used to run Firewolf! :(")
+		api.centerPrint("Turtles may not be used to run")
+		api.centerPrint("Firewolf! :(")
+		print("")
 		api.centerPrint("Press any key to exit...")
 
 		os.pullEvent("key")
@@ -2836,10 +2951,10 @@ local function startup()
 		term.clear()
 		term.setCursorPos(1, 2)
 		term.setBackgroundColor(colors[theme["top-box"]])
-		api.centerPrint(string.rep(" ", 46))
-		api.centerWrite(string.rep(" ", 46))
+		api.centerPrint(string.rep(" ", 47))
+		api.centerWrite(string.rep(" ", 47))
 		api.centerPrint("Firewolf has Crashed! D:")
-		api.centerPrint(string.rep(" ", 46))
+		api.centerPrint(string.rep(" ", 47))
 		print("")
 		term.setBackgroundColor(colors[theme["background"]])
 		print("")
@@ -2847,14 +2962,16 @@ local function startup()
 		print("")
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
-		api.centerPrint(string.rep(" ", 46))
-		api.centerPrint("  Please report this error to 1lann or        ")
-		api.centerPrint("  GravityScore so we are able to fix it!      ")
-		api.centerPrint("  If this problem persists, try deleting      ")
-		api.centerPrint("  /.Firewolf_Data                             ")
-		api.centerPrint(string.rep(" ", 46))
-		api.centerPrint("               Click to Exit...               ")
-		api.centerPrint(string.rep(" ", 46))
+		api.centerPrint(string.rep(" ", 47))
+		api.centerPrint("  Please report this error to 1lann or         ")
+		api.centerPrint("  GravityScore so we are able to fix it!       ")
+		api.centerPrint("  If this problem persists, try deleting       ")
+		api.centerPrint("  " .. rootFolder .. "                              ")
+		api.centerPrint(string.rep(" ", 47))
+		api.centerWrite(string.rep(" ", 47))
+		if term.isColor() then api.centerPrint("Click to exit...")
+		else api.centerPrint("Press any key to exit...") end
+		api.centerPrint(string.rep(" ", 47))
 
 		while true do
 			local e, but, x, y = os.pullEvent()
@@ -2868,8 +2985,29 @@ local function startup()
 end
 
 -- Theme
-theme = loadTheme(themeLocation)
-if theme == nil then theme = defaultTheme end
+if not(term.isColor()) then 
+	theme = originalTheme
+else
+	theme = loadTheme(themeLocation)
+	if theme == nil then theme = defaultTheme end
+end
+
+-- Debugging
+if #tArgs > 0 and tArgs[1] == "debug" then
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["background"]])
+	term.clear()
+	term.setCursorPos(1, 4)
+	api.centerPrint(string.rep(" ", 43))
+	api.centerWrite(string.rep(" ", 43))
+	api.centerPrint("Debug Mode Enabled...")
+	api.centerPrint(string.rep(" ", 43))
+
+	if fs.exists("/firewolf-log") then debugFile = io.open("/firewolf-log", "a")
+	else debugFile = io.open("/firewolf-log", "w") end
+	debugFile:write("\n-- [" .. textutils.formatTime(os.time()) .. "] New Log --")
+	sleep(1.8)
+end
 
 -- Start
 startup()
@@ -2881,35 +3019,34 @@ if term.isColor() then
 end
 term.setCursorBlink(false)
 term.clear()
-if not fs.exists("/main/Config.cfg") then
+
+if not(fs.exists("/.var/settings")) then
 	term.setCursorPos(1, 1)
 	api.centerPrint("Thank You for Using Firewolf " .. version)
 	api.centerPrint("Made by 1lann and GravityScore")
+	term.setCursorPos(1, 3)
 else
-	term.setBackgroundColor(colors.white)
-	local w,h = term.getSize()
-	local clearText = string.rep(" ", w)
-	for i = 1, h do
-		term.setCursorPos(1,i)
-		write(clearText)
-	end
-	term.setBackgroundColor(colors.gray)
-	term.setTextColor(colors.white)
-	term.setCursorPos(1, 6)
-	api.centerPrint("                                       ")
-	api.centerPrint("   Thank You for Using Firewolf ".. version .."    ")
-	api.centerPrint("    Made by 1lann and GravityScore     ")
-	api.centerPrint("                                       ")
-	api.centerPrint("             Click to exit             ")
-	api.centerPrint("                                       ")
-end
-if debugFile then
-	debugFile:close()
-end
-term.setCursorPos(1, 3)
+	term.setBackgroundColor(colors[theme["background"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.clear()
+	term.setCursorPos(1, 5)
+	term.setBackgroundColor(colors[theme["top-box"]])
+	print("")
+	api.centerPrint("Thank You for Using Firewolf " .. version)
+	api.centerPrint("Made by 1lann and GravityScore")
+	print("")
+	if term.isColor() then api.centerPrint("Click to exit...")
+	else api.centerPrint("Press any key to exit...") end
 
--- Close Rednet
+	while true do
+		local e = os.pullEvent()
+		if e == "mouse_click" or e == "key" then break end
+	end
+end
+
+-- Close
 for _, v in pairs(rs.getSides()) do rednet.close(v) end
+if debugFile then debugFile:close() end
 
 -- Reset Environment
 setfenv(1, oldEnv)

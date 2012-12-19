@@ -14,7 +14,6 @@
 --  - Support for normal computers
 --  - Christmas Theme
 --  - Christmas startup icon
---  * Other Bugs
 --  * Live Search List Updating
 
 
@@ -28,9 +27,8 @@ local tArgs = {...}
 
 -- Server Identification
 local serverID = "experimental"
-local serverList = {m0dz = "Hacker's Paradise", immibis = "turtle.dig()", ctcraft = "CTCraft", 
-					geevancraft = "GeevanCraft", experimental = "Experimental", 
-					other = "Other", old = "None"}
+local serverList = {blackwolf = "BlackWolf", geevancraft = "GeevanCraft", 
+		experimental = "Experimental", other = "Other"}
 
 -- Updating
 local autoupdate = "true"
