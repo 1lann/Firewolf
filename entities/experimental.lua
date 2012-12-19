@@ -1335,6 +1335,69 @@ pages.downloads = function(site)
 end
 
 pages.server = function(site)
+	local function editPages(server)
+		-- Edit
+		openAddressBar = false
+		local oldLoc = shell.dir()
+		local commandHis = {}
+		local dir = serverFolder .. "/" .. server
+		term.setBackgroundColor(colors.black)
+		term.setTextColor(colors.white)
+		term.clear()
+		term.setCursorPos(1, 1)
+		print("")
+		print("Server Shell Editing")
+		print("Type 'exit' to return to Firewolf.")
+		print("")
+
+		local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
+			"eject", "exit", "help", "id", "mkdir", "monitor", "rename", "alias", "clear",
+			"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", 
+			"programs", "redset", "reboot", "hello", "label", "list", "ls", "easter"}
+		
+		while true do
+			shell.setDir(serverFolder .. "/" .. server)
+			term.setBackgroundColor(colors.black)
+			if term.isColor() then term.setTextColor(colors.yellow)
+			else term.setTextColor(colors.white) end
+			write("> ")
+			term.setTextColor(colors.white)
+			local line = read(nil, commandHis)
+			table.insert(commandHis, line)
+
+			local words = {}
+			for m in string.gmatch(line, "[^ \t]+") do
+				local a = m:gsub("^%s*(.-)%s*$", "%1")
+				table.insert(words, a)
+			end
+
+			local com = words[1]
+			if com == "exit" then
+				break
+			elseif com == "firewolf" or (com == "easter" and words[2] == "egg") then
+				-- Easter egg
+			elseif com then
+				local a = false
+				for _, v in pairs(allowed) do
+					if com == v then a = true break end
+				end
+
+				if a then
+					term.setBackgroundColor(colors.black)
+					term.setTextColor(colors.white)
+					shell.run(com, unpack(words, 2))
+				else
+					print("Program Not Allowed!")
+				end
+			end
+		end
+		shell.setDir(oldLoc)
+
+		openAddressBar = true
+		redirect("server")
+		return
+	end
+
 	clearPage(site, colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
@@ -1514,65 +1577,7 @@ pages.server = function(site)
 					redirect("server")
 					return
 				elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
-					-- Edit
-					openAddressBar = false
-					local oldLoc = shell.dir()
-					local commandHis = {}
-					local dir = serverFolder .. "/" .. disList[sel]
-					term.setBackgroundColor(colors.black)
-					term.setTextColor(colors.white)
-					term.clear()
-					term.setCursorPos(1, 1)
-					print("")
-					print(" Server Shell Editing")
-					print(" Type 'exit' to return to Firewolf.")
-					print("")
-
-					local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
-						"eject", "exit", "help", "id", "mkdir", "monitor", "rename", "alias", "clear",
-						"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", 
-						"programs", "redset", "reboot", "hello", "label", "list", "ls", "easter"}
-					
-					while true do
-						shell.setDir(serverFolder .. "/" .. disList[sel])
-						term.setBackgroundColor(colors.black)
-						term.setTextColor(colors.yellow)
-						write("> ")
-						term.setTextColor(colors.white)
-						local line = read(nil, commandHis)
-						table.insert(commandHis, line)
-
-						local words = {}
-						for m in string.gmatch(line, "[^ \t]+") do
-							local a = m:gsub("^%s*(.-)%s*$", "%1")
-							table.insert(words, a)
-						end
-
-						local com = words[1]
-						if com == "exit" then
-							break
-						elseif com == "firewolf" or (com == "easter" and words[2] == "egg") then
-							-- Easter egg
-						elseif com then
-							local a = false
-							for _, v in pairs(allowed) do
-								if com == v then a = true break end
-							end
-
-							if a then
-								term.setBackgroundColor(colors.black)
-								term.setTextColor(colors.white)
-								shell.run(com, unpack(words, 2))
-							else
-								print("Program Not Allowed!")
-							end
-						end
-					end
-					shell.setDir(oldLoc)
-
-					openAddressBar = true
-					redirect("server")
-					return
+					editPages(disList[curSel])
 				elseif x >= 30 and x <= 46 and y == 14 and #servers > 0 then
 					-- Startup
 					fs.delete("/old-startup")
@@ -1608,28 +1613,42 @@ pages.server = function(site)
 		if server == nil then
 			os.queueEvent(event_exitWebsite)
 			return
-		end
+		elseif server == "New Server" then
 
-		local opt = prompt({{"Start", 30, 8}, {"Edit", 30, 10}, {"Run on Boot", 30, 12}, 
-			{"Delete", 30, 14}, {"Back", 30, 16}})
-		if opt == "Start" then
-
-		elseif opt == "Edit" then
-
-		elseif opt == "Run on Boot" then
-			fs.delete("/old-startup")
-			if fs.exists("/startup") then fs.move("/startup", "/old-startup") end
-			local f = io.open("/startup", "w")
-			f:write("shell.run(\"" .. serverSoftwareLocation .. "\", \"" .. 
-				disList[sel] .. "\", \"" .. serverFolder .. "/" .. disList[sel] .. "\")")
-			f:close()
-		elseif opt == "Delete" then
-			fs.delete(serverFolder .. "/" .. server)
-		elseif opt == "Back" then
-			-- Do nothing
-		elseif opt == nil then
-			os.queueEvent(event_exitWebsite)
-			return
+		else
+			term.setCursorPos(30, 8)
+			write(server)
+			local opt = prompt({{"Start", 30, 10}, {"Edit", 30, 12}, {"Run on Boot", 30, 13}, 
+				{"Delete", 30, 14}, {"Back", 30, 16}})
+			if opt == "Start" then
+				-- Start
+				term.clear()
+				term.setCursorPos(1, 1)
+				term.setBackgroundColor(colors.black)
+				term.setTextColor(colors.white)
+				openAddressBar = false
+				setfenv(1, oldEnv)
+				shell.run(serverSoftwareLocation, server, serverFolder .. "/" .. server)
+				setfenv(1, env)
+				openAddressBar = true
+				errPages.checkForModem()
+			elseif opt == "Edit" then
+				editPages(server)
+			elseif opt == "Run on Boot" then
+				fs.delete("/old-startup")
+				if fs.exists("/startup") then fs.move("/startup", "/old-startup") end
+				local f = io.open("/startup", "w")
+				f:write("shell.run(\"" .. serverSoftwareLocation .. "\", \"" .. 
+					disList[sel] .. "\", \"" .. serverFolder .. "/" .. disList[sel] .. "\")")
+				f:close()
+			elseif opt == "Delete" then
+				fs.delete(serverFolder .. "/" .. server)
+			elseif opt == "Back" then
+				-- Do nothing
+			elseif opt == nil then
+				os.queueEvent(event_exitWebsite)
+				return
+			end
 		end
 
 		redirect("server")
