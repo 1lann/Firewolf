@@ -1398,6 +1398,77 @@ pages.server = function(site)
 		return
 	end
 
+	local function newServer()
+		-- New server
+		term.setBackgroundColor(colors[theme["background"]])
+		for i = 1, 12 do
+			term.setCursorPos(3, i + 6)
+			write(string.rep(" ", 47))
+		end
+
+		term.setBackgroundColor(colors[theme["bottom-box"]])
+		term.setCursorPos(1, 8)
+		for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
+		term.setCursorPos(5, 9)
+		write("Name: ")
+		local name = modRead(nil, nil, 37)
+		if name == nil then
+			os.queueEvent(event_exitWebsite)
+			return
+		end
+		term.setCursorPos(5, 11)
+		write("URL:")
+		term.setCursorPos(8, 12)
+		write("rdnt://")
+		local url = modRead(nil, nil, 33)
+		if url == nil then
+			os.queueEvent(event_exitWebsite)
+			return
+		end
+		url = url:gsub(" ", "")
+
+		local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
+			"[", "]", "{", "}", "\\", "\"", ":", ";", "?", "<", ">", ",", "`"}
+		local b = false
+		for k, v in pairs(a) do
+			if url:find(v, 1, true) then
+				term.setCursorPos(5, 13)
+				write("URL Contains Illegal '" .. v .. "'!")
+				openAddressBar = false
+				sleep(1.1)
+				openAddressBar = true
+				b = true
+				break
+			elseif name == "" or url == "" then
+				term.setCursorPos(5, 13)
+				write("URL or Name Is Empty!")
+				openAddressBar = false
+				sleep(1.1)
+				openAddressBar = true
+				b = true
+				break
+			elseif fs.exists(serverFolder .. "/" .. url) then
+				term.setCursorPos(5, 13)
+				write("Server Already Exists!")
+				openAddressBar = false
+				sleep(1.1)
+				openAddressBar = true
+				b = true
+				break
+			end
+		end
+
+		if not(b) then
+			fs.makeDir(serverFolder .. "/" .. url)
+			local f = io.open(serverFolder .. "/" .. url .. "/home", "w")
+			f:write("print(\"\")\ncenterPrint(\"Welcome To " .. name .. "!\")\n")
+			f:close()
+
+			term.setCursorPos(5, 13)
+			write("Successfully Created Server! :D")
+		end
+	end
+
 	clearPage(site, colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
@@ -1482,75 +1553,7 @@ pages.server = function(site)
 			elseif e == "mouse_click" then
 				if x >= 4 and x <= 25 then
 					if y == 8 then
-						-- New server
-						term.setBackgroundColor(colors[theme["background"]])
-						for i = 1, 12 do
-							term.setCursorPos(3, i + 6)
-							write(string.rep(" ", 47))
-						end
-
-						term.setBackgroundColor(colors[theme["bottom-box"]])
-						term.setCursorPos(1, 8)
-						for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
-						term.setCursorPos(5, 9)
-						write("Name: ")
-						local name = modRead(nil, nil, 37)
-						if name == nil then
-							os.queueEvent(event_exitWebsite)
-							return
-						end
-						term.setCursorPos(5, 11)
-						write("URL:")
-						term.setCursorPos(8, 12)
-						write("rdnt://")
-						local url = modRead(nil, nil, 33)
-						if url == nil then
-							os.queueEvent(event_exitWebsite)
-							return
-						end
-						url = url:gsub(" ", "")
-
-						local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
-							"[", "]", "{", "}", "\\", "\"", ":", ";", "?", "<", ">", ",", "`"}
-						local b = false
-						for k, v in pairs(a) do
-							if url:find(v, 1, true) then
-								term.setCursorPos(5, 13)
-								write("URL Contains Illegal '" .. v .. "'! D:")
-								openAddressBar = false
-								sleep(1.1)
-								openAddressBar = true
-								b = true
-								break
-							elseif name == "" or url == "" then
-								term.setCursorPos(5, 13)
-								write("URL or Name Is Empty!")
-								openAddressBar = false
-								sleep(1.1)
-								openAddressBar = true
-								b = true
-								break
-							elseif fs.exists(serverFolder .. "/" .. url) then
-								term.setCursorPos(5, 13)
-								write("Server Already Exists!")
-								openAddressBar = false
-								sleep(1.1)
-								openAddressBar = true
-								b = true
-								break
-							end
-						end
-
-						if not(b) then
-							fs.makeDir(serverFolder .. "/" .. url)
-							local f = io.open(serverFolder .. "/" .. url .. "/home", "w")
-							f:write("print(\"\")\ncenterPrint(\"Welcome To " .. name .. "!\")\n")
-							f:close()
-
-							term.setCursorPos(5, 13)
-							write("Successfully Created Server! :D")
-						end
-
+						newServer()
 						redirect("server")
 						return
 					elseif #servers > 0 then
@@ -1614,7 +1617,7 @@ pages.server = function(site)
 			os.queueEvent(event_exitWebsite)
 			return
 		elseif server == "New Server" then
-
+			newServer()
 		else
 			term.setCursorPos(30, 8)
 			write(server)
@@ -1642,7 +1645,7 @@ pages.server = function(site)
 					server .. "\", \"" .. serverFolder .. "/" .. server .. "\")")
 				f:close()
 
-				term.setCursorPos(33, 17)
+				term.setCursorPos(32, 17)
 				write("Will Run on Boot!")
 				openAddressBar = false
 				sleep(1.1)
