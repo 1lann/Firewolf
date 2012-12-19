@@ -1639,8 +1639,14 @@ pages.server = function(site)
 				if fs.exists("/startup") then fs.move("/startup", "/old-startup") end
 				local f = io.open("/startup", "w")
 				f:write("shell.run(\"" .. serverSoftwareLocation .. "\", \"" .. 
-					disList[sel] .. "\", \"" .. serverFolder .. "/" .. disList[sel] .. "\")")
+					server .. "\", \"" .. serverFolder .. "/" .. server .. "\")")
 				f:close()
+
+				term.setCursorPos(33, 17)
+				write("Will Run on Boot!")
+				openAddressBar = false
+				sleep(1.1)
+				openAddressBar = true
 			elseif opt == "Delete" then
 				fs.delete(serverFolder .. "/" .. server)
 			elseif opt == "Back" then
@@ -1960,7 +1966,8 @@ pages.settings = function(site)
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Firewolf has been reset.")
 			centerWrite(string.rep(" ", 43))
-			centerPrint("Click to Exit...")
+			if term.isColor() then centerPrint("Click to exit...")
+			else centerPrint("Press any key to exit...") end
 			centerPrint(string.rep(" ", 43))
 			while true do
 				local e = os.pullEvent()
@@ -2242,7 +2249,8 @@ errPages.checkForModem = function()
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Waiting for a modem to be attached...")
 			centerWrite(string.rep(" ", 43))
-			centerPrint("Click to exit...")
+			if term.isColor() then centerPrint("Click to exit...")
+			else centerPrint("Press any key to exit...") end
 			centerPrint(string.rep(" ", 43))
 
 			while true do
@@ -2804,18 +2812,16 @@ end
 
 --  -------- Main
 
---[[
-centerPrint("          ______ ____ ____   ______            ")
-centerPrint(" ------- / ____//  _// __ \\ / ____/            ")
-centerPrint(" ------ / /_    / / / /_/ // __/               ")
-centerPrint(" ----- / __/  _/ / / _  _// /___               ")
-centerPrint(" ---- / /    /___//_/ |_|/_____/               ")
-centerPrint(" --- / /       _       __ ____   __     ______ ")
-centerPrint(" -- /_/       | |     / // __ \\ / /    / ____/ ")
-centerPrint("              | | /| / // / / // /    / /_     ")
-centerPrint("              | |/ |/ // /_/ // /___ / __/     ")
-centerPrint("              |__/|__/ \\____//_____//_/        ")
-]]--
+--  centerPrint([[          ______ ____ ____   ______            ]])
+--  centerPrint([[ ------- / ____//  _// __ \ / ____/            ]])
+--  centerPrint([[ ------ / /_    / / / /_/ // __/               ]])
+--  centerPrint([[ ----- / __/  _/ / / _  _// /___               ]])
+--  centerPrint([[ ---- / /    /___//_/ |_|/_____/               ]])
+--  centerPrint([[ --- / /       _       __ ____   __     ______ ]])
+--  centerPrint([[ -- /_/       | |     / // __ \ / /    / ____/ ]])
+--  centerPrint([[              | | /| / // / / // /    / /_     ]])
+--  centerPrint([[              | |/ |/ // /_/ // /___ / __/     ]])
+--  centerPrint([[              |__/|__/ \____//_____//_/        ]])
 
 local function main()
 	-- Logo
@@ -2825,16 +2831,16 @@ local function main()
 	term.setCursorPos(1, 2)
 	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 47))
-	centerPrint([[                     _...._                     ]])
-	centerPrint([[                   .::o:::::.                   ]])
-	centerPrint([[                  .:::'''':o:.                  ]])
-	centerPrint([[                  :o:_    _:::                  ]])
-	centerPrint([[                  `:(_>()<_):'                  ]])
-	centerPrint([[                    `'//\\''                    ]])
-	centerPrint([[                     //  \\                     ]])
-	centerPrint([[                    /'    '\                    ]])
-	centerPrint([[                                                ]])
-	centerPrint([[       Merry Christmas! -The Firewolf Team      ]])
+	centerPrint([[                    _...._                     ]])
+	centerPrint([[                  .::o:::::.                   ]])
+	centerPrint([[                 .:::'''':o:.                  ]])
+	centerPrint([[                 :o:_    _:::                  ]])
+	centerPrint([[                 `:(_>()<_):'                  ]])
+	centerPrint([[                   `'//\\''                    ]])
+	centerPrint([[                    //  \\                     ]])
+	centerPrint([[                   /'    '\                    ]])
+	centerPrint([[                                               ]])
+	centerPrint([[      Merry Christmas! -The Firewolf Team      ]])
 	centerPrint(string.rep(" ", 47))
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
@@ -2906,7 +2912,7 @@ local function startup()
 
 		api.centerPrint(string.rep(" ", 47))
 		api.centerWrite(string.rep(" ", 47))
-		if term.isColor() then api.centerPrint("Click to Exit...")
+		if term.isColor() then api.centerPrint("Click to exit...")
 		else api.centerPrint("Press any key to exit...") end
 		api.centerPrint(string.rep(" ", 47))
 
@@ -2962,7 +2968,7 @@ local function startup()
 		api.centerPrint("  " .. rootFolder .. "                              ")
 		api.centerPrint(string.rep(" ", 47))
 		api.centerWrite(string.rep(" ", 47))
-		if term.isColor() then api.centerPrint("Click to Exit...")
+		if term.isColor() then api.centerPrint("Click to exit...")
 		else api.centerPrint("Press any key to exit...") end
 		api.centerPrint(string.rep(" ", 47))
 
@@ -3028,7 +3034,7 @@ else
 	api.centerPrint("Thank You for Using Firewolf " .. version)
 	api.centerPrint("Made by 1lann and GravityScore")
 	print("")
-	if term.isColor() then api.centerPrint("Click to Exit...")
+	if term.isColor() then api.centerPrint("Click to exit...")
 	else api.centerPrint("Press any key to exit...") end
 
 	while true do
