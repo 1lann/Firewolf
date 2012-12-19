@@ -1358,247 +1358,254 @@ pages.server = function(site)
 		write(string.rep(" ", 21))
 	end
 
-	local function draw(l, sel)
-		term.setBackgroundColor(colors[theme["bottom-box"]])
-		term.setCursorPos(4, 8)
-		write("[- New Server -]")
-		for i, v in ipairs(l) do
-			term.setCursorPos(3, i + 8)
-			write(string.rep(" ", 24))
-			term.setCursorPos(4, i + 8)
-			if i == sel then
-				write("[- " .. v)
-			else
-				write("   " .. v)
+	if term.isColor() then
+		local function draw(l, sel)
+			term.setBackgroundColor(colors[theme["bottom-box"]])
+			term.setCursorPos(4, 8)
+			write("[- New Server -]")
+			for i, v in ipairs(l) do
+				term.setCursorPos(3, i + 8)
+				write(string.rep(" ", 24))
+				term.setCursorPos(4, i + 8)
+				if i == sel then
+					write("[- " .. v)
+				else
+					write("   " .. v)
+				end
 			end
+
+			term.setCursorPos(30, 8)
+			write(string.rep(" ", 19))
+			term.setCursorPos(30, 8)
+			if l[sel] then write(l[sel])
+			else write("No Server Selected!") end
+			term.setCursorPos(30, 10)
+			write("[- Start -]")
+			term.setCursorPos(30, 12)
+			write("[- Edit -]")
+			term.setCursorPos(30, 14)
+			write("[- Run on Boot -]")
+			term.setCursorPos(30, 16)
+			write("[- Delete -]")
 		end
 
-		term.setCursorPos(30, 8)
-		write(string.rep(" ", 19))
-		term.setCursorPos(30, 8)
-		if l[sel] then write(l[sel])
-		else write("No Server Selected!") end
-		term.setCursorPos(30, 10)
-		write("[- Start -]")
-		term.setCursorPos(30, 12)
-		write("[- Edit -]")
-		term.setCursorPos(30, 14)
-		write("[- Run on Boot -]")
-		term.setCursorPos(30, 16)
-		write("[- Delete -]")
-	end
-
-	local function updateDisplayList(items, loc, len)
-		local ret = {}
-		for i = 1, len do
-			local item = items[i + loc - 1]
-			if item ~= nil then table.insert(ret, item) end
+		local function updateDisplayList(items, loc, len)
+			local ret = {}
+			for i = 1, len do
+				local item = items[i + loc - 1]
+				if item ~= nil then table.insert(ret, item) end
+			end
+			return ret
 		end
-		return ret
-	end
 
-	local sel = 1
-	local loc = 1
-	local len = 10
-	local disList = updateDisplayList(servers, loc, len)
-	draw(disList, sel)
+		local sel = 1
+		local loc = 1
+		local len = 10
+		local disList = updateDisplayList(servers, loc, len)
+		draw(disList, sel)
 
-	while true do
-		local e, but, x, y = os.pullEvent()
-		if e == "key" and but == 200 and #servers > 0 and loc > 1 then
-			-- Up
-			loc = loc - 1
-			disList = updateDisplayList(servers, loc, len)
-			draw(disList, sel)
-		elseif e == "key" and but == 208 and #servers > 0 and loc + len - 1 < #servers then
-			-- Down
-			loc = loc + 1
-			disList = updateDisplayList(servers, loc, len)
-			draw(disList, sel)
-		elseif e == "mouse_click" then
-			if x >= 4 and x <= 25 then
-				if y == 8 then
-					-- New server
-					term.setBackgroundColor(colors[theme["background"]])
-					for i = 1, 12 do
-						term.setCursorPos(3, i + 6)
-						write(string.rep(" ", 47))
-					end
+		while true do
+			local e, but, x, y = os.pullEvent()
+			if e == "key" and but == 200 and #servers > 0 and loc > 1 then
+				-- Up
+				loc = loc - 1
+				disList = updateDisplayList(servers, loc, len)
+				draw(disList, sel)
+			elseif e == "key" and but == 208 and #servers > 0 and loc + len - 1 < #servers then
+				-- Down
+				loc = loc + 1
+				disList = updateDisplayList(servers, loc, len)
+				draw(disList, sel)
+			elseif e == "mouse_click" then
+				if x >= 4 and x <= 25 then
+					if y == 8 then
+						-- New server
+						term.setBackgroundColor(colors[theme["background"]])
+						for i = 1, 12 do
+							term.setCursorPos(3, i + 6)
+							write(string.rep(" ", 47))
+						end
 
-					term.setBackgroundColor(colors[theme["bottom-box"]])
-					term.setCursorPos(1, 8)
-					for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
-					term.setCursorPos(5, 9)
-					write("Name: ")
-					local name = modRead(nil, nil, 37)
-					if name == nil then
-						os.queueEvent(event_exitWebsite)
+						term.setBackgroundColor(colors[theme["bottom-box"]])
+						term.setCursorPos(1, 8)
+						for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
+						term.setCursorPos(5, 9)
+						write("Name: ")
+						local name = modRead(nil, nil, 37)
+						if name == nil then
+							os.queueEvent(event_exitWebsite)
+							return
+						end
+						term.setCursorPos(5, 11)
+						write("URL:")
+						term.setCursorPos(8, 12)
+						write("rdnt://")
+						local url = modRead(nil, nil, 33)
+						if url == nil then
+							os.queueEvent(event_exitWebsite)
+							return
+						end
+						url = url:gsub(" ", "")
+
+						local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
+							"[", "]", "{", "}", "\\", "\"", ":", ";", "?", "<", ">", ",", "`"}
+						local b = false
+						for k, v in pairs(a) do
+							if url:find(v, 1, true) then
+								term.setCursorPos(5, 13)
+								write("URL Contains Illegal '" .. v .. "'! D:")
+								openAddressBar = false
+								sleep(1.1)
+								openAddressBar = true
+								b = true
+								break
+							elseif name == "" or url == "" then
+								term.setCursorPos(5, 13)
+								write("URL or Name Is Empty!")
+								openAddressBar = false
+								sleep(1.1)
+								openAddressBar = true
+								b = true
+								break
+							elseif fs.exists(serverFolder .. "/" .. url) then
+								term.setCursorPos(5, 13)
+								write("Server Already Exists!")
+								openAddressBar = false
+								sleep(1.1)
+								openAddressBar = true
+								b = true
+								break
+							end
+						end
+
+						if not(b) then
+							fs.makeDir(serverFolder .. "/" .. url)
+							local f = io.open(serverFolder .. "/" .. url .. "/home", "w")
+							f:write("print(\"\")\ncenterPrint(\"Welcome To " .. name .. "!\")\n")
+							f:close()
+
+							term.setCursorPos(5, 13)
+							write("Successfully Created Server! :D")
+						end
+
+						redirect("server")
 						return
-					end
-					term.setCursorPos(5, 11)
-					write("URL:")
-					term.setCursorPos(8, 12)
-					write("rdnt://")
-					local url = modRead(nil, nil, 33)
-					if url == nil then
-						os.queueEvent(event_exitWebsite)
-						return
-					end
-					url = url:gsub(" ", "")
-
-					local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
-						"[", "]", "{", "}", "\\", "\"", ":", ";", "?", "<", ">", ",", "`"}
-					local b = false
-					for k, v in pairs(a) do
-						if url:find(v, 1, true) then
-							term.setCursorPos(5, 13)
-							write("URL Contains Illegal '" .. v .. "'! D:")
-							openAddressBar = false
-							sleep(1.1)
-							openAddressBar = true
-							b = true
-							break
-						elseif name == "" or url == "" then
-							term.setCursorPos(5, 13)
-							write("URL or Name Is Empty!")
-							openAddressBar = false
-							sleep(1.1)
-							openAddressBar = true
-							b = true
-							break
-						elseif fs.exists(serverFolder .. "/" .. url) then
-							term.setCursorPos(5, 13)
-							write("Server Already Exists!")
-							openAddressBar = false
-							sleep(1.1)
-							openAddressBar = true
-							b = true
-							break
+					elseif #servers > 0 then
+						for i, v in ipairs(disList) do
+							if y == i + 8 then 
+								sel = i 
+								draw(disList, sel)
+							end
 						end
 					end
-
-					if not(b) then
-						fs.makeDir(serverFolder .. "/" .. url)
-						local f = io.open(serverFolder .. "/" .. url .. "/home", "w")
-						f:write("print(\"\")\ncenterPrint(\"Welcome To " .. name .. "!\")\n")
-						f:close()
-
-						term.setCursorPos(5, 13)
-						write("Successfully Created Server! :D")
-					end
+				elseif x >= 30 and x <= 40 and y == 10 and #servers > 0 then
+					-- Start
+					term.clear()
+					term.setCursorPos(1, 1)
+					term.setBackgroundColor(colors.black)
+					term.setTextColor(colors.white)
+					openAddressBar = false
+					setfenv(1, oldEnv)
+					shell.run(serverSoftwareLocation, disList[sel], serverFolder .. "/" .. disList[sel])
+					setfenv(1, env)
+					openAddressBar = true
+					errPages.checkForModem()
 
 					redirect("server")
 					return
-				elseif #servers > 0 then
-					for i, v in ipairs(disList) do
-						if y == i + 8 then 
-							sel = i 
-							draw(disList, sel)
-						end
-					end
-				end
-			elseif x >= 30 and x <= 40 and y == 10 and #servers > 0 then
-				-- Start
-				term.clear()
-				term.setCursorPos(1, 1)
-				term.setBackgroundColor(colors.black)
-				term.setTextColor(colors.white)
-				openAddressBar = false
-				setfenv(1, oldEnv)
-				shell.run(serverSoftwareLocation, disList[sel], serverFolder .. "/" .. disList[sel])
-				setfenv(1, env)
-				openAddressBar = true
-				errPages.checkForModem()
-
-				redirect("server")
-				return
-			elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
-				-- Edit
-				openAddressBar = false
-				local oldLoc = shell.dir()
-				local commandHis = {}
-				local dir = serverFolder .. "/" .. disList[sel]
-				term.setBackgroundColor(colors.black)
-				term.setTextColor(colors.white)
-				term.clear()
-				term.setCursorPos(1, 1)
-				print("")
-				print(" Server Shell Editing")
-				print(" Type 'exit' to return to Firewolf.")
-				print("")
-
-				local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
-					"eject", "exit", "help", "id", "mkdir", "monitor", "rename", "alias", "clear",
-					"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", "programs",
-					"redset", "reboot", "hello", "label", "list", "ls", "easter"}
-				
-				while true do
-					shell.setDir(serverFolder .. "/" .. disList[sel])
+				elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
+					-- Edit
+					openAddressBar = false
+					local oldLoc = shell.dir()
+					local commandHis = {}
+					local dir = serverFolder .. "/" .. disList[sel]
 					term.setBackgroundColor(colors.black)
-					term.setTextColor(colors.yellow)
-					write("> ")
 					term.setTextColor(colors.white)
-					local line = read(nil, commandHis)
-					table.insert(commandHis, line)
+					term.clear()
+					term.setCursorPos(1, 1)
+					print("")
+					print(" Server Shell Editing")
+					print(" Type 'exit' to return to Firewolf.")
+					print("")
 
-					local words = {}
-					for m in string.gmatch(line, "[^ \t]+") do
-						local a = m:gsub("^%s*(.-)%s*$", "%1")
-						table.insert(words, a)
-					end
+					local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
+						"eject", "exit", "help", "id", "mkdir", "monitor", "rename", "alias", "clear",
+						"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", 
+						"programs", "redset", "reboot", "hello", "label", "list", "ls", "easter"}
+					
+					while true do
+						shell.setDir(serverFolder .. "/" .. disList[sel])
+						term.setBackgroundColor(colors.black)
+						term.setTextColor(colors.yellow)
+						write("> ")
+						term.setTextColor(colors.white)
+						local line = read(nil, commandHis)
+						table.insert(commandHis, line)
 
-					local com = words[1]
-					if com == "exit" then
-						break
-					elseif com == "firewolf" or (com == "easter" and words[2] == "egg") then
-						-- Easter egg
-					elseif com then
-						local a = false
-						for _, v in pairs(allowed) do
-							if com == v then a = true break end
+						local words = {}
+						for m in string.gmatch(line, "[^ \t]+") do
+							local a = m:gsub("^%s*(.-)%s*$", "%1")
+							table.insert(words, a)
 						end
 
-						if a then
-							term.setBackgroundColor(colors.black)
-							term.setTextColor(colors.white)
-							shell.run(com, unpack(words, 2))
-						else
-							print("Program Not Allowed!")
+						local com = words[1]
+						if com == "exit" then
+							break
+						elseif com == "firewolf" or (com == "easter" and words[2] == "egg") then
+							-- Easter egg
+						elseif com then
+							local a = false
+							for _, v in pairs(allowed) do
+								if com == v then a = true break end
+							end
+
+							if a then
+								term.setBackgroundColor(colors.black)
+								term.setTextColor(colors.white)
+								shell.run(com, unpack(words, 2))
+							else
+								print("Program Not Allowed!")
+							end
 						end
 					end
+					shell.setDir(oldLoc)
+
+					openAddressBar = true
+					redirect("server")
+					return
+				elseif x >= 30 and x <= 46 and y == 14 and #servers > 0 then
+					-- Startup
+					fs.delete("/old-startup")
+					if fs.exists("/startup") then fs.move("/startup", "/old-startup") end
+					local f = io.open("/startup", "w")
+					f:write("shell.run(\"" .. serverSoftwareLocation .. "\", \"" .. 
+						disList[sel] .. "\", \"" .. serverFolder .. "/" .. disList[sel] .. "\")")
+					f:close()
+
+					term.setBackgroundColor(colors[theme["bottom-box"]])
+					term.setCursorPos(32, 15)
+					write("Will Run on Boot!")
+					openAddressBar = false
+					sleep(1.1)
+					openAddressBar = true
+					term.setCursorPos(32, 15)
+					write(string.rep(" ", 18))
+				elseif x >= 30 and x <= 41 and y == 16 and #servers > 0 then
+					-- Delete
+					fs.delete(serverFolder .. "/" .. disList[sel])
+					redirect("server")
+					return
 				end
-				shell.setDir(oldLoc)
-
-				openAddressBar = true
-				redirect("server")
-				return
-			elseif x >= 30 and x <= 46 and y == 14 and #servers > 0 then
-				-- Startup
-				fs.delete("/old-startup")
-				if fs.exists("/startup") then fs.move("/startup", "/old-startup") end
-				local f = io.open("/startup", "w")
-				f:write("shell.run(\"" .. serverSoftwareLocation .. "\", \"" .. 
-					disList[sel] .. "\", \"" .. serverFolder .. "/" .. disList[sel] .. "\")")
-				f:close()
-
-				term.setBackgroundColor(colors[theme["bottom-box"]])
-				term.setCursorPos(32, 15)
-				write("Will Run on Boot!")
-				openAddressBar = false
-				sleep(1.1)
-				openAddressBar = true
-				term.setCursorPos(32, 15)
-				write(string.rep(" ", 18))
-			elseif x >= 30 and x <= 41 and y == 16 and #servers > 0 then
-				-- Delete
-				fs.delete(serverFolder .. "/" .. disList[sel])
-				redirect("server")
+			elseif e == event_exitWebsite then
+				os.queueEvent(event_exitWebsite)
 				return
 			end
-		elseif e == event_exitWebsite then
-			os.queueEvent(event_exitWebsite)
-			return
 		end
+	else
+		local a = {"New Server"}
+		for _, v in pairs(servers) do table.insert(a, v) end
+		local sOpt = scrollingPrompt(a, 4, 8, 10)
+		
 	end
 end
 
