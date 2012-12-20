@@ -709,6 +709,8 @@ local function migrateFilesystem()
 		fs.delete(rootFolder .. "/server_software")
 		fs.delete(serverSoftwareLocation)
 	end
+
+	fs.delete(serverSoftwareLocation)
 end
 
 local function resetFilesystem()
