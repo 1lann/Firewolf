@@ -489,7 +489,7 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 			elseif but == keys["end"] then
 				pos = line:len()
 				redraw()
-			elseif (but == 29 or but == 157) and exitOnControl == true then 
+			elseif (but == 29 or but == 157) and not(exitOnControl) then 
 				term.setCursorBlink(false)
 				return nil
 			end
@@ -2768,7 +2768,7 @@ local function addressBarRead()
 
 	onLiveUpdate("", "delete", nil, nil, nil, nil, nil)
 	term.setCursorPos(9, 1)
-	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate, true)
+	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate)
 end
 
 local function addressBarMain()
