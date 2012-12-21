@@ -514,16 +514,32 @@ end
 --  -------- Themes
 
 local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
-	["top-box"] = "red", ["bottom-box"] = "orange", ["text-color"] = "white", ["background"] = "gray"}
+	["address-bar-base"] = "lightGray", ["top-box"] = "red", ["bottom-box"] = "orange", 
+	["text-color"] = "white", ["background"] = "gray"}
 local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "black", 
-	["top-box"] = "black", ["bottom-box"] = "black", ["text-color"] = "white", ["background"] = "black"}
+	["address-bar-base"] = "black", ["top-box"] = "black", ["bottom-box"] = "black", 
+	["text-color"] = "white", ["background"] = "black"}
 
 local ownThemeFileContent = [[
+-- Text color of the address bar
 address-bar-text=
+
+-- Background color of the address bar
 address-bar-background=
+
+-- Color of separator bar when live searching
+address-bar-base=
+
+-- Top box color
 top-box=
+
+-- Bottom box color
 bottom-box=
+
+-- Background color
 background=
+
+-- Main text color
 text-color=
 
 ]]
@@ -535,7 +551,7 @@ local function loadTheme(path)
 		local l = f:read("*l")
 		while l ~= nil do
 			l = l:gsub("^%s*(.-)%s*$", "%1")
-			if l ~= "" and l ~= nil and l ~= "\n" then
+			if l ~= "" and l ~= nil and l ~= "\n" and l:sub(1, 2) ~= "--" then
 				local b = l:find("=")
 				if a and b then
 					local c = l:sub(1, b - 1)
