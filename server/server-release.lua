@@ -623,7 +623,7 @@ local function respondToEvents()
 						if uponFailedRequest ~= nil then uponFailedRequest(b, id) end
 					end
 				end
-			elseif mes == "rednet.ping.searchengine" and enableSearch == true then
+			elseif mes == "rednet.api.ping.searchengine" and enableSearch == true then
 				if suspected[tostring(id)] then suspected[tostring(id)] = suspected[tostring(id)] + 1
 				else suspected[tostring(id)] = 1 end
 				rednet.send(id, website)
