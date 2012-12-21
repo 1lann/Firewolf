@@ -703,6 +703,7 @@ local function edit()
 				term.setTextColor(colors.white)
 				shell.run(com, unpack(words, 2))
 			else
+				term.setTextColor(colors.red)
 				print("Program Not Allowed!")
 			end
 		end
