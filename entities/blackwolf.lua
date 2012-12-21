@@ -489,7 +489,7 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 			elseif but == keys["end"] then
 				pos = line:len()
 				redraw()
-			elseif (but == 29 or but == 157) and exitOnControl == true then 
+			elseif (but == 29 or but == 157) and not(exitOnControl) then 
 				term.setCursorBlink(false)
 				return nil
 			end
@@ -709,6 +709,8 @@ local function migrateFilesystem()
 		fs.delete(rootFolder .. "/server_software")
 		fs.delete(serverSoftwareLocation)
 	end
+
+	fs.delete(serverSoftwareLocation)
 end
 
 local function resetFilesystem()
@@ -1385,6 +1387,7 @@ pages.server = function(site)
 					term.setTextColor(colors.white)
 					shell.run(com, unpack(words, 2))
 				else
+					term.setTextColor(colors.red)
 					print("Program Not Allowed!")
 				end
 			end
@@ -1418,7 +1421,7 @@ pages.server = function(site)
 		write("URL:")
 		term.setCursorPos(8, 12)
 		write("rdnt://")
-		local url = modRead(nil, nil, 33)
+		local url = modRead(nil, nil, 28, true)
 		if url == nil then
 			os.queueEvent(event_exitWebsite)
 			return
@@ -1426,7 +1429,7 @@ pages.server = function(site)
 		url = url:gsub(" ", "")
 
 		local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
-			"[", "]", "{", "}", "\\", "\"", ":", ";", "?", "<", ">", ",", "`"}
+			"[", "]", "{", "}", "\\", "\"", "'", ":", ";", "?", "<", ">", ",", "`", "~"}
 		local b = false
 		for k, v in pairs(a) do
 			if url:find(v, 1, true) then
@@ -1499,17 +1502,22 @@ pages.server = function(site)
 				term.setCursorPos(3, i + 8)
 				write(string.rep(" ", 24))
 				term.setCursorPos(4, i + 8)
+				local nv = v
+				if nv:len() > 18 then nv = nv:sub(1, 15) .. "..." end
 				if i == sel then
-					write("[- " .. v)
+					write("[ " .. nv .. " ]")
 				else
-					write("   " .. v)
+					write("  " .. nv)
 				end
 			end
 
 			term.setCursorPos(30, 8)
 			write(string.rep(" ", 19))
 			term.setCursorPos(30, 8)
-			if l[sel] then write(l[sel])
+			if l[sel] then 
+				local nl = l[sel]
+				if nl:len() > 19 then nl = nl:sub(1, 16) .. "..." end
+				write(nl)
 			else write("No Server Selected!") end
 			term.setCursorPos(30, 10)
 			write("[- Start -]")
@@ -1579,6 +1587,8 @@ pages.server = function(site)
 					return
 				elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
 					editPages(disList[sel])
+					redirect("server")
+					return
 				elseif x >= 30 and x <= 46 and y == 14 and #servers > 0 then
 					-- Startup
 					fs.delete("/old-startup")
@@ -1893,7 +1903,7 @@ pages.settings = function(site)
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 9 do centerPrint(string.rep(" ", 43)) end
-		local opt = prompt({{a, 6, 10}, {b, 6, 12}, {c, 6, 14}, {"Reset Firewolf", 6, 16}}, "vertical")
+		local opt = prompt({{a, 7, 10}, {b, 7, 12}, {c, 7, 14}, {"Reset Firewolf", 7, 16}}, "vertical")
 		if opt == a then
 			if autoupdate == "true" then autoupdate = "false"
 			elseif autoupdate == "false" then autoupdate = "true" end
@@ -1949,6 +1959,7 @@ pages.settings = function(site)
 				redirect("settings")
 				return
 			elseif opt == nil then
+				openAddressBar = true
 				os.queueEvent(event_exitWebsite)
 				return
 			end
@@ -2013,11 +2024,14 @@ pages.update = function(site)
 		fs.delete(updateLocation)
 		download(firewolfURL, updateLocation)
 		centerWrite(string.rep(" ", 43))
-		centerWrite("Done! Restarting...")
+		centerPrint("Done!")
+		centerWrite(string.rep(" ", 43))
+		if term.isColor() then centerPrint("Click to exit...")
+		else centerPrint("Press any key to exit...") end
+		centerPrint(string.rep(" ", 43))
 		sleep(1.1)
 		fs.delete(firewolfLocation)
 		fs.move(updateLocation, firewolfLocation)
-		shell.run(firewolfLocation)
 
 		return true
 	elseif opt == "Cancel" then
@@ -2053,74 +2067,74 @@ pages.credits = function(site)
 	centerPrint(string.rep(" ", 43))
 end
 
-pages.getinfo = function(site)
-	clearPage(site, colors[theme["background"]])
-	print("\n")
-	term.setTextColor(colors[theme["text-color"]])
-	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
-	centerPrint("Retrieve Website Information")
-	centerPrint(string.rep(" ", 43))
-	print("\n")
-
-	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
-	local x, y = term.getCursorPos()
-	term.setCursorPos(7, y - 1)
-	write("rdnt://")
-	local a = modRead(nil, nil, 31)
-	if a == nil then
-		os.queueEvent(event_exitWebsite)
-		return
-	end
-	local id, content, status = getWebsite(a)
-
-	if id ~= nil then
-		term.setCursorPos(1, 10)
-		centerPrint("  rdnt://" .. a .. string.rep(" ", 34 - a:len()))
-		for i = 1, 5 do
-			centerPrint(string.rep(" ", 43))
-		end
-		
-		if verify("blacklist", id) then 
-			centerPrint("  Triggers Blacklist" .. string.rep(" ", 43 - 20)) end
-		if verify("whitelist", id, site) then 
-			centerPrint("  Triggers Whitelist" .. string.rep(" ", 43 - 20)) end
-		if verify("antivirus", content) then
-			centerPrint("  Triggers Antivirus" .. string.rep(" ", 43 - 20)) end
-		centerPrint(string.rep(" ", 43))
-		local opt = prompt({{"Save Source", 7, 12}, {"Visit Site", 7, 14}}, "vertical")
-		if opt == "Save Source" then
-			term.setCursorPos(9, 13)
-			write("Save As: /")
-			local loc = modRead(nil, nil, 24)
-			if loc ~= nil and loc ~= "" then
-				loc = "/" .. loc
-				local f = io.open(loc, "w")
-				f:write(content)
-				f:close()
-				term.setCursorPos(1, 13)
-				centerWrite(string.rep(" ", 43))
-			elseif loc == nil then
-				os.queueEvent(event_exitWebsite)
-				return
-			end
-		elseif opt == "Visit Site" then
-			redirect(a)
-			return
-		elseif opt == nil then
-			os.queueEvent(event_exitWebsite)
-			return
-		end
-	else
-		term.setCursorPos(1, 10)
-		centerWrite(string.rep(" ", 43))
-		centerPrint("Webpage Not Found! D:")
-	end
-end
+--pages.getinfo = function(site)
+--	clearPage(site, colors[theme["background"]])
+--	print("\n")
+--	term.setTextColor(colors[theme["text-color"]])
+--	term.setBackgroundColor(colors[theme["top-box"]])
+--	centerPrint(string.rep(" ", 43))
+--	centerWrite(string.rep(" ", 43))
+--	centerPrint("Retrieve Website Information")
+--	centerPrint(string.rep(" ", 43))
+--	print("\n")
+-- 
+--	term.setBackgroundColor(colors[theme["bottom-box"]])
+--	centerPrint(string.rep(" ", 43))
+--	centerPrint(string.rep(" ", 43))
+--	centerWrite(string.rep(" ", 43))
+--	local x, y = term.getCursorPos()
+--	term.setCursorPos(7, y - 1)
+--	write("rdnt://")
+--	local a = modRead(nil, nil, 31)
+--	if a == nil then
+--		os.queueEvent(event_exitWebsite)
+--		return
+--	end
+--	local id, content, status = getWebsite(a)
+-- 
+--	if id ~= nil then
+--		term.setCursorPos(1, 10)
+--		centerPrint("  rdnt://" .. a .. string.rep(" ", 34 - a:len()))
+--		for i = 1, 5 do
+--			centerPrint(string.rep(" ", 43))
+--		end
+--	 	
+--		if verify("blacklist", id) then 
+--			centerPrint("  Triggers Blacklist" .. string.rep(" ", 43 - 20)) end
+--		if verify("whitelist", id, site) then 
+--			centerPrint("  Triggers Whitelist" .. string.rep(" ", 43 - 20)) end
+--		if verify("antivirus", content) then
+--			centerPrint("  Triggers Antivirus" .. string.rep(" ", 43 - 20)) end
+--		centerPrint(string.rep(" ", 43))
+--		local opt = prompt({{"Save Source", 7, 12}, {"Visit Site", 7, 14}}, "vertical")
+--		if opt == "Save Source" then
+--			term.setCursorPos(9, 13)
+--			write("Save As: /")
+--			local loc = modRead(nil, nil, 24)
+--			if loc ~= nil and loc ~= "" then
+--				loc = "/" .. loc
+--				local f = io.open(loc, "w")
+--				f:write(content)
+--				f:close()
+--				term.setCursorPos(1, 13)
+--				centerWrite(string.rep(" ", 43))
+--			elseif loc == nil then
+--				os.queueEvent(event_exitWebsite)
+--				return
+--			end
+--		elseif opt == "Visit Site" then
+--			redirect(a)
+--			return
+--		elseif opt == nil then
+--			os.queueEvent(event_exitWebsite)
+--			return
+--		end
+--	else
+--		term.setCursorPos(1, 10)
+--		centerWrite(string.rep(" ", 43))
+--		centerPrint("Webpage Not Found! D:")
+--	end
+--end
 
 pages.kitteh = function(site)
 	openAddressBar = false
@@ -2765,8 +2779,7 @@ local function addressBarRead()
 	end
 
 	onLiveUpdate("", "delete", nil, nil, nil, nil, nil)
-	term.setCursorPos(9, 1)
-	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate, true)
+	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate)
 end
 
 local function addressBarMain()
@@ -2880,7 +2893,7 @@ local function main()
 	-- Update
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Checking For Updates...")
-	if autoupdate then updateClient() end
+	if autoupdate == "true" then updateClient() end
 
 	-- Modem
 	if not(errPages.checkForModem()) then return end
