@@ -2354,10 +2354,18 @@ errPages.crash = function(err)
 end
 
 errPages.checkForModem = function()
+local function testBundles(v)
+	rs.setBundledOutput(v, 1)
+	if rs.testBundledOutput(v, 1) then
+		rs.setBundledOutput(v, 0)
+		return true
+	end
+	rs.setBundledOutput(v, 0)
+end
 	while true do
 		local present = false
 		for _, v in pairs(rs.getSides()) do
-			if peripheral.getType(v) == "modem" then
+			if peripheral.getType(v) == "modem" or testBundles(v) then
 				rednet.open(v)
 				present = true
 				break
