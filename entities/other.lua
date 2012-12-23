@@ -2498,7 +2498,9 @@ local function loadSite(site)
 		end
 
 		nenv.term.clear = function()
+			local x,y = env.term.getCursorPos()
 			return api.clearPage(website, curBackgroundColor)
+			env.term.setCursorPos(x,y)
 		end
 
 		nenv.term.setBackgroundColor = function(col)
