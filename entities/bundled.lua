@@ -26,9 +26,9 @@ browserAgent = browserAgentTemplate
 local tArgs = {...}
 
 -- Server Identification
-local serverID = "other"
+local serverID = "bundled"
 local serverList = {blackwolf = "BlackWolf", geevancraft = "GeevanCraft", 
-		experimental = "Experimental", other = "Other"}
+		experimental = "Experimental", other = "Other", bundled = "Bundled Cables"}
 
 -- Updating
 local autoupdate = "true"
@@ -2354,53 +2354,10 @@ errPages.crash = function(err)
 end
 
 errPages.checkForModem = function()
-	while true do
-		local present = false
-		for _, v in pairs(rs.getSides()) do
-			if peripheral.getType(v) == "modem" then
-				rednet.open(v)
-				present = true
-				break
-			end
-		end
-
-		if not(present) then
-			website = "nomodem"
-			clearPage("nomodem", colors[theme["background"]])
-			print("")
-			term.setTextColor(colors[theme["text-color"]])
-			term.setBackgroundColor(colors[theme["top-box"]])
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
-			centerPrint("No Modem Attached! D:")
-			centerPrint(string.rep(" ", 43))
-			print("")
-
-			term.setBackgroundColor(colors[theme["bottom-box"]])
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
-			centerPrint("No wireless modem was found on this")
-			centerWrite(string.rep(" ", 43))
-			centerPrint("computer, and Firewolf is not able to")
-			centerWrite(string.rep(" ", 43))
-			centerPrint("run without one!")
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
-			centerPrint("Waiting for a modem to be attached...")
-			centerWrite(string.rep(" ", 43))
-			if term.isColor() then centerPrint("Click to exit...")
-			else centerPrint("Press any key to exit...") end
-			centerPrint(string.rep(" ", 43))
-
-			while true do
-				local e, id = os.pullEvent()
-				if e == "key" or e == "mouse_click" then return false
-				elseif e == "peripheral" then break end
-			end
-		else
-			return true
-		end
+	for _,v in pairs(rs.getSides()) do
+		rednet.open(v)
 	end
+	return true
 end
 
 errPages.blacklistRedirectionBots = function()
