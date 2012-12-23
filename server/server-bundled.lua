@@ -1,5 +1,4 @@
-local oldPullEvent = os.pullEvent
-os.pullEvent = os.pullEventRaw
+
 --  
 --  Firewolf Server Software
 --  Created By GravityScore and 1lann
@@ -50,8 +49,6 @@ local dataLocation = ""
 local pages = {}
 local totalRecordLines = {}
 local recordLines = {}
-local serverPassword = nil
-local serverLocked = true
 
 -- Locations
 local rootFolder = "/.Firewolf_Data"
@@ -59,7 +56,6 @@ local serverFolder = rootFolder .. "/servers"
 local statsLocation = rootFolder .. "/" .. website .. "_stats"
 local themeLocation = rootFolder .. "/theme"
 local defaultThemeLocation = rootFolder .. "/default_theme"
-local passwordDataLocation = rootFolder .. "/." .. website .. "_password"
 local serverSoftwareLocation = "/" .. shell.getRunningProgram()
 
 
@@ -500,7 +496,7 @@ local function loadPages(loc)
 end
 
 local function checkForModem()
-	for _,v in pairs(rs.getSides()) do
+	for _, v in pairs(rs.getSides()) do
 		rednet.open(v)
 	end
 	return true
@@ -662,6 +658,7 @@ local function edit()
 				term.setTextColor(colors.white)
 				shell.run(com, unpack(words, 2))
 			else
+				term.setTextColor(colors.red)
 				print("Program Not Allowed!")
 			end
 		end
@@ -687,31 +684,11 @@ local function interface()
 		print("")
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 
+		local p1 = "Pause Server"
 		if enableResponse == false then p1 = "Unpause Server" end
 		term.setBackgroundColor(colors[theme["top-box"]])
-		if not serverLocked and not serverPassword then
-			local opt = prompt({{"Lock Server", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
-				{"Stop", w - 13, 5}}, "vertical")
-		elseif not serverLocked and serverPassword then
-			local opt = prompt({{"Add Lock", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
-				{"Lock", 5, 5},{"Stop", w - 13, 5}}, "vertical")
-		elseif serverLocked then
-			term.setCursorPos(5,4)
-			print("Enter Password:")
-			term.slocal enteredPassword = read("*")
-			if enteredPassword == serverPassword then
-				term.setCursorPos(1, 2)
-				print("")
-				term.setTextColor(colors[theme["text-color"]])
-				term.setBackgroundColor(colors[theme["top-box"]])
-				centerPrint(string.rep(" ", 47))
-				centerPrint(string.rep(" ", 47))
-				centerPrint(string.rep(" ", 47))
-				centerPrint(string.rep(" ", 47))
-				term.setCursorPos
-
-
-		end
+		local opt = prompt({{p1, 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
+			{"Stop", w - 13, 5}}, "vertical")
 		if opt == p1 then
 			enableResponse = not(enableResponse)
 		elseif opt == "Manage" then
@@ -728,10 +705,9 @@ local function interface()
 				term.setCursorPos(5, 10)
 				write("Searches: " .. tostring(searches))
 
-				local opt = prompt({{"Add/Remove Password Lock", 9, 12}, {"Manage Blocked IDs", 9, 13}, {"Delete Server", 9, 14}, 
-					{"Back", 9, 16}}, "vertical")
-				if opt == "Add/Remove Password Lock" then
-				elseif opt == "Manage Blocked IDs" then
+				local opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
+					{"Back", 9, 15}}, "vertical")
+				if opt == "Manage Blocked IDs" then
 					while true do
 						clearPage()
 						term.setCursorPos(1, 8)
@@ -1003,16 +979,6 @@ if not(term.isColor()) then
 else
 	theme = loadTheme(themeLocation)
 	if theme == nil then theme = defaultTheme end
-end
-
--- Pasword
-if fs.exists(passwordDataLocation) then
-	local f = io.open(passwordDataLocation, "r")
-	serverPassword = f:read("*l")
-	f:close()
-	serverLocked = true
-else
-	serverLocked = false
 end
 
 -- Start
