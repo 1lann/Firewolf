@@ -514,32 +514,16 @@ end
 --  -------- Themes
 
 local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
-	["address-bar-base"] = "lightGray", ["top-box"] = "red", ["bottom-box"] = "orange", 
-	["text-color"] = "white", ["background"] = "gray"}
+	["top-box"] = "red", ["bottom-box"] = "orange", ["text-color"] = "white", ["background"] = "gray"}
 local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "black", 
-	["address-bar-base"] = "black", ["top-box"] = "black", ["bottom-box"] = "black", 
-	["text-color"] = "white", ["background"] = "black"}
+	["top-box"] = "black", ["bottom-box"] = "black", ["text-color"] = "white", ["background"] = "black"}
 
 local ownThemeFileContent = [[
--- Text color of the address bar
 address-bar-text=
-
--- Background color of the address bar
 address-bar-background=
-
--- Color of separator bar when live searching
-address-bar-base=
-
--- Top box color
 top-box=
-
--- Bottom box color
 bottom-box=
-
--- Background color
 background=
-
--- Main text color
 text-color=
 
 ]]
@@ -551,7 +535,7 @@ local function loadTheme(path)
 		local l = f:read("*l")
 		while l ~= nil do
 			l = l:gsub("^%s*(.-)%s*$", "%1")
-			if l ~= "" and l ~= nil and l ~= "\n" and l:sub(1, 2) ~= "--" then
+			if l ~= "" and l ~= nil and l ~= "\n" then
 				local b = l:find("=")
 				if a and b then
 					local c = l:sub(1, b - 1)
@@ -708,14 +692,122 @@ local function download(url, path)
 		if response then
 			local data = response.readAll()
 			response.close()
-			local f = io.open(path, "w")
-			f:write(data)
-			f:close()
+			if path then
+				local f = io.open(path, "w")
+				f:write(data)
+				f:close()
+			end
 			return true
 		end
 	end
 
 	return false
+end
+
+local function checkGitHub()
+	if not download("https://raw.github.com") then
+		if term.isColor() then
+			local githubImage = textutils.unserialize([[{[1]={[1]=0,[2]=2,[3]=2,[4]=2,[5]=2,[6]=2,[7]=2,[8]=2,[9]=2,[10]=2,[11]=2,[12]=2,
+				[13]=2,[14]=2,[15]=2,[16]=2,[17]=0,[18]=0,[19]=0,[20]=0,[21]=0,[22]=0,[23]=0,[24]=0,[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,
+				[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,[37]=0,[38]=0,[39]=0,[40]=0,[41]=0,[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,
+				[47]=0,[48]=0,[49]=0,},[2]={[1]=0,[2]=2,[3]=2,[4]=2,[5]=32768,[6]=2,[7]=2,[8]=2,[9]=2,[10]=2,[11]=2,[12]=2,[13]=32768,
+				[14]=2,[15]=2,[16]=2,[17]=0,[18]=0,[19]=0,[20]=0,[21]=0,[22]=0,[23]=0,[24]=0,[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,
+				[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,[37]=0,[38]=0,[39]=0,[40]=0,[41]=0,[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,[47]=0,
+				[48]=0,[49]=0,},[3]={[1]=0,[2]=2,[3]=2,[4]=2,[5]=32768,[6]=32768,[7]=32768,[8]=32768,[9]=32768,[10]=32768,[11]=32768,
+				[12]=32768,[13]=32768,[14]=2,[15]=2,[16]=2,[17]=0,[18]=0,[19]=0,[20]=0,[21]=0,[22]=0,[23]=0,[24]=0,[25]=0,[26]=0,[27]=0,
+				[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,[37]=0,[38]=0,[39]=0,[40]=0,[41]=0,[42]=0,[43]=0,[44]=0,
+				[45]=0,[46]=0,[47]=0,[48]=0,[49]=0,},[4]={[1]=0,[2]=2,[3]=2,[4]=2,[5]=32768,[6]=32768,[7]=32768,[8]=32768,[9]=32768,
+				[10]=32768,[11]=32768,[12]=32768,[13]=32768,[14]=2,[15]=2,[16]=2,[17]=0,[18]=0,[19]=0,[20]=0,[21]=0,[22]=0,[23]=0,[24]=0,
+				[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,[37]=0,[38]=0,[39]=0,[40]=0,[41]=0,
+				[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,[47]=0,[48]=0,[49]=0,},[5]={[1]=0,[2]=2,[3]=2,[4]=2,[5]=32768,[6]=16,[7]=64,[8]=16,
+				[9]=16,[10]=16,[11]=64,[12]=16,[13]=32768,[14]=2,[15]=2,[16]=2,[17]=0,[18]=0,[19]=0,[20]=0,[21]=0,[22]=0,[23]=0,[24]=0,
+				[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,[37]=0,[38]=0,[39]=0,[40]=0,[41]=0,
+				[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,[47]=0,[48]=0,[49]=0,},[6]={[1]=0,[2]=2,[3]=2,[4]=2,[5]=32768,[6]=16,[7]=16,[8]=16,
+				[9]=16,[10]=16,[11]=16,[12]=16,[13]=32768,[14]=2,[15]=2,[16]=2,[17]=0,[18]=0,[19]=0,[20]=0,[21]=0,[22]=0,[23]=0,[24]=0,
+				[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,[37]=0,[38]=0,[39]=0,[40]=0,[41]=0,
+				[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,[47]=0,[48]=0,[49]=0,},[7]={[1]=0,[2]=2,[3]=2,[4]=2,[5]=32768,[6]=32768,[7]=32768,
+				[8]=32768,[9]=32768,[10]=32768,[11]=32768,[12]=32768,[13]=32768,[14]=2,[15]=2,[16]=2,[17]=0,[18]=0,[19]=0,[20]=0,[21]=0,
+				[22]=0,[23]=0,[24]=0,[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,[37]=0,[38]=0,
+				[39]=0,[40]=0,[41]=0,[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,[47]=0,[48]=0,[49]=0,},[8]={[1]=0,[2]=2,[3]=2,[4]=2,[5]=2,[6]=32768,
+				[7]=32768,[8]=32768,[9]=2,[10]=16384,[11]=32768,[12]=32768,[13]=2,[14]=2,[15]=16384,[16]=2,[17]=0,[18]=0,[19]=0,[20]=0,
+				[21]=0,[22]=0,[23]=0,[24]=0,[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,[37]=0,
+				[38]=0,[39]=0,[40]=0,[41]=0,[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,[47]=0,[48]=0,[49]=0,},[9]={[1]=0,[2]=2,[3]=2,[4]=2,[5]=2,
+				[6]=32768,[7]=2,[8]=32768,[9]=2,[10]=32768,[11]=16384,[12]=32768,[13]=2,[14]=16384,[15]=2,[16]=2,[17]=0,[18]=0,[19]=0,
+				[20]=0,[21]=0,[22]=0,[23]=0,[24]=0,[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,
+				[37]=0,[38]=0,[39]=0,[40]=0,[41]=0,[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,[47]=0,[48]=0,[49]=0,},[10]={[1]=0,[2]=2,[3]=2,[4]=2,
+				[5]=2,[6]=32768,[7]=2,[8]=32768,[9]=2,[10]=32768,[11]=2,[12]=16384,[13]=16384,[14]=2,[15]=2,[16]=2,[17]=0,[18]=0,[19]=0,
+				[20]=0,[21]=0,[22]=0,[23]=0,[24]=0,[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,
+				[37]=0,[38]=0,[39]=0,[40]=0,[41]=0,[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,[47]=0,[48]=0,[49]=0,},[11]={[1]=0,[2]=2,[3]=2,[4]=2,
+				[5]=32768,[6]=32768,[7]=2,[8]=32768,[9]=2,[10]=32768,[11]=2,[12]=16384,[13]=16384,[14]=2,[15]=2,[16]=2,[17]=0,[18]=0,[19]=0,
+				[20]=0,[21]=0,[22]=0,[23]=0,[24]=0,[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,
+				[37]=0,[38]=0,[39]=0,[40]=0,[41]=0,[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,[47]=0,[48]=0,[49]=0,},[12]={[1]=0,[2]=2,[3]=2,[4]=2,
+				[5]=2,[6]=2,[7]=2,[8]=2,[9]=2,[10]=2,[11]=16384,[12]=2,[13]=2,[14]=16384,[15]=2,[16]=2,[17]=0,[18]=0,[19]=0,[20]=0,[21]=0,
+				[22]=0,[23]=0,[24]=0,[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,[37]=0,[38]=0,[39]=0,
+				[40]=0,[41]=0,[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,[47]=0,[48]=0,[49]=0,},[13]={[1]=0,[2]=2,[3]=2,[4]=2,[5]=2,[6]=2,[7]=2,[8]=2,
+				[9]=2,[10]=16384,[11]=2,[12]=2,[13]=2,[14]=2,[15]=16384,[16]=2,[17]=0,[18]=0,[19]=0,[20]=0,[21]=0,[22]=0,[23]=0,[24]=0,[25]=0,
+				[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,[37]=0,[38]=0,[39]=0,[40]=0,[41]=0,[42]=0,[43]=0,
+				[44]=0,[45]=0,[46]=0,[47]=0,[48]=0,[49]=0,},[14]={[1]=0,[2]=2,[3]=2,[4]=2,[5]=2,[6]=2,[7]=2,[8]=2,[9]=2,[10]=2,[11]=2,[12]=2,
+				[13]=2,[14]=2,[15]=2,[16]=2,[17]=0,[18]=0,[19]=0,[20]=0,[21]=0,[22]=0,[23]=0,[24]=0,[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,
+				[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,[37]=0,[38]=0,[39]=0,[40]=0,[41]=0,[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,[47]=0,[48]=0,
+				[49]=0,},[15]={[1]=0,[2]=0,[3]=0,[4]=0,[5]=0,[6]=0,[7]=0,[8]=0,[9]=0,[10]=0,[11]=0,[12]=0,[13]=0,[14]=0,[15]=0,[16]=0,[17]=0,
+				[18]=0,[19]=0,[20]=0,[21]=0,[22]=0,[23]=0,[24]=0,[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,
+				[36]=0,[37]=0,[38]=0,[39]=0,[40]=0,[41]=0,[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,[47]=0,[48]=0,[49]=0,},[16]={[1]=0,[2]=0,[3]=0,
+				[4]=0,[5]=0,[6]=0,[7]=0,[8]=0,[9]=0,[10]=0,[11]=0,[12]=0,[13]=0,[14]=0,[15]=0,[16]=0,[17]=0,[18]=0,[19]=0,[20]=0,[21]=0,[22]=0,
+				[23]=0,[24]=0,[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,[37]=0,[38]=0,[39]=0,[40]=0,
+				[41]=0,[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,[47]=0,[48]=0,[49]=0,},[17]={[1]=0,[2]=0,[3]=0,[4]=0,[5]=0,[6]=0,[7]=0,[8]=0,[9]=0,
+				[10]=0,[11]=0,[12]=0,[13]=0,[14]=0,[15]=0,[16]=0,[17]=0,[18]=0,[19]=0,[20]=0,[21]=0,[22]=0,[23]=0,[24]=0,[25]=0,[26]=0,[27]=0,
+				[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,[33]=0,[34]=0,[35]=0,[36]=0,[37]=0,[38]=0,[39]=0,[40]=0,[41]=0,[42]=0,[43]=0,[44]=0,[45]=0,
+				[46]=0,[47]=0,[48]=0,[49]=0,},[18]={[1]=0,[2]=0,[3]=0,[4]=0,[5]=0,[6]=0,[7]=0,[8]=0,[9]=0,[10]=0,[11]=0,[12]=0,[13]=0,[14]=0,
+				[15]=0,[16]=0,[17]=0,[18]=0,[19]=0,[20]=0,[21]=0,[22]=0,[23]=0,[24]=0,[25]=0,[26]=0,[27]=0,[28]=0,[29]=0,[30]=0,[31]=0,[32]=0,
+				[33]=0,[34]=0,[35]=0,[36]=0,[37]=0,[38]=0,[39]=0,[40]=0,[41]=0,[42]=0,[43]=0,[44]=0,[45]=0,[46]=0,[47]=0,[48]=0,[49]=0,},}]])
+			term.setBackgroundColor(colors[theme["background"]])
+			term.clear()
+			paintutils.drawImage(githubImage, 1, 3)
+			term.setCursorPos(19, 4)
+			term.setBackgroundColor(colors[theme["top-box"]])
+			term.setTextColor(colors[theme["text-color"]])
+			print("                                ")
+			term.setCursorPos(19, 5)
+			print("  Could not connect to GitHub!  ")
+			term.setCursorPos(19, 6)
+			print("                                ")
+			term.setBackgroundColor(colors[theme["bottom-box"]])
+			term.setCursorPos(19, 8)
+			print("                                ")
+			term.setCursorPos(19, 9)
+			print("    Sorry, Firewolf could not   ")
+			term.setCursorPos(19, 10)
+			print(" connect to GitHub to download  ")
+			term.setCursorPos(19, 11)
+			print(" necessary files. Please check: ")
+			term.setCursorPos(19, 12)
+			print("    http://status.github.com    ")
+			term.setCursorPos(19, 13)
+			print("                                ")
+			term.setCursorPos(19, 14)
+			print("        Click to exit...        ")
+			term.setCursorPos(19, 15)
+			print("                                ")
+			os.pullEvent("mouse_click")
+			error()
+		else
+			term.clear()
+			term.setCursorPos(1,1)
+			term.setBackgroundColor(colors.black)
+			term.setTextColor(colors.white)
+			print("")
+			print("")
+			centerPrint("Could not connect to GitHub!")
+			print("")
+			centerPrint("Sorry, Firefox could not connect to GitHub to")
+			centerPrint("download necessary files. Please check:")
+			centerPrint("http://status.github.com")
+			print("")
+			centerPrint("Press any key to exit...")
+			os.pullEvent("key")
+			error()
+		end
+	end
 end
 
 local function migrateFilesystem()
@@ -1403,7 +1495,6 @@ pages.server = function(site)
 					term.setTextColor(colors.white)
 					shell.run(com, unpack(words, 2))
 				else
-					term.setTextColor(colors.red)
 					print("Program Not Allowed!")
 				end
 			end
@@ -1437,7 +1528,7 @@ pages.server = function(site)
 		write("URL:")
 		term.setCursorPos(8, 12)
 		write("rdnt://")
-		local url = modRead(nil, nil, 28, true)
+		local url = modRead(nil, nil, 33)
 		if url == nil then
 			os.queueEvent(event_exitWebsite)
 			return
@@ -1445,7 +1536,7 @@ pages.server = function(site)
 		url = url:gsub(" ", "")
 
 		local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
-			"[", "]", "{", "}", "\\", "\"", "'", ":", ";", "?", "<", ">", ",", "`", "~"}
+			"[", "]", "{", "}", "\\", "\"", ":", ";", "?", "<", ">", ",", "`"}
 		local b = false
 		for k, v in pairs(a) do
 			if url:find(v, 1, true) then
@@ -1518,22 +1609,17 @@ pages.server = function(site)
 				term.setCursorPos(3, i + 8)
 				write(string.rep(" ", 24))
 				term.setCursorPos(4, i + 8)
-				local nv = v
-				if nv:len() > 18 then nv = nv:sub(1, 15) .. "..." end
 				if i == sel then
-					write("[ " .. nv .. " ]")
+					write("[- " .. v)
 				else
-					write("  " .. nv)
+					write("   " .. v)
 				end
 			end
 
 			term.setCursorPos(30, 8)
 			write(string.rep(" ", 19))
 			term.setCursorPos(30, 8)
-			if l[sel] then 
-				local nl = l[sel]
-				if nl:len() > 19 then nl = nl:sub(1, 16) .. "..." end
-				write(nl)
+			if l[sel] then write(l[sel])
 			else write("No Server Selected!") end
 			term.setCursorPos(30, 10)
 			write("[- Start -]")
@@ -1603,8 +1689,6 @@ pages.server = function(site)
 					return
 				elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
 					editPages(disList[sel])
-					redirect("server")
-					return
 				elseif x >= 30 and x <= 46 and y == 14 and #servers > 0 then
 					-- Startup
 					fs.delete("/old-startup")
@@ -1919,7 +2003,7 @@ pages.settings = function(site)
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 9 do centerPrint(string.rep(" ", 43)) end
-		local opt = prompt({{a, 7, 10}, {b, 7, 12}, {c, 7, 14}, {"Reset Firewolf", 7, 16}}, "vertical")
+		local opt = prompt({{a, 6, 10}, {b, 6, 12}, {c, 6, 14}, {"Reset Firewolf", 6, 16}}, "vertical")
 		if opt == a then
 			if autoupdate == "true" then autoupdate = "false"
 			elseif autoupdate == "false" then autoupdate = "true" end
@@ -1975,7 +2059,6 @@ pages.settings = function(site)
 				redirect("settings")
 				return
 			elseif opt == nil then
-				openAddressBar = true
 				os.queueEvent(event_exitWebsite)
 				return
 			end
@@ -2040,14 +2123,11 @@ pages.update = function(site)
 		fs.delete(updateLocation)
 		download(firewolfURL, updateLocation)
 		centerWrite(string.rep(" ", 43))
-		centerPrint("Done!")
-		centerWrite(string.rep(" ", 43))
-		if term.isColor() then centerPrint("Click to exit...")
-		else centerPrint("Press any key to exit...") end
-		centerPrint(string.rep(" ", 43))
+		centerWrite("Done! Restarting...")
 		sleep(1.1)
 		fs.delete(firewolfLocation)
 		fs.move(updateLocation, firewolfLocation)
+		shell.run(firewolfLocation)
 
 		return true
 	elseif opt == "Cancel" then
@@ -2083,74 +2163,74 @@ pages.credits = function(site)
 	centerPrint(string.rep(" ", 43))
 end
 
---pages.getinfo = function(site)
---	clearPage(site, colors[theme["background"]])
---	print("\n")
---	term.setTextColor(colors[theme["text-color"]])
---	term.setBackgroundColor(colors[theme["top-box"]])
---	centerPrint(string.rep(" ", 43))
---	centerWrite(string.rep(" ", 43))
---	centerPrint("Retrieve Website Information")
---	centerPrint(string.rep(" ", 43))
---	print("\n")
--- 
---	term.setBackgroundColor(colors[theme["bottom-box"]])
---	centerPrint(string.rep(" ", 43))
---	centerPrint(string.rep(" ", 43))
---	centerWrite(string.rep(" ", 43))
---	local x, y = term.getCursorPos()
---	term.setCursorPos(7, y - 1)
---	write("rdnt://")
---	local a = modRead(nil, nil, 31)
---	if a == nil then
---		os.queueEvent(event_exitWebsite)
---		return
---	end
---	local id, content, status = getWebsite(a)
--- 
---	if id ~= nil then
---		term.setCursorPos(1, 10)
---		centerPrint("  rdnt://" .. a .. string.rep(" ", 34 - a:len()))
---		for i = 1, 5 do
---			centerPrint(string.rep(" ", 43))
---		end
---	 	
---		if verify("blacklist", id) then 
---			centerPrint("  Triggers Blacklist" .. string.rep(" ", 43 - 20)) end
---		if verify("whitelist", id, site) then 
---			centerPrint("  Triggers Whitelist" .. string.rep(" ", 43 - 20)) end
---		if verify("antivirus", content) then
---			centerPrint("  Triggers Antivirus" .. string.rep(" ", 43 - 20)) end
---		centerPrint(string.rep(" ", 43))
---		local opt = prompt({{"Save Source", 7, 12}, {"Visit Site", 7, 14}}, "vertical")
---		if opt == "Save Source" then
---			term.setCursorPos(9, 13)
---			write("Save As: /")
---			local loc = modRead(nil, nil, 24)
---			if loc ~= nil and loc ~= "" then
---				loc = "/" .. loc
---				local f = io.open(loc, "w")
---				f:write(content)
---				f:close()
---				term.setCursorPos(1, 13)
---				centerWrite(string.rep(" ", 43))
---			elseif loc == nil then
---				os.queueEvent(event_exitWebsite)
---				return
---			end
---		elseif opt == "Visit Site" then
---			redirect(a)
---			return
---		elseif opt == nil then
---			os.queueEvent(event_exitWebsite)
---			return
---		end
---	else
---		term.setCursorPos(1, 10)
---		centerWrite(string.rep(" ", 43))
---		centerPrint("Webpage Not Found! D:")
---	end
---end
+pages.getinfo = function(site)
+	clearPage(site, colors[theme["background"]])
+	print("\n")
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
+	centerPrint(string.rep(" ", 43))
+	centerWrite(string.rep(" ", 43))
+	centerPrint("Retrieve Website Information")
+	centerPrint(string.rep(" ", 43))
+	print("\n")
+
+	term.setBackgroundColor(colors[theme["bottom-box"]])
+	centerPrint(string.rep(" ", 43))
+	centerPrint(string.rep(" ", 43))
+	centerWrite(string.rep(" ", 43))
+	local x, y = term.getCursorPos()
+	term.setCursorPos(7, y - 1)
+	write("rdnt://")
+	local a = modRead(nil, nil, 31)
+	if a == nil then
+		os.queueEvent(event_exitWebsite)
+		return
+	end
+	local id, content, status = getWebsite(a)
+
+	if id ~= nil then
+		term.setCursorPos(1, 10)
+		centerPrint("  rdnt://" .. a .. string.rep(" ", 34 - a:len()))
+		for i = 1, 5 do
+			centerPrint(string.rep(" ", 43))
+		end
+		
+		if verify("blacklist", id) then 
+			centerPrint("  Triggers Blacklist" .. string.rep(" ", 43 - 20)) end
+		if verify("whitelist", id, site) then 
+			centerPrint("  Triggers Whitelist" .. string.rep(" ", 43 - 20)) end
+		if verify("antivirus", content) then
+			centerPrint("  Triggers Antivirus" .. string.rep(" ", 43 - 20)) end
+		centerPrint(string.rep(" ", 43))
+		local opt = prompt({{"Save Source", 7, 12}, {"Visit Site", 7, 14}}, "vertical")
+		if opt == "Save Source" then
+			term.setCursorPos(9, 13)
+			write("Save As: /")
+			local loc = modRead(nil, nil, 24)
+			if loc ~= nil and loc ~= "" then
+				loc = "/" .. loc
+				local f = io.open(loc, "w")
+				f:write(content)
+				f:close()
+				term.setCursorPos(1, 13)
+				centerWrite(string.rep(" ", 43))
+			elseif loc == nil then
+				os.queueEvent(event_exitWebsite)
+				return
+			end
+		elseif opt == "Visit Site" then
+			redirect(a)
+			return
+		elseif opt == nil then
+			os.queueEvent(event_exitWebsite)
+			return
+		end
+	else
+		term.setCursorPos(1, 10)
+		centerWrite(string.rep(" ", 43))
+		centerPrint("Webpage Not Found! D:")
+	end
+end
 
 pages.kitteh = function(site)
 	openAddressBar = false
@@ -2795,6 +2875,7 @@ local function addressBarRead()
 	end
 
 	onLiveUpdate("", "delete", nil, nil, nil, nil, nil)
+	term.setCursorPos(9, 1)
 	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate)
 end
 
@@ -2880,6 +2961,7 @@ local function main()
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Downloading Required Files...")
 	centerWrite(string.rep(" ", 47))
+	checkGitHub()
 	migrateFilesystem()
 	resetFilesystem()
 
@@ -2909,7 +2991,7 @@ local function main()
 	-- Update
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Checking For Updates...")
-	if autoupdate == "true" then updateClient() end
+	if autoupdate then updateClient() end
 
 	-- Modem
 	if not(errPages.checkForModem()) then return end
