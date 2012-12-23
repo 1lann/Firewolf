@@ -2328,7 +2328,7 @@ end
 errPages.checkForModem = function()
 local function testBundles(v)
 	rs.setBundledOutput(v, 1)
-	if rs.testBundledOutput(v, 1) then
+	if rs.testBundledInput(v, 1) then
 		rs.setBundledOutput(v, 0)
 		return true
 	end
