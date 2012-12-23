@@ -10,7 +10,9 @@
 
 --  Features:
 --  - GitHub verification
---  - 
+--  - Cookies
+--  - Bookmarks
+--  - Back/Forward/Home buttons
 
 
 --  -------- Variables
@@ -67,6 +69,9 @@ local protocols = {}
 local history = {}
 local addressBarHistory = {}
 
+-- Bookmarks
+local bookmarks = {}
+
 -- Events
 local event_loadWebsite = "firewolf_loadWebsiteEvent"
 local event_exitWebsite = "firewolf_exitWebsiteEvent"
@@ -93,6 +98,7 @@ local availableThemesLocation = rootFolder .. "/available_themes"
 local serverSoftwareLocation = rootFolder .. "/server_software"
 local settingsLocation = rootFolder .. "/settings"
 local historyLocation = rootFolder .. "/history"
+local bookmarksLocation = rootFolder .. "/bookmarks"
 local firewolfLocation = "/" .. shell.getRunningProgram()
 
 local userBlacklist = rootFolder .. "/user_blacklist"
@@ -1110,39 +1116,33 @@ local errPages = {}
 
 pages.firewolf = function(site)
 	clearPage(site, colors[theme["background"]])
-	print("")
+	print("\n")
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 43))
-	centerPrint("         _,-='\"-.__               /\\_/\\    ")
-	centerPrint("          -.}        =._,.-==-._.,  @ @._, ")
-	centerPrint("             -.__  __,-.   )       _,.-'   ")
-	centerPrint("  Firewolf " .. version .. "    \"     G..m-\"^m m'        ")
+	centerPrint([[         _,-='"-.__               /\_/\    ]])
+	centerPrint([[          -.}        =._,.-==-._.,  @ @._, ]])
+	centerPrint([[             -.__  __,-.   )       _,.-'   ]])
+	centerPrint([[  Firewolf ]] .. version .. [[    "     G..m-"^m m'        ]])
 	centerPrint(string.rep(" ", 43))
+	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	term.setCursorPos(1, 10)
+	term.setCursorPos(1, 12)
 	centerPrint(string.rep(" ", 43))
-	centerPrint("  rdnt://firewolf                Homepage  ")
-	centerPrint("  rdnt://history                  History  ")
-	centerPrint("  rdnt://downloads       Downloads Center  ")
-	centerPrint("  rdnt://server         Server Management  ")
-	centerPrint("  rdnt://help                   Help Page  ")
-	centerPrint("  rdnt://settings                Settings  ")
-	centerPrint("  rdnt://exit                        Exit  ")
+	centerPrint("  News:              [- Built-In Sites -]  ")
+	centerPrint("  - Merry Christmas! From everyone in the  ")
+	centerPrint("    Firewolf team!                         ")
+	centerPrint("  - Version 2.3 has been released! Check   ")
+	centerPrint("    out the new Christmas themes and       ")
+	centerPrint("    normal computer support!               ")
 	centerPrint(string.rep(" ", 43))
 
 	while true do
 		local e, but, x, y = os.pullEvent()
-		if e == "mouse_click" and x >= 7 and x <= 45 then
-			if y == 11 then redirect("firewolf") return
-			elseif y == 12 then redirect("history") return
-			elseif y == 13 then redirect("downloads") return
-			elseif y == 14 then redirect("server") return
-			elseif y == 15 then redirect("help") return
-			elseif y == 16 then redirect("settings") return
-			elseif y == 17 then redirect("exit") return
-			end
+		if e == "mouse_click" and x >= 5 and x <= 10 and y == 13 then
+			redirect("sites")
+			return
 		elseif e == event_exitWebsite then
 			os.queueEvent(event_exitWebsite)
 			return
@@ -1152,6 +1152,55 @@ end
 
 pages.firefox = function(site)
 	redirect("firewolf")
+end
+
+pages.sites = function(site)
+	clearPage(site, colors[theme["background"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
+	print("")
+	centerPrint(string.rep(" ", 43))
+	centerWrite(string.rep(" ", 43))
+	centerPrint("Firewolf Built-In Sites")
+	centerPrint(string.rep(" ", 43))
+	print("\n")
+
+	local sx = 8
+	term.setBackgroundColor(colors[theme["bottom-box"]])
+	for i = 1, 12 do centerPrint(string.rep(" ", 43)) end
+	term.setCursorPos(1, sx)
+	centerPrint(string.rep(" ", 43))
+	centerPrint("  rdnt://firewolf                Homepage  ")
+	centerPrint("  rdnt://history                  History  ")
+	centerPrint("  rdnt://bookmarks              Bookmarks  ")
+	centerPrint("  rdnt://downloads       Downloads Center  ")
+	centerPrint("  rdnt://server         Server Management  ")
+	centerPrint("  rdnt://help                   Help Page  ")
+	centerPrint("  rdnt://settings                Settings  ")
+	centerPrint("  rdnt://sites             Built-In Sites  ")
+	centerPrint("  rdnt://credits                  Credits  ")
+	centerPrint("  rdnt://exit                        Exit  ")
+	centerPrint(string.rep(" ", 43))
+
+	while true do
+		local e, but, x, y = os.pullEvent()
+		if e == "mouse_click" and x >= 7 and x <= 45 then
+			if y == sx then redirect("firewolf") return
+			elseif y == sx + 1 then redirect("history") return
+			elseif y == sx + 2 then redirect("bookmarks") return
+			elseif y == sx + 3 then redirect("downloads") return
+			elseif y == sx + 4 then redirect("server") return
+			elseif y == sx + 5 then redirect("help") return
+			elseif y == sx + 6 then redirect("settings") return
+			elseif y == sx + 7 then redirect("sites") return
+			elseif y == sx + 8 then redirect("credits") return
+			elseif y == sx + 9 then redirect("exit") return
+			end
+		elseif e == event_exitWebsite then
+			os.queueEvent(event_exitWebsite)
+			return
+		end
+	end
 end
 
 pages.history = function(site)
@@ -1167,9 +1216,7 @@ pages.history = function(site)
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 
 	if #history > 0 then
-		for i = 1, 12 do
-			centerPrint(string.rep(" ", 47))
-		end
+		for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 
 		local a = {"Clear History"}
 		for i, v in ipairs(history) do
@@ -1405,6 +1452,30 @@ pages.downloads = function(site)
 		os.queueEvent(event_exitWebsite)
 		return
 	end
+end
+
+pages.bookmarks = function(site)
+	clearPage(site, colors[theme["background"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
+	print("")
+	centerPrint(string.rep(" ", 47))
+	centerWrite(string.rep(" ", 47))
+	centerPrint("Bookmarks")
+	centerPrint(string.rep(" ", 47))
+	print("")
+
+	term.setBackgroundColor(colors[theme["bottom-box"]])
+	for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
+	
+end
+
+pages.favourites = function(site)
+	redirect("bookmarks")
+end
+
+pages.favorites = function(site)
+	redirect("bookmarks")
 end
 
 pages.server = function(site)
