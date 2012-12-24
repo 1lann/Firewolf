@@ -13,7 +13,7 @@
 --  - Cookies
 --  - Bookmarks
 --  - Back/Forward/Home buttons
---  - Fixed background/text colors on websites
+--  - Vastly improved Firewolf Rendering Engine
 
 
 --  -------- Variables
@@ -109,6 +109,11 @@ local globalDatabase = rootFolder .. "/database"
 
 --  -------- Firewolf API
 
+local function isAdvanced()
+	if term.isColor then return term.isColor()
+	else return false end
+end
+
 api.clearPage = function(site, color, redraw)
 	-- Site titles
 	local titles = {firewolf = "Firewolf Homepage", server = "Server Management", 
@@ -187,7 +192,7 @@ api.redirect = function(url)
 end
 
 api.prompt = function(list, dir)
-	if term.isColor() then
+	if isAdvanced() then
 		for _, v in pairs(list) do
 			if v.bg then term.setBackgroundColor(v.bg) end
 			if v.tc then term.setTextColor(v.tc) end
@@ -272,7 +277,7 @@ api.scrollingPrompt = function(list, x, y, len, width)
 		return ret
 	end
 
-	if term.isColor() then
+	if isAdvanced() then
 		local function draw(a)
 			for i, v in ipairs(a) do
 				term.setCursorPos(1, y + i - 1)
@@ -723,7 +728,7 @@ ff f f ee
 
 local function checkGitHub()
 	if not(download("https://raw.github.com")) then
-		if term.isColor() then
+		if isAdvanced() then
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["background"]])
 			term.clear()
@@ -820,7 +825,7 @@ local function resetFilesystem()
 	end
 
 	-- Themes
-	if term.isColor() then
+	if isAdvanced() then
 		if autoupdate == "true" then
 			fs.delete(availableThemesLocation)
 			fs.delete(defaultThemeLocation)
@@ -1281,7 +1286,7 @@ pages.downloads = function(site)
 		centerPrint(string.rep(" ", 47))
 	end
 	local opt = prompt({{"Themes", 7, 8}, {"Plugins", 7, 10}}, "vertical")
-	if opt == "Themes" and term.isColor() then
+	if opt == "Themes" and isAdvanced() then
 		while true do
 			local themes = {}
 			local c = {"Make my Own", "Load my Own"}
@@ -1404,7 +1409,7 @@ pages.downloads = function(site)
 				end
 			end
 		end
-	elseif opt == "Themes" and not(term.isColor()) then
+	elseif opt == "Themes" and not(isAdvanced()) then
 		clearPage(site, colors[theme["background"]])
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["top-box"]])
@@ -1501,7 +1506,7 @@ pages.server = function(site)
 		while true do
 			shell.setDir(serverFolder .. "/" .. server)
 			term.setBackgroundColor(colors.black)
-			if term.isColor() then term.setTextColor(colors.yellow)
+			if isAdvanced() then term.setTextColor(colors.yellow)
 			else term.setTextColor(colors.white) end
 			write("> ")
 			term.setTextColor(colors.white)
@@ -1627,7 +1632,7 @@ pages.server = function(site)
 		if fs.isDir(serverFolder .. "/" .. v) then table.insert(servers, v) end
 	end
 
-	if term.isColor() then
+	if isAdvanced() then
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 12 do
 			term.setCursorPos(3, i + 6)
@@ -2112,7 +2117,7 @@ pages.settings = function(site)
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Firewolf has been reset.")
 			centerWrite(string.rep(" ", 43))
-			if term.isColor() then centerPrint("Click to exit...")
+			if isAdvanced() then centerPrint("Click to exit...")
 			else centerPrint("Press any key to exit...") end
 			centerPrint(string.rep(" ", 43))
 			while true do
@@ -2395,7 +2400,7 @@ errPages.checkForModem = function()
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Waiting for a modem to be attached...")
 			centerWrite(string.rep(" ", 43))
-			if term.isColor() then centerPrint("Click to exit...")
+			if isAdvanced() then centerPrint("Click to exit...")
 			else centerPrint("Press any key to exit...") end
 			centerPrint(string.rep(" ", 43))
 
@@ -2538,6 +2543,22 @@ local function loadSite(site)
 			oldScroll(n)
 			clearPage(website, curBackgroundColor, true)
 			env.term.setCursorPos(x, y)
+		end
+
+		nenv.prompt = function(list, dir)
+			local a = {}
+			for k, v in pairs(list) do
+				local b, t = v.b, v.t
+				if b == nil then b = cbg end
+				if t == nil then t = ctc end
+				table.insert(a, {v[1], v[2], v[3] + 1, bg = b, tc = t})
+			end
+
+			api.prompt(a, dir)
+		end
+
+		nenv.scrollingPrompt = function(list, x, y, len, width)
+			api.scrollingPrompt(list, x, y + 1, len, width)
 		end
 
 		nenv.redirect = function(url)
@@ -3074,7 +3095,7 @@ local function startup()
 
 		api.centerPrint(string.rep(" ", 47))
 		api.centerWrite(string.rep(" ", 47))
-		if term.isColor() then api.centerPrint("Click to exit...")
+		if isAdvanced() then api.centerPrint("Click to exit...")
 		else api.centerPrint("Press any key to exit...") end
 		api.centerPrint(string.rep(" ", 47))
 
@@ -3130,7 +3151,7 @@ local function startup()
 		api.centerPrint("  " .. rootFolder .. "                              ")
 		api.centerPrint(string.rep(" ", 47))
 		api.centerWrite(string.rep(" ", 47))
-		if term.isColor() then api.centerPrint("Click to exit...")
+		if isAdvanced() then api.centerPrint("Click to exit...")
 		else api.centerPrint("Press any key to exit...") end
 		api.centerPrint(string.rep(" ", 47))
 
@@ -3146,7 +3167,7 @@ local function startup()
 end
 
 -- Theme
-if not(term.isColor()) then 
+if not(isAdvanced()) then 
 	theme = originalTheme
 else
 	theme = loadTheme(themeLocation)
@@ -3174,7 +3195,7 @@ end
 startup()
 
 -- Exit Message
-if term.isColor() then
+if isAdvanced() then
 	term.setBackgroundColor(colors.black)
 	term.setTextColor(colors.white)
 end
@@ -3196,7 +3217,7 @@ else
 	api.centerPrint("Thank You for Using Firewolf " .. version)
 	api.centerPrint("Made by 1lann and GravityScore")
 	print("")
-	if term.isColor() then api.centerPrint("Click to exit...")
+	if isAdvanced() then api.centerPrint("Click to exit...")
 	else api.centerPrint("Press any key to exit...") end
 
 	while true do
