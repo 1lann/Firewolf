@@ -1116,7 +1116,7 @@ local errPages = {}
 
 pages.firewolf = function(site)
 	clearPage(site, colors[theme["background"]])
-	print("\n")
+	print("")
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 43))
@@ -1125,7 +1125,7 @@ pages.firewolf = function(site)
 	centerPrint([[             -.__  __,-.   )       _,.-'   ]])
 	centerPrint([[  Firewolf ]] .. version .. [[    "     G..m-"^m m'        ]])
 	centerPrint(string.rep(" ", 43))
-	print("")
+	print("\n")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
@@ -1162,7 +1162,7 @@ pages.sites = function(site)
 	centerWrite(string.rep(" ", 43))
 	centerPrint("Firewolf Built-In Sites")
 	centerPrint(string.rep(" ", 43))
-	print("\n")
+	print("")
 
 	local sx = 8
 	term.setBackgroundColor(colors[theme["bottom-box"]])
