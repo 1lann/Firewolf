@@ -1116,7 +1116,7 @@ local errPages = {}
 
 pages.firewolf = function(site)
 	clearPage(site, colors[theme["background"]])
-	print("")
+	print("\n")
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 43))
@@ -1128,7 +1128,6 @@ pages.firewolf = function(site)
 	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	term.setCursorPos(1, 12)
 	centerPrint(string.rep(" ", 43))
 	centerPrint("  News:              [- Built-In Sites -]  ")
 	centerPrint("  - Merry Christmas! From everyone in the  ")
