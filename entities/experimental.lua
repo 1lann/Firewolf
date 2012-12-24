@@ -13,6 +13,7 @@
 --  - Cookies
 --  - Bookmarks
 --  - Back/Forward/Home buttons
+--  - Fixed background/text colors on websites
 
 
 --  -------- Variables
@@ -2512,8 +2513,8 @@ local function loadSite(site)
 		local osetBG = term.setBackgroundColor
 		term.setBackgroundColor = function(col)
 			cbg = col
-			osetBG(col)
-			return env.term.setBackgroundColor(col)
+			return osetBG(col)
+			--return env.term.setBackgroundColor(col)
 		end
 
 		nenv.term.getBackgroundColor = function()
@@ -2523,8 +2524,8 @@ local function loadSite(site)
 		local osetTC = term.setTextColor
 		term.setTextColor = function(col)
 			ctc = col
-			osetTC(col)
-			return env.term.setTextColor(col)
+			return osetTC(col)
+			--return env.term.setTextColor(col)
 		end
 
 		nenv.term.getTextColor = function()
