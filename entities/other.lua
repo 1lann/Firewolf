@@ -2526,6 +2526,23 @@ local function loadSite(site)
 			env.error()
 		end
 
+		--UNTESTED MAY NOT WORK
+		nenv.loadImageFromServer = function(image)
+			rednet.send(id, site.."/" .. image)
+			for i = 1, 10 do
+				local mid, msg = rednet.receive(timeout)
+				if mid == id then
+					local f = io.open("/.Firewolf_Data/tempImage", "w")
+					f:write(msg)
+					f:close()
+					local rImage = paintutils.loadImage("/.Firewolf_Data/tempImage")
+					fs.delete("/.Firewolf_Data/tempImage")
+					return rImage
+				end
+			end
+			return nil
+		end
+
 		nenv.shell.run = function(file, ...)
 			if file == "clear" then
 				api.clearPage(website, curBackgroundColor)
