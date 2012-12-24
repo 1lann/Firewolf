@@ -1164,9 +1164,8 @@ pages.sites = function(site)
 	centerPrint(string.rep(" ", 43))
 	print("")
 
-	local sx = 8
+	local sx = 7
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	for i = 1, 12 do centerPrint(string.rep(" ", 43)) end
 	term.setCursorPos(1, sx)
 	centerPrint(string.rep(" ", 43))
 	centerPrint("  rdnt://firewolf                Homepage  ")
@@ -2482,7 +2481,7 @@ local function loadSite(site)
 		term.setTextColor(colors.white)
 
 		-- Setup environment
-		local curBackgroundColor = colors.black
+		local cbg, ctc = colors.black, colors.white
 		local nenv = {}
 		for k, v in pairs(getfenv(0)) do nenv[k] = v end
 		for k, v in pairs(getfenv(1)) do nenv[k] = v end
@@ -2506,18 +2505,27 @@ local function loadSite(site)
 
 		nenv.term.clear = function()
 			local x, y = env.term.getCursorPos()
-			local a = api.clearPage(website, curBackgroundColor)
+			local a = api.clearPage(website, cbg)
 			env.term.setCursorPos(x, y)
 			return a
 		end
 
 		nenv.term.setBackgroundColor = function(col)
-			curBackgroundColor = col
-			return env.getBackgroundColor(col)
+			cbg = col
+			return env.term.setBackgroundColor(col)
 		end
 
 		nenv.term.getBackgroundColor = function()
-			return curBackgroundColor
+			return cbg
+		end
+
+		nenv.term.setTextColor = function(col)
+			ctc = col
+			return env.term.setTextColor(col)
+		end
+
+		nenv.term.getTextColor = function()
+			return ctc
 		end
 
 		local oldScroll = term.scroll
