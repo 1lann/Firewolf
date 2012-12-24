@@ -1129,7 +1129,7 @@ pages.firewolf = function(site)
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
-	centerPrint("  News:              [- Built-In Sites -]  ")
+	centerPrint("  News:                       [- Sites -]  ")
 	centerPrint("  - Merry Christmas! From everyone in the  ")
 	centerPrint("    Firewolf team!                         ")
 	centerPrint("  - Version 2.3 has been released! Check   ")
@@ -1139,7 +1139,7 @@ pages.firewolf = function(site)
 
 	while true do
 		local e, but, x, y = os.pullEvent()
-		if e == "mouse_click" and x >= 5 and x <= 10 and y == 13 then
+		if e == "mouse_click" and x >= 35 and x <= 44 and y == 12 then
 			redirect("sites")
 			return
 		elseif e == event_exitWebsite then
@@ -2505,13 +2505,14 @@ local function loadSite(site)
 
 		nenv.term.clear = function()
 			local x, y = env.term.getCursorPos()
-			local a = api.clearPage(website, cbg)
+			api.clearPage(website, cbg)
 			env.term.setCursorPos(x, y)
-			return a
 		end
 
-		nenv.term.setBackgroundColor = function(col)
+		local osetBG = term.setBackgroundColor
+		term.setBackgroundColor = function(col)
 			cbg = col
+			osetBG(col)
 			return env.term.setBackgroundColor(col)
 		end
 
@@ -2519,8 +2520,10 @@ local function loadSite(site)
 			return cbg
 		end
 
-		nenv.term.setTextColor = function(col)
+		local osetTC = term.setTextColor
+		term.setTextColor = function(col)
 			ctc = col
+			osetTC(col)
 			return env.term.setTextColor(col)
 		end
 
