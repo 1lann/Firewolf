@@ -2511,10 +2511,10 @@ local function loadSite(site)
 		end
 
 		local osetBG = term.setBackgroundColor
-		term.setBackgroundColor = function(col)
+		nenv.term.setBackgroundColor = function(col)
 			cbg = col
-			return osetBG(col)
-			--return env.term.setBackgroundColor(col)
+			--return osetBG(col)
+			return env.term.setBackgroundColor(col)
 		end
 
 		nenv.term.getBackgroundColor = function()
@@ -2522,10 +2522,10 @@ local function loadSite(site)
 		end
 
 		local osetTC = term.setTextColor
-		term.setTextColor = function(col)
+		nenv.term.setTextColor = function(col)
 			ctc = col
-			return osetTC(col)
-			--return env.term.setTextColor(col)
+			--return osetTC(col)
+			return env.term.setTextColor(col)
 		end
 
 		nenv.term.getTextColor = function()

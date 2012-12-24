@@ -2527,8 +2527,8 @@ local function loadSite(site)
 		end
 
 		--UNTESTED MAY NOT WORK
-		nenv.loadImageFromServer = function(image)
-			rednet.send(id, site.."/" .. image)
+		--[[nenv.loadImageFromServer = function(image)
+			rednet.send(id, site .. "/" .. image)
 			for i = 1, 10 do
 				local mid, msg = rednet.receive(timeout)
 				if mid == id then
@@ -2541,7 +2541,7 @@ local function loadSite(site)
 				end
 			end
 			return nil
-		end
+		end]]
 
 		nenv.shell.run = function(file, ...)
 			if file == "clear" then
