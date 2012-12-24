@@ -1116,7 +1116,7 @@ local errPages = {}
 
 pages.firewolf = function(site)
 	clearPage(site, colors[theme["background"]])
-	print("\n")
+	print("")
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 43))
