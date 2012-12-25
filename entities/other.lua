@@ -2531,16 +2531,23 @@ local function loadSite(site)
 		nenv.loadImageFromServer = function(image)
 			rednet.send(id, site .. "/" .. image)
 			for i = 1, 10 do
-				local mid, msgImage = env.rednet.receive(timeout)
-				if mid == id then
-					debugLog("ID: " .. tostring(mid))
-					debugLog("Temp Image Data: " .. msgImage)
-					local f = env.io.open("/.Firewolf_Data/tempImage", "w")
-					f:write(msgImage)
-					f:close()
-					local rImage = env.paintutils.loadImage("/.Firewolf_Data/tempImage")
-					fs.delete("/.Firewolf_Data/tempImage")
-					return rImage
+				while true do
+					local timeId = os.startTimer(timeout)
+					local event, mid, msgFile = env.os.pullEvent()
+					if event == "rednet_message" then
+						if mid == id then
+							--debugLog("ID: " .. tostring(mid))
+							--debugLog("Temp Image Data: " .. msgImage)
+							local f = env.io.open("/.Firewolf_Data/tempImage", "w")
+							f:write(msgImage)
+							f:close()
+							local rImage = env.paintutils.loadImage("/.Firewolf_Data/tempImage")
+							fs.delete("/.Firewolf_Data/tempImage")
+							return rImage
+						end
+					elseif event == "timer" and mid == timeId then
+						return nil
+					end
 				end
 			end
 			return nil
@@ -2549,15 +2556,22 @@ local function loadSite(site)
 		nenv.ioReadFileFromServer = function(file)
 			rednet.send(id, site.."/" .. file)
 			for i = 1, 10 do
-				local mid, msgFile = env.rednet.receive(timeout)
-				if mid == id then
-					debugLog("ID: " .. tostring(mid))
-					debugLog("Temp File Data: " .. msgFile)
-					local f = env.io.open("/.Firewolf_Data/tempFile", "w")
-					f:write(msg)
-					f:close()
-					local rFile = env.io.open("/.Firewolf_Data/tempFile", "r")
-					return rFile
+				while true do
+					local timeId = os.startTimer(timeout)
+					local event, mid, msgFile = env.os.pullEvent()
+					if event == "rednet_message" then
+						if mid == id then
+							--debugLog("ID: " .. tostring(mid))
+							--debugLog("Temp File Data: " .. msgFile)
+							local f = env.io.open("/.Firewolf_Data/tempFile", "w")
+							f:write(msg)
+							f:close()
+							local rFile = env.io.open("/.Firewolf_Data/tempFile", "r")
+							return rFile
+						end
+					elseif event == "timer" and mid == timeId then
+						return nil
+					end
 				end
 			end
 			return nil
