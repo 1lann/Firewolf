@@ -2547,9 +2547,9 @@ local function loadSite(site)
 		nenv.ioReadFileFromServer = function(file)
 			rednet.send(id, site.."/" .. file)
 			for i = 1, 10 do
-				local mid, msg = rednet.receive(timeout)
+				local mid, msgFile = rednet.receive(timeout)
 				if mid == id then
-					debugLog("Temp File Data: " .. msg)
+					debugLog("Temp File Data: " .. msgFile)
 					local f = env.io.open("/.Firewolf_Data/tempFile", "w")
 					f:write(msg)
 					f:close()
