@@ -891,6 +891,8 @@ local function resetFilesystem()
 		end
 	end
 
+	fs.delete("/.Firewolf_Data/tempFile")
+
 	return nil
 end
 
@@ -2543,6 +2545,21 @@ local function loadSite(site)
 			return nil
 		end]]
 
+		nenv.ioReadFileFromServer = function(file)
+			rednet.send(id, site.."/" .. image)
+			for i = 1, 10 do
+				local mid, msg = rednet.receive(timeout)
+				if mid == id then
+					local f = io.open("/.Firewolf_Data/tempFile", "w")
+					f:write(msg)
+					f:close()
+					local rFile = io.open("/.Firewolf_Data/tempFile", "r")
+					return rFile
+				end
+			end
+			return nil
+		end
+
 		nenv.shell.run = function(file, ...)
 			if file == "clear" then
 				api.clearPage(website, curBackgroundColor)
@@ -3169,6 +3186,8 @@ end
 
 -- Start
 startup()
+
+fs.delete("/.Firewolf_Data/tempFile")
 
 -- Exit Message
 if term.isColor() then
