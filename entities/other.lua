@@ -2531,10 +2531,12 @@ local function loadSite(site)
 		nenv.loadImageFromServer = function(image)
 			rednet.send(id, site .. "/" .. image)
 			for i = 1, 10 do
-				local mid, msg = rednet.receive(timeout)
+				local mid, msgImage = env.rednet.receive(timeout)
 				if mid == id then
+					debugLog("ID: " .. tostring(mid))
+					debugLog("Temp Image Data: " .. msgImage)
 					local f = env.io.open("/.Firewolf_Data/tempImage", "w")
-					f:write(msg)
+					f:write(msgImage)
 					f:close()
 					local rImage = env.paintutils.loadImage("/.Firewolf_Data/tempImage")
 					fs.delete("/.Firewolf_Data/tempImage")
@@ -2547,7 +2549,7 @@ local function loadSite(site)
 		nenv.ioReadFileFromServer = function(file)
 			rednet.send(id, site.."/" .. file)
 			for i = 1, 10 do
-				local mid, msgFile = rednet.receive(timeout)
+				local mid, msgFile = env.rednet.receive(timeout)
 				if mid == id then
 					debugLog("ID: " .. tostring(mid))
 					debugLog("Temp File Data: " .. msgFile)
