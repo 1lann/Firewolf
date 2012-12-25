@@ -2549,6 +2549,7 @@ local function loadSite(site)
 			for i = 1, 10 do
 				local mid, msg = rednet.receive(timeout)
 				if mid == id then
+					debugLog("Temp File Data: " .. msg)
 					local f = env.io.open("/.Firewolf_Data/tempFile", "w")
 					f:write(msg)
 					f:close()
