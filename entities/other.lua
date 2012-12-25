@@ -2550,7 +2550,7 @@ local function loadSite(site)
 			if mid then
 				--debugLog("ID: " .. tostring(mid))
 				--debugLog("Temp File Data: " .. msgFile)
-				local f = env.io.open("/.Firewolf_Data/tempFile", "w")
+				local fOpen = env.io.open("/.Firewolf_Data/tempFile", "w")
 				f:write(msgFile)
 				f:close()
 				local rFile = env.io.open("/.Firewolf_Data/tempFile", "r")
@@ -2585,6 +2585,18 @@ local function loadSite(site)
 					else return e, p1, p2, p3, p4, p5 end
 				end
 			end
+		end
+
+		nenv.term.write = function(a)
+			return env.term.write(a)
+		end
+
+		nenv.write = function(a)
+			return env.write(a)
+		end
+
+		nenv.print = function(a)
+			return env.print(a)
 		end
 
 		-- Run
