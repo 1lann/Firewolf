@@ -19,7 +19,7 @@
 --  -------- Variables
 
 -- Version
-local version = "2.3"
+local version = "2.4"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -35,6 +35,7 @@ local incognito = "false"
 
 -- Geometry
 local w, h = term.getSize()
+local graphics = {}
 
 -- Debugging
 local debugFile = nil
@@ -527,6 +528,23 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 end
 
 
+--  -------- Graphics
+
+graphics.githubImage = [[
+f       f  
+fffffffff  
+fffffffff  
+f4244424f  
+f4444444f  
+fffffefff e
+   fffe  e 
+ fffff ee  
+ff f f ee  
+      e  e 
+     e    e
+]]
+
+
 --  -------- Themes
 
 local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
@@ -535,11 +553,25 @@ local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"
 	["top-box"] = "black", ["bottom-box"] = "black", ["text-color"] = "white", ["background"] = "black"}
 
 local ownThemeFileContent = [[
+-- Text color of the address bar
 address-bar-text=
+
+-- Background color of the address bar
 address-bar-background=
+
+-- Color of separator bar when live searching
+address-bar-base=
+
+-- Top box color
 top-box=
+
+-- Bottom box color
 bottom-box=
+
+-- Background color
 background=
+
+-- Main text color
 text-color=
 
 ]]
@@ -720,31 +752,17 @@ local function download(url, path)
 	return false
 end
 
-local githubImage = [[
-f       f  
-fffffffff  
-fffffffff  
-f4244424f  
-f4444444f  
-fffffefff e
-   fffe  e 
- fffff ee  
-ff f f ee  
-      e  e 
-     e    e
-]]
-
-local function checkGitHub()
+local function verifyGitHub()
 	if not(download("https://raw.github.com")) then
 		if isAdvanced() then
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["background"]])
 			term.clear()
 			local f = io.open(rootFolder .. "/temp_image", "w")
-			f:write(githubImage)
+			f:write(graphics.githubImage)
 			f:close()
 			local a = paintutils.loadImage(rootFolder .. "/temp_image")
-			paintutils.drawImage(githubImage, 1, 3)
+			paintutils.drawImage(a, 1, 3)
 			fs.delete(rootFolder .. "/temp_image")
 
 			term.setCursorPos(19, 4)
@@ -3068,7 +3086,7 @@ local function main()
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Downloading Required Files...")
 	centerWrite(string.rep(" ", 47))
-	if not(checkGitHub()) then return end
+	if not(verifyGitHub()) then return end
 	migrateFilesystem()
 	resetFilesystem()
 
