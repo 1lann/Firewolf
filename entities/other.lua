@@ -2531,7 +2531,7 @@ local function loadSite(site)
 		end
 
 		nenv.loadImageFromServer = function(image)
-			local mid, msgImage = env.curProtocol.getWebsite(site.."/"..image)
+			local mid, msgImage = curProtocol.getWebsite(site.."/"..image)
 			if mid then
 				--debugLog("ID: " .. tostring(mid))
 				--debugLog("Temp Image Data: " .. msgImage)
@@ -2546,7 +2546,7 @@ local function loadSite(site)
 		end
 
 		nenv.ioReadFileFromServer = function(file)
-			local mid, msgFile = env.curProtocol.getWebsite(site.."/"..file)
+			local mid, msgFile = curProtocol.getWebsite(site.."/"..file)
 			if mid then
 				--debugLog("ID: " .. tostring(mid))
 				--debugLog("Temp File Data: " .. msgFile)
