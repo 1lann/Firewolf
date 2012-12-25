@@ -2549,7 +2549,7 @@ local function loadSite(site)
 				--debugLog("ID: " .. tostring(mid))
 				--debugLog("Temp File Data: " .. msgFile)
 				local f = env.io.open("/.Firewolf_Data/tempFile", "w")
-				f:write(msg)
+				f:write(msgFile)
 				f:close()
 				local rFile = env.io.open("/.Firewolf_Data/tempFile", "r")
 				return rFile
