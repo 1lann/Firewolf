@@ -2236,74 +2236,74 @@ pages.credits = function(site)
 	centerPrint(string.rep(" ", 43))
 end
 
-pages.getinfo = function(site)
-	clearPage(site, colors[theme["background"]])
-	print("\n")
-	term.setTextColor(colors[theme["text-color"]])
-	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
-	centerPrint("Retrieve Website Information")
-	centerPrint(string.rep(" ", 43))
-	print("\n")
-
-	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
-	local x, y = term.getCursorPos()
-	term.setCursorPos(7, y - 1)
-	write("rdnt://")
-	local a = modRead(nil, nil, 31)
-	if a == nil then
-		os.queueEvent(event_exitWebsite)
-		return
-	end
-	local id, content, status = getWebsite(a)
-
-	if id ~= nil then
-		term.setCursorPos(1, 10)
-		centerPrint("  rdnt://" .. a .. string.rep(" ", 34 - a:len()))
-		for i = 1, 5 do
-			centerPrint(string.rep(" ", 43))
-		end
-		
-		if verify("blacklist", id) then 
-			centerPrint("  Triggers Blacklist" .. string.rep(" ", 43 - 20)) end
-		if verify("whitelist", id, site) then 
-			centerPrint("  Triggers Whitelist" .. string.rep(" ", 43 - 20)) end
-		if verify("antivirus", content) then
-			centerPrint("  Triggers Antivirus" .. string.rep(" ", 43 - 20)) end
-		centerPrint(string.rep(" ", 43))
-		local opt = prompt({{"Save Source", 7, 12}, {"Visit Site", 7, 14}}, "vertical")
-		if opt == "Save Source" then
-			term.setCursorPos(9, 13)
-			write("Save As: /")
-			local loc = modRead(nil, nil, 24)
-			if loc ~= nil and loc ~= "" then
-				loc = "/" .. loc
-				local f = io.open(loc, "w")
-				f:write(content)
-				f:close()
-				term.setCursorPos(1, 13)
-				centerWrite(string.rep(" ", 43))
-			elseif loc == nil then
-				os.queueEvent(event_exitWebsite)
-				return
-			end
-		elseif opt == "Visit Site" then
-			redirect(a)
-			return
-		elseif opt == nil then
-			os.queueEvent(event_exitWebsite)
-			return
-		end
-	else
-		term.setCursorPos(1, 10)
-		centerWrite(string.rep(" ", 43))
-		centerPrint("Webpage Not Found! D:")
-	end
-end
+--pages.getinfo = function(site)
+--	clearPage(site, colors[theme["background"]])
+--	print("\n")
+--	term.setTextColor(colors[theme["text-color"]])
+--	term.setBackgroundColor(colors[theme["top-box"]])
+--	centerPrint(string.rep(" ", 43))
+--	centerWrite(string.rep(" ", 43))
+--	centerPrint("Retrieve Website Information")
+--	centerPrint(string.rep(" ", 43))
+--	print("\n")
+--
+--	term.setBackgroundColor(colors[theme["bottom-box"]])
+--	centerPrint(string.rep(" ", 43))
+--	centerPrint(string.rep(" ", 43))
+--	centerWrite(string.rep(" ", 43))
+--	local x, y = term.getCursorPos()
+--	term.setCursorPos(7, y - 1)
+--	write("rdnt://")
+--	local a = modRead(nil, nil, 31)
+--	if a == nil then
+--		os.queueEvent(event_exitWebsite)
+--		return
+--	end
+--	local id, content, status = getWebsite(a)
+--
+--	if id ~= nil then
+--		term.setCursorPos(1, 10)
+--		centerPrint("  rdnt://" .. a .. string.rep(" ", 34 - a:len()))
+--		for i = 1, 5 do
+--			centerPrint(string.rep(" ", 43))
+--		end
+--		
+--		if verify("blacklist", id) then 
+--			centerPrint("  Triggers Blacklist" .. string.rep(" ", 43 - 20)) end
+--		if verify("whitelist", id, site) then 
+--			centerPrint("  Triggers Whitelist" .. string.rep(" ", 43 - 20)) end
+--		if verify("antivirus", content) then
+--			centerPrint("  Triggers Antivirus" .. string.rep(" ", 43 - 20)) end
+--		centerPrint(string.rep(" ", 43))
+--		local opt = prompt({{"Save Source", 7, 12}, {"Visit Site", 7, 14}}, "vertical")
+--		if opt == "Save Source" then
+--			term.setCursorPos(9, 13)
+--			write("Save As: /")
+--			local loc = modRead(nil, nil, 24)
+--			if loc ~= nil and loc ~= "" then
+--				loc = "/" .. loc
+--				local f = io.open(loc, "w")
+--				f:write(content)
+--				f:close()
+--				term.setCursorPos(1, 13)
+--				centerWrite(string.rep(" ", 43))
+--			elseif loc == nil then
+--				os.queueEvent(event_exitWebsite)
+--				return
+--			end
+--		elseif opt == "Visit Site" then
+--			redirect(a)
+--			return
+--		elseif opt == nil then
+--			os.queueEvent(event_exitWebsite)
+--			return
+--		end
+--	else
+--		term.setCursorPos(1, 10)
+--		centerWrite(string.rep(" ", 43))
+--		centerPrint("Webpage Not Found! D:")
+--	end
+--end
 
 pages.kitteh = function(site)
 	openAddressBar = false
@@ -2522,8 +2522,7 @@ local function loadSite(site)
 		-- Setup environment
 		local cbg, ctc = colors.black, colors.white
 		local nenv = {}
-		for k, v in pairs(getfenv(0)) do nenv[k] = v end
-		for k, v in pairs(getfenv(1)) do nenv[k] = v end
+		for k, v in pairs(env) do nenv[k] = v end
 		nenv.term = {}
 		nenv.os = {}
 		nenv.shell = {}
@@ -3002,7 +3001,6 @@ local function addressBarRead()
 	end
 
 	onLiveUpdate("", "delete", nil, nil, nil, nil, nil)
-	term.setCursorPos(9, 1)
 	return modRead(nil, addressBarHistory, 41, false, onLiveUpdate)
 end
 
