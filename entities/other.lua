@@ -2528,32 +2528,31 @@ local function loadSite(site)
 			env.error()
 		end
 
-		--UNTESTED MAY NOT WORK
-		--[[nenv.loadImageFromServer = function(image)
+		nenv.loadImageFromServer = function(image)
 			rednet.send(id, site .. "/" .. image)
 			for i = 1, 10 do
 				local mid, msg = rednet.receive(timeout)
 				if mid == id then
-					local f = io.open("/.Firewolf_Data/tempImage", "w")
+					local f = env.io.open("/.Firewolf_Data/tempImage", "w")
 					f:write(msg)
 					f:close()
-					local rImage = paintutils.loadImage("/.Firewolf_Data/tempImage")
+					local rImage = env.paintutils.loadImage("/.Firewolf_Data/tempImage")
 					fs.delete("/.Firewolf_Data/tempImage")
 					return rImage
 				end
 			end
 			return nil
-		end]]
+		end
 
 		nenv.ioReadFileFromServer = function(file)
-			rednet.send(id, site.."/" .. image)
+			rednet.send(id, site.."/" .. file)
 			for i = 1, 10 do
 				local mid, msg = rednet.receive(timeout)
 				if mid == id then
-					local f = io.open("/.Firewolf_Data/tempFile", "w")
+					local f = env.io.open("/.Firewolf_Data/tempFile", "w")
 					f:write(msg)
 					f:close()
-					local rFile = io.open("/.Firewolf_Data/tempFile", "r")
+					local rFile = env.io.open("/.Firewolf_Data/tempFile", "r")
 					return rFile
 				end
 			end
