@@ -2566,6 +2566,18 @@ local function loadSite(site)
 			return ctc
 		end
 
+		nenv.term.write = function(a)
+			return env.term.write(a)
+		end
+
+		nenv.write = function(a)
+			return env.write(a)
+		end
+
+		nenv.print = function(a)
+			return env.print(a)
+		end
+
 		local oldScroll = term.scroll
 		term.scroll = function(n)
 			local x, y = env.term.getCursorPos()
