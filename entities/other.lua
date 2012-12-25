@@ -384,6 +384,7 @@ setfenv(1, env)
 local function debugLog(n, ...)
 	local lArgs = {...}
 	if debugFile then
+		if n == nil then n = "" end
 		debugFile:write("\n" .. n .. " : ")
 		for k, v in pairs(lArgs) do 
 			if type(v) == "string" or type(v) == "number" or type(v) == nil then
