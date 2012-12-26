@@ -2601,6 +2601,33 @@ local function loadSite(site)
 			api.scrollingPrompt(list, x, y + 1, len, width)
 		end
 
+		nenv.loadImageFromServer = function(image)
+			sleep(0.1)
+			local mid, msgImage = curProtocol.getWebsite(site .. "/" .. image)
+			if mid then
+				local f = env.io.open(rootFolder .. "/tempImage", "w")
+				f:write(msgImage)
+				f:close()
+				local a = env.paintutils.loadImage(rootFolder .. "/tempImage")
+				fs.delete(rootFolder .. "/tempImage")
+				return a
+			end
+			return nil
+		end
+
+		nenv.ioReadFileFromServer = function(file)
+			sleep(0.1)
+			local mid, msgFile = curProtocol.getWebsite(site .. "/" .. file)
+			if mid then
+				local f = env.io.open(rootFolder .. "/tempFile", "w")
+				f:write(msgFile)
+				f:close()
+				local a = env.io.open(rootFolder .. "/tempFile", "r")
+				return a
+			end
+			return nil
+		end
+
 		nenv.redirect = function(url)
 			api.redirect(url)
 			env.error()
