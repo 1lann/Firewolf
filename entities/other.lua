@@ -2552,7 +2552,7 @@ local function loadSite(site)
 			if mid then
 				--debugLog("ID: " .. tostring(mid))
 				--debugLog("Temp File Data: " .. msgFile)
-				local fOpen = env.io.open("/.Firewolf_Data/tempFile", "w")
+				local f = env.io.open("/.Firewolf_Data/tempFile", "w")
 				f:write(msgFile)
 				f:close()
 				local rFile = env.io.open("/.Firewolf_Data/tempFile", "r")
