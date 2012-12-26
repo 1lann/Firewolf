@@ -2531,6 +2531,7 @@ local function loadSite(site)
 		end
 
 		nenv.loadImageFromServer = function(image)
+			sleep(0.1)
 			local mid, msgImage = curProtocol.getWebsite(site.."/"..image)
 			if mid then
 				--debugLog("ID: " .. tostring(mid))
@@ -2546,6 +2547,7 @@ local function loadSite(site)
 		end
 
 		nenv.ioReadFileFromServer = function(file)
+			sleep(0.1)
 			local mid, msgFile = curProtocol.getWebsite(site.."/"..file)
 			if mid then
 				--debugLog("ID: " .. tostring(mid))
