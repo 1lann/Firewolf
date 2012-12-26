@@ -2520,7 +2520,7 @@ local function loadSite(site)
 		term.setTextColor(colors.white)
 
 		-- Setup environment
-		local cbg, ctc = colors.black, colors.white
+		local curBackgroundColor, cur = colors.black, colors.white
 		local nenv = {}
 		for k, v in pairs(env) do nenv[k] = v end
 		nenv.term = {}
@@ -2548,33 +2548,33 @@ local function loadSite(site)
 		end
 
 		nenv.term.setBackgroundColor = function(col)
-			cbg = col
+			curBackgroundColor = col
 			return env.term.setBackgroundColor(col)
 		end
 
+		nenv.term.setBackgroundColour = function(col)
+			curBackgroundColor = col
+			return env.term.setBackgroundColour(col)
+		end
+
 		nenv.term.getBackgroundColor = function()
-			return cbg
+			return curBackgroundColor
 		end
 
-		nenv.term.setTextColor = function(col)
-			ctc = col
-			return env.term.setTextColor(col)
+		nenv.term.getBackgroundColour = function()
+			return curBackgroundColor
 		end
 
-		nenv.term.getTextColor = function()
-			return ctc
+		nenv.term.write = function(text)
+			return env.term.write(text)
 		end
 
-		nenv.term.write = function(a)
-			return env.term.write(a)
+		nenv.write = function(text)
+			return env.write(text)
 		end
 
-		nenv.write = function(a)
-			return env.write(a)
-		end
-
-		nenv.print = function(a)
-			return env.print(a)
+		nenv.print = function(...)
+			return env.print(...)
 		end
 
 		local oldScroll = term.scroll
