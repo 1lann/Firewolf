@@ -2526,6 +2526,22 @@ local function loadSite(site)
 			return curBackgroundColor
 		end
 
+		nenv.term.setTextColor = function(col)
+			return env.term.setTextColor(col)
+		end
+
+		nenv.term.setTextColour = function(col)
+			return env.term.setTextColour(col)
+		end
+
+		nenv.term.getTextColour = function()
+			return env.term.getTextColour()
+		end
+
+		nenv.term.getTextColor = function()
+			return env.term.getTextColor()
+		end
+
 		nenv.term.write = function(text)
 			return env.term.write(text)
 		end
