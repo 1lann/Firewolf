@@ -2526,6 +2526,18 @@ local function loadSite(site)
 			return curBackgroundColor
 		end
 
+		nenv.term.write = function(text)
+			return env.term.write(text)
+		end
+
+		nenv.write = function(text)
+			return env.write(text)
+		end
+
+		nenv.print = function(text)
+			return env.print(text)
+		end
+
 		local oldScroll = term.scroll
 		term.scroll = function(n)
 			local x, y = env.term.getCursorPos()
