@@ -2510,10 +2510,19 @@ local function loadSite(site)
 
 		nenv.term.setBackgroundColor = function(col)
 			curBackgroundColor = col
-			return env.getBackgroundColor(col)
+			return env.term.setBackgroundColor(col)
+		end
+
+		nenv.term.setBackgroundColour = function(col)
+			curBackgroundColor = col
+			return env.term.setBackgroundColour(col)
 		end
 
 		nenv.term.getBackgroundColor = function()
+			return curBackgroundColor
+		end
+
+		nenv.term.getBackgroundColour = function()
 			return curBackgroundColor
 		end
 
