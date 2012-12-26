@@ -2565,6 +2565,22 @@ local function loadSite(site)
 			return curBackgroundColor
 		end
 
+		nenv.term.setTextColor = function(col)
+			return env.term.setTextColor(col)
+		end
+
+		nenv.term.setTextColour = function(col)
+			return env.term.setTextColour(col)
+		end
+
+		nenv.term.getTextColour = function()
+			return env.term.getTextColour()
+		end
+
+		nenv.term.getTextColor = function()
+			return env.term.getTextColor()
+		end
+
 		nenv.term.write = function(text)
 			return env.term.write(text)
 		end
@@ -3153,7 +3169,7 @@ local function main()
 	-- Update
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Checking For Updates...")
-	if autoupdate then updateClient() end
+	if autoupdate == "true" then updateClient() end
 
 	-- Modem
 	if not(errPages.checkForModem()) then return end
