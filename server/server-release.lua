@@ -741,7 +741,7 @@ local function interface()
 				{"Stop", w - 13, 5}}, "vertical")
 		elseif not serverLocked and serverPassword then
 			opt = prompt({{"Lock Server", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
-				{"Lock", 5, 5},{"Stop", w - 13, 5}}, "vertical")
+				{"Stop", w - 13, 5}}, "vertical")
 		elseif serverLocked then
 		while true do
 			term.setCursorPos(1, 2)
