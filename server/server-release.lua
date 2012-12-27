@@ -786,6 +786,7 @@ local function interface()
 				sleep(2)
 			end
 		end
+		end
 		if opt == p1 then
 			enableResponse = not(enableResponse)
 		elseif opt == "Manage" then
