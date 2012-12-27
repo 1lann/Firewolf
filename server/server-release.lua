@@ -1,4 +1,3 @@
-local oldPullEvent = os.pullEvent
 os.pullEvent = os.pullEventRaw
 --  
 --  Firewolf Server Software
@@ -61,6 +60,18 @@ local themeLocation = rootFolder .. "/theme"
 local defaultThemeLocation = rootFolder .. "/default_theme"
 local passwordDataLocation = rootFolder .. "/." .. website .. "_password"
 local serverSoftwareLocation = "/" .. shell.getRunningProgram()
+
+--Old Pull Event
+local function oldPullEvent(ex)
+	event,p1,p2,p3,p4,p5 = os.pullEventRaw(ex)
+	if event == "terminate" then
+		print("Terminated")
+		error()
+	else
+		return event,p1,p2,p3,p4,p5
+	end
+end
+
 
 
 --  -------- API Functions
@@ -928,7 +939,6 @@ local function interface()
 				end
 			end
 		elseif opt == "Lock Server" then
-				oldPullEvent = os.pullEvent
 				os.pullEvent = os.pullEventRaw
 				serverLocked = true
 				term.setCursorPos(1, 2)
