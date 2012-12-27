@@ -737,6 +737,7 @@ local function interface()
 		term.setBackgroundColor(colors[theme["top-box"]])
 		local opt = ""
 		if not serverLocked and not serverPassword then
+			os.pullEvent = oldPullEvent
 			opt = prompt({{"Add Lock", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
 				{"Stop", w - 13, 5}}, "vertical")
 		elseif not serverLocked and serverPassword then
@@ -752,9 +753,10 @@ local function interface()
 			centerPrint(string.rep(" ", 47))
 			centerPrint(string.rep(" ", 47))
 			centerPrint(string.rep(" ", 47))
+			term.setCursorPos(5,4)
 			print("Enter Password:")
 			term.setCursorPos(5,5)
-			write(">")
+			write("> ")
 			local enteredPassword = read("*")
 			if enteredPassword == serverPassword then
 				term.setCursorPos(1, 2)
@@ -929,6 +931,17 @@ local function interface()
 				oldPullEvent = os.pullEvent
 				os.pullEvent = os.pullEventRaw
 				serverLocked = true
+				term.setCursorPos(1, 2)
+				print("")
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["top-box"]])
+				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", 47))
+				term.setCursorPos(5,4)
+				print("Server Locked!")
+				sleep(2)
 		elseif opt == "Stop" then
 			-- Stop server
 			os.queueEvent(event_stopServer)
