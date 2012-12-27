@@ -707,6 +707,7 @@ local function edit()
 				term.setTextColor(colors.white)
 				shell.run(com, unpack(words, 2))
 			else
+				term.setTextColor(colors.red)
 				print("Program Not Allowed!")
 			end
 		end
@@ -734,16 +735,27 @@ local function interface()
 
 		if enableResponse == false then p1 = "Unpause Server" end
 		term.setBackgroundColor(colors[theme["top-box"]])
+		local opt = ""
 		if not serverLocked and not serverPassword then
-			local opt = prompt({{"Lock Server", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
+			opt = prompt({{"Add Lock", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
 				{"Stop", w - 13, 5}}, "vertical")
 		elseif not serverLocked and serverPassword then
-			local opt = prompt({{"Add Lock", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
+			opt = prompt({{"Lock Server", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
 				{"Lock", 5, 5},{"Stop", w - 13, 5}}, "vertical")
 		elseif serverLocked then
-			term.setCursorPos(5,4)
+		while true do
+			term.setCursorPos(1, 2)
+			print("")
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
+			centerPrint(string.rep(" ", 47))
+			centerPrint(string.rep(" ", 47))
+			centerPrint(string.rep(" ", 47))
+			centerPrint(string.rep(" ", 47))
 			print("Enter Password:")
-			term.slocal enteredPassword = read("*")
+			term.setCursorPos(5,5)
+			write(">")
+			local enteredPassword = read("*")
 			if enteredPassword == serverPassword then
 				term.setCursorPos(1, 2)
 				print("")
@@ -753,9 +765,26 @@ local function interface()
 				centerPrint(string.rep(" ", 47))
 				centerPrint(string.rep(" ", 47))
 				centerPrint(string.rep(" ", 47))
-				term.setCursorPos
-
-
+				term.setCursorPos(5,4)
+				write("Password Accepted!")
+				opt = ""
+				serverLocked = false
+				os.pullEvent = oldPullEvent
+				sleep(2)
+				break
+			else
+				term.setCursorPos(1, 2)
+				print("")
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["top-box"]])
+				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", 47))
+				term.setCursorPos(5,4)
+				write("Password Incorrect!")
+				sleep(2)
+			end
 		end
 		if opt == p1 then
 			enableResponse = not(enableResponse)
@@ -773,10 +802,9 @@ local function interface()
 				term.setCursorPos(5, 10)
 				write("Searches: " .. tostring(searches))
 
-				local opt = prompt({{"Add/Remove Password Lock", 9, 12}, {"Manage Blocked IDs", 9, 13}, {"Delete Server", 9, 14}, 
-					{"Back", 9, 16}}, "vertical")
-				if opt == "Add/Remove Password Lock" then
-				elseif opt == "Manage Blocked IDs" then
+				local opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
+					{"Back", 9, 15}}, "vertical")
+				if opt == "Manage Blocked IDs" then
 					while true do
 						clearPage()
 						term.setCursorPos(1, 8)
@@ -862,6 +890,44 @@ local function interface()
 				if parallelWithServer == nil then record(" - parallelWithServer()") end
 			else record("Re-Loaded Server API") end
 			enableRecording = true
+		elseif opt == "Add Lock" then
+			while true do
+				enableRecording = false
+				clearPage()
+				term.setCursorPos(1, 8)
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["bottom-box"]])
+				for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+				term.setCursorPos(5,9)
+				write("Enter a password to secure your")
+				term.setCursorPos(5,10)
+				write("server from being managed by others")
+				term.setCursorPos(5,11)
+				write("> ")
+				local newPassword  = read("*")
+				term.setCursorPos(5,13)
+				write("Enter the password again")
+				term.setCursorPos(5,14)
+				write("> ")
+				if read("*") == newPassword then
+					serverPassword = newPassword
+					serverLocked = false
+					local f = io.open(passwordDataLocation, "w")
+					f:write(newPassword)
+					f:close()
+					term.setCursorPos(5,16)
+					write("Password Set!")
+					break
+				else
+					term.setCursorPos(5,16)
+					print("Passwords did not match!")
+					sleep(3)
+				end
+			end
+		elseif opt == "Lock Server" then
+				oldPullEvent = os.pullEvent
+				os.pullEvent = os.pullEventRaw
+				serverLocked = true
 		elseif opt == "Stop" then
 			-- Stop server
 			os.queueEvent(event_stopServer)

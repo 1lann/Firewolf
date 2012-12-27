@@ -1,4 +1,5 @@
-
+local oldPullEvent = os.pullEvent
+os.pullEvent = os.pullEventRaw
 --  
 --  Firewolf Server Software
 --  Created By GravityScore and 1lann
@@ -49,6 +50,8 @@ local dataLocation = ""
 local pages = {}
 local totalRecordLines = {}
 local recordLines = {}
+local serverPassword = nil
+local serverLocked = true
 
 -- Locations
 local rootFolder = "/.Firewolf_Data"
@@ -56,6 +59,7 @@ local serverFolder = rootFolder .. "/servers"
 local statsLocation = rootFolder .. "/" .. website .. "_stats"
 local themeLocation = rootFolder .. "/theme"
 local defaultThemeLocation = rootFolder .. "/default_theme"
+local passwordDataLocation = rootFolder .. "/." .. website .. "_password"
 local serverSoftwareLocation = "/" .. shell.getRunningProgram()
 
 
@@ -729,11 +733,59 @@ local function interface()
 		print("")
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 
-		local p1 = "Pause Server"
 		if enableResponse == false then p1 = "Unpause Server" end
 		term.setBackgroundColor(colors[theme["top-box"]])
-		local opt = prompt({{p1, 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
-			{"Stop", w - 13, 5}}, "vertical")
+		local opt = ""
+		if not serverLocked and not serverPassword then
+			opt = prompt({{"Add Lock", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
+				{"Stop", w - 13, 5}}, "vertical")
+		elseif not serverLocked and serverPassword then
+			opt = prompt({{"Lock Server", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
+				{"Lock", 5, 5},{"Stop", w - 13, 5}}, "vertical")
+		elseif serverLocked then
+		while true do
+			term.setCursorPos(1, 2)
+			print("")
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
+			centerPrint(string.rep(" ", 47))
+			centerPrint(string.rep(" ", 47))
+			centerPrint(string.rep(" ", 47))
+			centerPrint(string.rep(" ", 47))
+			print("Enter Password:")
+			term.setCursorPos(5,5)
+			write(">")
+			local enteredPassword = read("*")
+			if enteredPassword == serverPassword then
+				term.setCursorPos(1, 2)
+				print("")
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["top-box"]])
+				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", 47))
+				term.setCursorPos(5,4)
+				write("Password Accepted!")
+				opt = ""
+				serverLocked = false
+				os.pullEvent = oldPullEvent
+				sleep(2)
+				break
+			else
+				term.setCursorPos(1, 2)
+				print("")
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["top-box"]])
+				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", 47))
+				centerPrint(string.rep(" ", 47))
+				term.setCursorPos(5,4)
+				write("Password Incorrect!")
+				sleep(2)
+			end
+		end
 		if opt == p1 then
 			enableResponse = not(enableResponse)
 		elseif opt == "Manage" then
@@ -838,6 +890,44 @@ local function interface()
 				if parallelWithServer == nil then record(" - parallelWithServer()") end
 			else record("Re-Loaded Server API") end
 			enableRecording = true
+		elseif opt == "Add Lock" then
+			while true do
+				enableRecording = false
+				clearPage()
+				term.setCursorPos(1, 8)
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["bottom-box"]])
+				for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+				term.setCursorPos(5,9)
+				write("Enter a password to secure your")
+				term.setCursorPos(5,10)
+				write("server from being managed by others")
+				term.setCursorPos(5,11)
+				write("> ")
+				local newPassword  = read("*")
+				term.setCursorPos(5,13)
+				write("Enter the password again")
+				term.setCursorPos(5,14)
+				write("> ")
+				if read("*") == newPassword then
+					serverPassword = newPassword
+					serverLocked = false
+					local f = io.open(passwordDataLocation, "w")
+					f:write(newPassword)
+					f:close()
+					term.setCursorPos(5,16)
+					write("Password Set!")
+					break
+				else
+					term.setCursorPos(5,16)
+					print("Passwords did not match!")
+					sleep(3)
+				end
+			end
+		elseif opt == "Lock Server" then
+				oldPullEvent = os.pullEvent
+				os.pullEvent = os.pullEventRaw
+				serverLocked = true
 		elseif opt == "Stop" then
 			-- Stop server
 			os.queueEvent(event_stopServer)
@@ -1024,6 +1114,16 @@ if not(term.isColor()) then
 else
 	theme = loadTheme(themeLocation)
 	if theme == nil then theme = defaultTheme end
+end
+
+-- Pasword
+if fs.exists(passwordDataLocation) then
+	local f = io.open(passwordDataLocation, "r")
+	serverPassword = f:read("*l")
+	f:close()
+	serverLocked = true
+else
+	serverLocked = false
 end
 
 -- Start
