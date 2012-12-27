@@ -1005,6 +1005,7 @@ local function main()
 		website = args[1]:gsub("^%s*(.-)%s*$", "%1")
 		dataLocation = args[2]:gsub("^%s*(.-)%s*$", "%1")
 		statsLocation = rootFolder .. "/" .. website .. "_stats"
+		passwordDataLocation = rootFolder .. "/." .. website .. "_password"
 	else
 		term.clear()
 		term.setCursorPos(1, 3)
