@@ -815,9 +815,14 @@ local function interface()
 				write("Visits: " .. tostring(visits))
 				term.setCursorPos(5, 10)
 				write("Searches: " .. tostring(searches))
-
-				local opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
-					{"Back", 9, 15}}, "vertical")
+				local opt = nil
+				if serverPassword then
+					opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Change Password", 9, 13} {"Delete Server", 9, 14}, 
+						{"Back", 9, 16}}, "vertical")
+				else
+					opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
+						{"Back", 9, 15}}, "vertical")
+				end
 				if opt == "Manage Blocked IDs" then
 					while true do
 						clearPage()
@@ -873,9 +878,48 @@ local function interface()
 						end
 					end
 				elseif opt == "Delete Server" then
-					fs.delete(dataLocation)
-					os.queueEvent(event_stopServer)
-					return
+					clearPage()
+					term.setCursorPos(1, 8)
+					term.setTextColor(colors[theme["text-color"]])
+					term.setBackgroundColor(colors[theme["bottom-box"]])
+					for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+					term.setCursorPos(9,12)
+					centerPrint("Are you sure you want to delete the server?")
+					centerPrint("This cannot be undone!")
+					local opt = prompt({{"No", 11, 15}, {"Yes", 35, 15}}, "horizontal")
+					if opt == "Yes" then
+						fs.delete(dataLocation)
+						os.queueEvent(event_stopServer)
+						return
+					else
+						return
+				elseif opt == "Remove Password" then
+					clearPage()
+					term.setCursorPos(1, 8)
+					term.setTextColor(colors[theme["text-color"]])
+					term.setBackgroundColor(colors[theme["bottom-box"]])
+					for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+					term.setCursorPos(9,12)
+					print("Enter your old password")
+					term.setCursorPos(9,13)
+					write("> ")
+					local oldPass = read("*")
+					if oldPass == serverPassword then
+						fs.delete(passwordDataLocation)
+						serverPassword = nil
+						serverLocked = false
+						term.setCursorPos(9,15)
+						print("Password Removed!")
+						sleep(2)
+						break
+					else
+						term.setCursorPos(9,15)
+						print("Password incorrect, locking down...")
+						os.pullEvent = os.pullEventRaw
+						serverLocked = true
+						sleep(2)
+						break
+					end
 				elseif opt == "Back" then
 					break
 				end
