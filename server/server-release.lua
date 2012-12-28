@@ -883,10 +883,10 @@ local function interface()
 					term.setTextColor(colors[theme["text-color"]])
 					term.setBackgroundColor(colors[theme["bottom-box"]])
 					for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
-					term.setCursorPos(9,12)
+					term.setCursorPos(9,11)
 					centerPrint("Are you sure you want to delete the server?")
 					centerPrint("This cannot be undone!")
-					local opt = prompt({{"No", 11, 15}, {"Yes", 35, 15}}, "horizontal")
+					local opt = prompt({{"No", 11, 14}, {"Yes", 35, 14}}, "horizontal")
 					if opt == "Yes" then
 						fs.delete(dataLocation)
 						os.queueEvent(event_stopServer)
@@ -899,21 +899,21 @@ local function interface()
 					term.setTextColor(colors[theme["text-color"]])
 					term.setBackgroundColor(colors[theme["bottom-box"]])
 					for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
-					term.setCursorPos(9,12)
+					term.setCursorPos(9,11)
 					print("Enter your old password")
-					term.setCursorPos(9,13)
+					term.setCursorPos(9,12)
 					write("> ")
 					local oldPass = read("*")
 					if oldPass == serverPassword then
 						fs.delete(passwordDataLocation)
 						serverPassword = nil
 						serverLocked = false
-						term.setCursorPos(9,15)
+						term.setCursorPos(9,14)
 						print("Password Removed!")
 						sleep(2)
 						break
 					else
-						term.setCursorPos(9,15)
+						term.setCursorPos(9,14)
 						print("Password incorrect, locking down...")
 						os.pullEvent = os.pullEventRaw
 						serverLocked = true
