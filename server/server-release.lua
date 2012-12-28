@@ -893,6 +893,7 @@ local function interface()
 						return
 					else
 						return
+					end
 				elseif opt == "Remove Password" then
 					clearPage()
 					term.setCursorPos(1, 8)
