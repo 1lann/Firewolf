@@ -2,10 +2,12 @@ Copyright 2012 - Jason Chu (1lann) and Bennett Anderson (GravityScore)
 
 Please abide by these rules, it would mean alot to us if you did :)
 We're not going to track/hunt you down if you don't:
-1. If you modify the code of Firewolf (this doesn't include the themes/settings data),
+1. If you modify the code of Firewolf and distrubute it (this doesn't include the themes/settings data),
 make it clear to the user that you modified the code and that anything under rdnt://credits is kept and the
-Copyright header at the top of Firewolf's source is kept. As long as you do this, feel free to 
-you may add on your credentials into rdnt://credits but please do not remove any credentials under rdnt://credits
+Copyright and license header at the top of Firewolf's source is kept, unmodified. As long as you do this, feel free to 
+you may add on your credentials into rdnt://credits but please do not remove any credentials under rdnt://credits.
 2. You may freely distrubute/re-distrubute an unmodified version of Firewolf and modified themes/settings data
+without our permission
 3. If you would like to include Firewolf into a package or OS, do so accordingly to Rule 2 and Rule 3.
-4. If you have any questions relating to this License or Firewolf, feel free to ask us! :D
+4. Firewolf is given "As is" without any warrantys/conditions
+5. If you have any questions relating to this License or Firewolf, feel free to ask us! :D
