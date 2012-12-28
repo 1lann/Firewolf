@@ -817,7 +817,7 @@ local function interface()
 				write("Searches: " .. tostring(searches))
 				local opt = nil
 				if serverPassword then
-					opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Change Password", 9, 13}, {"Delete Server", 9, 14}, 
+					opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Remove Password", 9, 13}, {"Delete Server", 9, 14}, 
 						{"Back", 9, 16}}, "vertical")
 				else
 					opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
@@ -950,7 +950,6 @@ local function interface()
 			else record("Re-Loaded Server API") end
 			enableRecording = true
 		elseif opt == "Add Lock" then
-			while true do
 				enableRecording = false
 				clearPage()
 				term.setCursorPos(1, 8)
@@ -976,12 +975,15 @@ local function interface()
 					f:close()
 					term.setCursorPos(5,16)
 					write("Password Set!")
+					sleep(2)
 					break
 				else
 					term.setCursorPos(5,16)
 					print("Passwords did not match!")
 					sleep(3)
+					break
 				end
+				enableRecording = false
 			end
 		elseif opt == "Lock Server" then
 				os.pullEvent = os.pullEventRaw
