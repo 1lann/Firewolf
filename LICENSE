@@ -1,13 +1,11 @@
 Copyright 2012 - Jason Chu (1lann) and Bennett Anderson (GravityScore)
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+Please abide by these rules, it would mean alot to us if you did :)
+We're not going to track/hunt you down if you don't:
+1. If you modify the code of Firewolf (this doesn't include the themes/settings data),
+make it clear to the user that you modified the code and that anything under rdnt://credits is kept and the
+Copyright header at the top of Firewolf's source is kept. As long as you do this, feel free to 
+you may add on your credentials into rdnt://credits but please do not remove any credentials under rdnt://credits
+2. You may freely distrubute/re-distrubute an unmodified version of Firewolf and modified themes/settings data
+3. If you would like to include Firewolf into a package or OS, do so accordingly to Rule 2 and Rule 3.
+4. If you have any questions relating to this License or Firewolf, feel free to ask us! :D
