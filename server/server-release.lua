@@ -891,8 +891,6 @@ local function interface()
 						fs.delete(dataLocation)
 						os.queueEvent(event_stopServer)
 						return
-					else
-						return
 					end
 				elseif opt == "Remove Password" then
 					clearPage()
