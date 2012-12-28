@@ -817,7 +817,7 @@ local function interface()
 				write("Searches: " .. tostring(searches))
 				local opt = nil
 				if serverPassword then
-					opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Change Password", 9, 13} {"Delete Server", 9, 14}, 
+					opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Change Password", 9, 13}, {"Delete Server", 9, 14}, 
 						{"Back", 9, 16}}, "vertical")
 				else
 					opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
