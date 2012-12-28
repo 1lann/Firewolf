@@ -950,41 +950,41 @@ local function interface()
 			else record("Re-Loaded Server API") end
 			enableRecording = true
 		elseif opt == "Add Lock" then
-				enableRecording = false
-				clearPage()
-				term.setCursorPos(1, 8)
-				term.setTextColor(colors[theme["text-color"]])
-				term.setBackgroundColor(colors[theme["bottom-box"]])
-				for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
-				term.setCursorPos(5,9)
-				write("Enter a password to secure your")
-				term.setCursorPos(5,10)
-				write("server from being managed by others")
-				term.setCursorPos(5,11)
-				write("> ")
-				local newPassword  = read("*")
-				term.setCursorPos(5,13)
-				write("Enter the password again")
-				term.setCursorPos(5,14)
-				write("> ")
-				if read("*") == newPassword then
-					serverPassword = newPassword
-					serverLocked = false
-					local f = io.open(passwordDataLocation, "w")
-					f:write(newPassword)
-					f:close()
-					term.setCursorPos(5,16)
-					write("Password Set!")
-					sleep(2)
-					break
-				else
-					term.setCursorPos(5,16)
-					print("Passwords did not match!")
-					sleep(3)
-					break
-				end
-				enableRecording = false
+			enableRecording = false
+			clearPage()
+			term.setCursorPos(1, 8)
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
+			for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+			term.setCursorPos(5,9)
+			write("Enter a password to secure your")
+			term.setCursorPos(5,10)
+			write("server from being managed by others")
+			term.setCursorPos(5,11)
+			write("> ")
+			local newPassword  = read("*")
+			term.setCursorPos(5,13)
+			write("Enter the password again")
+			term.setCursorPos(5,14)
+			write("> ")
+			if read("*") == newPassword then
+				serverPassword = newPassword
+				serverLocked = false
+				local f = io.open(passwordDataLocation, "w")
+				f:write(newPassword)
+				f:close()
+				term.setCursorPos(5,16)
+				write("Password Set!")
+				sleep(2)
+				break
+			else
+				term.setCursorPos(5,16)
+				print("Passwords did not match!")
+				sleep(3)
+				break
 			end
+			enableRecording = false
+	
 		elseif opt == "Lock Server" then
 				os.pullEvent = os.pullEventRaw
 				serverLocked = true
