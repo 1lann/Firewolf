@@ -1647,19 +1647,21 @@ pages.server = function(site)
 				term.setCursorPos(3, i + 8)
 				write(string.rep(" ", 24))
 				term.setCursorPos(4, i + 8)
+				local nv = v
+				if nv:len() > 18 then nv = nv:sub(1, 15) .. "..." end
 				if i == sel then
-					write("[- " .. v)
+					write("[ " .. nv .. " ]")
 				else
-					write("   " .. v)
+					write("  " .. nv)
 				end
 			end
 
 			term.setCursorPos(30, 8)
 			write(string.rep(" ", 19))
 			term.setCursorPos(30, 8)
-			if l[sel] then
-				local nv = v
-				if nv:len() > 18 then nv = nv:sub(1, 15) .. "..." end
+			if l[sel] then 
+				local nl = l[sel]
+				if nl:len() > 19 then nl = nl:sub(1, 16) .. "..." end
 				write(nl)
 			else write("No Server Selected!") end
 			term.setCursorPos(30, 10)
