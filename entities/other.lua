@@ -103,7 +103,6 @@ local userBlacklist = rootFolder .. "/user_blacklist"
 local userWhitelist = rootFolder .. "/user_whitelist"
 local globalDatabase = rootFolder .. "/database"
 
-
 --  -------- Firewolf API
 
 api.clearPage = function(site, color, redraw)
@@ -2647,9 +2646,8 @@ local function loadSite(site)
 			while true do
 				if a == "derp" then return true end
 				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw(a)
-				if e == event_exitWebsite and not hasExited then
+				if e == event_exitWebsite and then
 					debugLog("Exiting Website Event")
-					hasExited = true
 					env.error(event_exitWebsite)
 				elseif e == "terminate" then
 					env.error()
@@ -2663,9 +2661,6 @@ local function loadSite(site)
 				end
 			end
 		end
-
-		nenv.hasExited = false
-		env.hasExited = true
 
 		-- Run
 		local fn, err = loadfile(cacheLoc)
@@ -3031,9 +3026,11 @@ local function addressBarMain()
 		if (e == "key" and (but == 29 or but == 157)) or 
 				(e == "mouse_click" and y == 1) then
 			if openAddressBar then
+				setfenv(1, env)
+
 				-- Exit
 				os.queueEvent(event_exitWebsite)
-				debugLog("Address bar activated")
+				--debugLog("Address bar activated")
 
 				-- Read
 				term.setBackgroundColor(colors[theme["address-bar-background"]])
