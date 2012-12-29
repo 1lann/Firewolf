@@ -13,6 +13,7 @@
 --  - GitHub verification
 --  - News
 --  - Vastly improved Firewolf Rendering Engine
+--  - Bug Fixes
 
 --  To Do:
 --  - Finish Cookies
@@ -22,7 +23,7 @@
 --  -------- Variables
 
 -- Version
-local version = "2.4"
+local version = "2.3.5"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -1153,7 +1154,8 @@ pages.firewolf = function(site)
 	centerPrint([[         _,-='"-.__               /\_/\    ]])
 	centerPrint([[          -.}        =._,.-==-._.,  @ @._, ]])
 	centerPrint([[             -.__  __,-.   )       _,.-'   ]])
-	centerPrint([[  Firewolf ]] .. version .. [[    "     G..m-"^m m'        ]])
+	centerPrint([[ Firewolf ]] .. version .. string.rep(" ", 8 - version:len()) ..
+		[["     G..m-"^m m'        ]])
 	centerPrint(string.rep(" ", 43))
 	print("\n")
 
@@ -2202,15 +2204,11 @@ pages.credits = function(site)
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
-	centerPrint("Coded by:            GravityScore and")
-	centerWrite(string.rep(" ", 43))
-	centerPrint("                                1lann")
+	centerPrint("   Coded by:      GravityScore and 1lann   ")
+	centerPrint("   Art by:                     lieudusty   ")
 	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
-	centerPrint("Based off:       RednetExplorer 2.4.1")
-	centerWrite(string.rep(" ", 43))
-	centerPrint("           Made by ComputerCraftFan11")
+	centerPrint("   Based off:       RednetExplorer 2.4.1   ")
+	centerPrint("              Made by ComputerCraftFan11   ")
 	centerPrint(string.rep(" ", 43))
 end
 

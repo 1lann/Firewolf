@@ -2,7 +2,7 @@
 --  
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
---  License: https://raw.github.com/1lann/Firewolf/master/LICENSE
+--  License found here: https://raw.github.com/1lann/Firewolf/master/LICENSE
 --
 --  Original Concept From RednetExplorer 2.4.1
 --  RednetExplorer Made by ComputerCraftFan11
@@ -10,18 +10,20 @@
 
 
 --  Features:
---  - Debug mode
---  - Proper support for NDF-OS
---  - Support for normal computers
---  - Christmas Theme
---  - Christmas startup icon
---  * Live Search List Updating
+--  - GitHub verification
+--  - News
+--  - Vastly improved Firewolf Rendering Engine
+--  - Bug Fixes
+
+--  To Do:
+--  - Finish Cookies
+--  - Back/Forward buttons
 
 
 --  -------- Variables
 
 -- Version
-local version = "2.3"
+local version = "2.3.5"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -37,6 +39,7 @@ local incognito = "false"
 
 -- Geometry
 local w, h = term.getSize()
+local graphics = {}
 
 -- Debugging
 local debugFile = nil
@@ -107,7 +110,12 @@ local globalDatabase = rootFolder .. "/database"
 
 --  -------- Firewolf API
 
-api.clearPage = function(site, color, redraw)
+local function isAdvanced()
+	if term.isColor then return term.isColor()
+	else return false end
+end
+
+api.clearPage = function(site, color, redraw, tcolor)
 	-- Site titles
 	local titles = {firewolf = "Firewolf Homepage", server = "Server Management", 
 		history = "Firewolf History", help = "Help Page", downloads = "Downloads Center", 
@@ -135,8 +143,9 @@ api.clearPage = function(site, color, redraw)
 		write(title)
 	end
 
-	term.setBackgroundColor(colors.black)
-	term.setTextColor(colors.white)
+	term.setBackgroundColor(c)
+	if tcolor then term.setTextColor(tcolor)
+	else term.setTextColor(colors.white) end
 	print("")
 end
 
@@ -185,7 +194,7 @@ api.redirect = function(url)
 end
 
 api.prompt = function(list, dir)
-	if term.isColor() then
+	if isAdvanced() then
 		for _, v in pairs(list) do
 			if v.bg then term.setBackgroundColor(v.bg) end
 			if v.tc then term.setTextColor(v.tc) end
@@ -270,7 +279,7 @@ api.scrollingPrompt = function(list, x, y, len, width)
 		return ret
 	end
 
-	if term.isColor() then
+	if isAdvanced() then
 		local function draw(a)
 			for i, v in ipairs(a) do
 				term.setCursorPos(1, y + i - 1)
@@ -385,6 +394,7 @@ setfenv(1, env)
 local function debugLog(n, ...)
 	local lArgs = {...}
 	if debugFile then
+		if n == nil then n = "" end
 		debugFile:write("\n" .. n .. " : ")
 		for k, v in pairs(lArgs) do 
 			if type(v) == "string" or type(v) == "number" or type(v) == nil then
@@ -510,6 +520,23 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 	if line ~= nil then line = line:gsub("^%s*(.-)%s*$", "%1") end
 	return line
 end
+
+
+--  -------- Graphics
+
+graphics.githubImage = [[
+f       f  
+fffffffff  
+fffffffff  
+f4244424f  
+f4444444f  
+fffffefff e
+   fffe  e 
+ fffff ee  
+ff f f ee  
+      e  e 
+     e    e
+]]
 
 
 --  -------- Themes
@@ -709,14 +736,77 @@ local function download(url, path)
 		if response then
 			local data = response.readAll()
 			response.close()
-			local f = io.open(path, "w")
-			f:write(data)
-			f:close()
+			if path then
+				local f = io.open(path, "w")
+				f:write(data)
+				f:close()
+			end
 			return true
 		end
 	end
 
 	return false
+end
+
+local function verifyGitHub()
+	if not(download("https://raw.github.com")) then
+		if isAdvanced() then
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["background"]])
+			term.clear()
+			local f = io.open(rootFolder .. "/temp_file", "w")
+			f:write(graphics.githubImage)
+			f:close()
+			local a = paintutils.loadImage(rootFolder .. "/temp_file")
+			paintutils.drawImage(a, 1, 3)
+			fs.delete(rootFolder .. "/temp_file")
+
+			term.setCursorPos(19, 4)
+			term.setBackgroundColor(colors[theme["top-box"]])
+			write(string.rep(" ", 32))
+			term.setCursorPos(19, 5)
+			write("  Could Not Connect to GitHub!  ")
+			term.setCursorPos(19, 6)
+			write(string.rep(" ", 32))
+			term.setBackgroundColor(colors[theme["bottom-box"]])
+			term.setCursorPos(19, 8)
+			write(string.rep(" ", 32))
+			term.setCursorPos(19, 9)
+			write("    Sorry, Firewolf could not   ")
+			term.setCursorPos(19, 10)
+			write(" connect to GitHub to download  ")
+			term.setCursorPos(19, 11)
+			write(" necessary files. Please check: ")
+			term.setCursorPos(19, 12)
+			write("    http://status.github.com    ")
+			term.setCursorPos(19, 13)
+			write(string.rep(" ", 32))
+			term.setCursorPos(19, 14)
+			write("        Click to exit...        ")
+			term.setCursorPos(19, 15)
+			write(string.rep(" ", 32))
+			os.pullEvent("mouse_click")
+			return false
+		else
+			term.clear()
+			term.setCursorPos(1,1)
+			term.setBackgroundColor(colors.black)
+			term.setTextColor(colors.white)
+			print("\n")
+			centerPrint("Could not connect to GitHub!")
+			print("")
+			centerPrint("Sorry, Firefox could not connect to")
+			centerPrint("GitHub to download necessary files.")
+			centerPrint("Please check:")
+			centerPrint("http://status.github.com")
+			print("")
+			centerPrint("Press any key to exit...")
+			os.pullEvent("key")
+			return false
+		end
+	end
+
+	return true
 end
 
 local function migrateFilesystem()
@@ -757,7 +847,7 @@ local function resetFilesystem()
 	end
 
 	-- Themes
-	if term.isColor() then
+	if isAdvanced() then
 		if autoupdate == "true" then
 			fs.delete(availableThemesLocation)
 			fs.delete(defaultThemeLocation)
@@ -783,6 +873,9 @@ local function resetFilesystem()
 			f:close()
 		end
 	end
+
+	-- Temp file
+	fs.delete(rootFolder .. "/temp_file")
 
 	return nil
 end
@@ -1058,35 +1151,29 @@ pages.firewolf = function(site)
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 43))
-	centerPrint("         _,-='\"-.__               /\\_/\\    ")
-	centerPrint("          -.}        =._,.-==-._.,  @ @._, ")
-	centerPrint("             -.__  __,-.   )       _,.-'   ")
-	centerPrint("  Firewolf " .. version .. "    \"     G..m-\"^m m'        ")
+	centerPrint([[         _,-='"-.__               /\_/\    ]])
+	centerPrint([[          -.}        =._,.-==-._.,  @ @._, ]])
+	centerPrint([[             -.__  __,-.   )       _,.-'   ]])
+	centerPrint([[ Firewolf ]] .. version .. string.rep(" ", 8 - version:len()) ..
+		[["     G..m-"^m m'        ]])
 	centerPrint(string.rep(" ", 43))
+	print("\n")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	term.setCursorPos(1, 10)
 	centerPrint(string.rep(" ", 43))
-	centerPrint("  rdnt://firewolf                Homepage  ")
-	centerPrint("  rdnt://history                  History  ")
-	centerPrint("  rdnt://downloads       Downloads Center  ")
-	centerPrint("  rdnt://server         Server Management  ")
-	centerPrint("  rdnt://help                   Help Page  ")
-	centerPrint("  rdnt://settings                Settings  ")
-	centerPrint("  rdnt://exit                        Exit  ")
+	centerPrint("  News:                       [- Sites -]  ")
+	centerPrint("  - Merry Christmas! From everyone in the  ")
+	centerPrint("    Firewolf team!                         ")
+	centerPrint("  - Version 2.3 has been released! Check   ")
+	centerPrint("    out the new Christmas themes and       ")
+	centerPrint("    normal computer support!               ")
 	centerPrint(string.rep(" ", 43))
 
 	while true do
 		local e, but, x, y = os.pullEvent()
-		if e == "mouse_click" and x >= 7 and x <= 45 then
-			if y == 11 then redirect("firewolf") return
-			elseif y == 12 then redirect("history") return
-			elseif y == 13 then redirect("downloads") return
-			elseif y == 14 then redirect("server") return
-			elseif y == 15 then redirect("help") return
-			elseif y == 16 then redirect("settings") return
-			elseif y == 17 then redirect("exit") return
-			end
+		if e == "mouse_click" and x >= 35 and x <= 45 and y == 12 then
+			redirect("sites")
+			return
 		elseif e == event_exitWebsite then
 			os.queueEvent(event_exitWebsite)
 			return
@@ -1096,6 +1183,52 @@ end
 
 pages.firefox = function(site)
 	redirect("firewolf")
+end
+
+pages.sites = function(site)
+	clearPage(site, colors[theme["background"]])
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
+	print("")
+	centerPrint(string.rep(" ", 43))
+	centerWrite(string.rep(" ", 43))
+	centerPrint("Firewolf Built-In Sites")
+	centerPrint(string.rep(" ", 43))
+	print("")
+
+	local sx = 8
+	term.setBackgroundColor(colors[theme["bottom-box"]])
+	term.setCursorPos(1, sx - 1)
+	centerPrint(string.rep(" ", 43))
+	centerPrint("  rdnt://firewolf                Homepage  ")
+	centerPrint("  rdnt://history                  History  ")
+	centerPrint("  rdnt://downloads       Downloads Center  ")
+	centerPrint("  rdnt://server         Server Management  ")
+	centerPrint("  rdnt://help                   Help Page  ")
+	centerPrint("  rdnt://settings                Settings  ")
+	centerPrint("  rdnt://sites             Built-In Sites  ")
+	centerPrint("  rdnt://credits                  Credits  ")
+	centerPrint("  rdnt://exit                        Exit  ")
+	centerPrint(string.rep(" ", 43))
+
+	while true do
+		local e, but, x, y = os.pullEvent()
+		if e == "mouse_click" and x >= 7 and x <= 45 then
+			if y == sx then redirect("firewolf") return
+			elseif y == sx + 1 then redirect("history") return
+			elseif y == sx + 2 then redirect("downloads") return
+			elseif y == sx + 3 then redirect("server") return
+			elseif y == sx + 4 then redirect("help") return
+			elseif y == sx + 5 then redirect("settings") return
+			elseif y == sx + 6 then redirect("sites") return
+			elseif y == sx + 7 then redirect("credits") return
+			elseif y == sx + 8 then redirect("exit") return
+			end
+		elseif e == event_exitWebsite then
+			os.queueEvent(event_exitWebsite)
+			return
+		end
+	end
 end
 
 pages.history = function(site)
@@ -1111,9 +1244,7 @@ pages.history = function(site)
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 
 	if #history > 0 then
-		for i = 1, 12 do
-			centerPrint(string.rep(" ", 47))
-		end
+		for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 
 		local a = {"Clear History"}
 		for i, v in ipairs(history) do
@@ -1179,7 +1310,7 @@ pages.downloads = function(site)
 		centerPrint(string.rep(" ", 47))
 	end
 	local opt = prompt({{"Themes", 7, 8}, {"Plugins", 7, 10}}, "vertical")
-	if opt == "Themes" and term.isColor() then
+	if opt == "Themes" and isAdvanced() then
 		while true do
 			local themes = {}
 			local c = {"Make my Own", "Load my Own"}
@@ -1302,7 +1433,7 @@ pages.downloads = function(site)
 				end
 			end
 		end
-	elseif opt == "Themes" and not(term.isColor()) then
+	elseif opt == "Themes" and not(isAdvanced()) then
 		clearPage(site, colors[theme["background"]])
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["top-box"]])
@@ -1375,7 +1506,7 @@ pages.server = function(site)
 		while true do
 			shell.setDir(serverFolder .. "/" .. server)
 			term.setBackgroundColor(colors.black)
-			if term.isColor() then term.setTextColor(colors.yellow)
+			if isAdvanced() then term.setTextColor(colors.yellow)
 			else term.setTextColor(colors.white) end
 			write("> ")
 			term.setTextColor(colors.white)
@@ -1429,7 +1560,7 @@ pages.server = function(site)
 		for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
 		term.setCursorPos(5, 9)
 		write("Name: ")
-		local name = modRead(nil, nil, 37)
+		local name = modRead(nil, nil, 28, true)
 		if name == nil then
 			os.queueEvent(event_exitWebsite)
 			return
@@ -1438,7 +1569,7 @@ pages.server = function(site)
 		write("URL:")
 		term.setCursorPos(8, 12)
 		write("rdnt://")
-		local url = modRead(nil, nil, 28, true)
+		local url = modRead(nil, nil, 33)
 		if url == nil then
 			os.queueEvent(event_exitWebsite)
 			return
@@ -1446,7 +1577,7 @@ pages.server = function(site)
 		url = url:gsub(" ", "")
 
 		local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
-			"[", "]", "{", "}", "\\", "\"", "'", ":", ";", "?", "<", ">", ",", "`", "~"}
+			"[", "]", "{", "}", "\\", "\"", "'", ":", ";", "?", "<", ">", ",", "`", "-"}
 		local b = false
 		for k, v in pairs(a) do
 			if url:find(v, 1, true) then
@@ -1502,7 +1633,7 @@ pages.server = function(site)
 		if fs.isDir(serverFolder .. "/" .. v) then table.insert(servers, v) end
 	end
 
-	if term.isColor() then
+	if isAdvanced() then
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 12 do
 			term.setCursorPos(3, i + 6)
@@ -1995,7 +2126,7 @@ pages.settings = function(site)
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Firewolf has been reset.")
 			centerWrite(string.rep(" ", 43))
-			if term.isColor() then centerPrint("Click to exit...")
+			if isAdvanced() then centerPrint("Click to exit...")
 			else centerPrint("Press any key to exit...") end
 			centerPrint(string.rep(" ", 43))
 			while true do
@@ -2049,6 +2180,7 @@ pages.update = function(site)
 		sleep(1.1)
 		fs.delete(firewolfLocation)
 		fs.move(updateLocation, firewolfLocation)
+		shell.run(firewolfLocation)
 
 		return true
 	elseif opt == "Cancel" then
@@ -2072,15 +2204,11 @@ pages.credits = function(site)
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
-	centerPrint("Coded by:            GravityScore and")
-	centerWrite(string.rep(" ", 43))
-	centerPrint("                                1lann")
+	centerPrint("   Coded by:      GravityScore and 1lann   ")
+	centerPrint("   Art by:                     lieudusty   ")
 	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
-	centerPrint("Based off:       RednetExplorer 2.4.1")
-	centerWrite(string.rep(" ", 43))
-	centerPrint("           Made by ComputerCraftFan11")
+	centerPrint("   Based off:       RednetExplorer 2.4.1   ")
+	centerPrint("              Made by ComputerCraftFan11   ")
 	centerPrint(string.rep(" ", 43))
 end
 
@@ -2115,7 +2243,7 @@ end
 --		for i = 1, 5 do
 --			centerPrint(string.rep(" ", 43))
 --		end
---	 	
+--		
 --		if verify("blacklist", id) then 
 --			centerPrint("  Triggers Blacklist" .. string.rep(" ", 43 - 20)) end
 --		if verify("whitelist", id, site) then 
@@ -2281,7 +2409,7 @@ errPages.checkForModem = function()
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Waiting for a modem to be attached...")
 			centerWrite(string.rep(" ", 43))
-			if term.isColor() then centerPrint("Click to exit...")
+			if isAdvanced() then centerPrint("Click to exit...")
 			else centerPrint("Press any key to exit...") end
 			centerPrint(string.rep(" ", 43))
 
@@ -2368,10 +2496,9 @@ local function loadSite(site)
 		term.setTextColor(colors.white)
 
 		-- Setup environment
-		local curBackgroundColor = colors.black
+		local cbc, ctc = colors.black, colors.white
 		local nenv = {}
-		for k, v in pairs(getfenv(0)) do nenv[k] = v end
-		for k, v in pairs(getfenv(1)) do nenv[k] = v end
+		for k, v in pairs(env) do nenv[k] = v end
 		nenv.term = {}
 		nenv.os = {}
 		nenv.shell = {}
@@ -2391,25 +2518,165 @@ local function loadSite(site)
 		end
 
 		nenv.term.clear = function()
-			return api.clearPage(website, curBackgroundColor)
+			local x, y = env.term.getCursorPos()
+			api.clearPage(website, cbc, nil, ctc)
+			env.term.setCursorPos(x, y)
 		end
 
 		nenv.term.setBackgroundColor = function(col)
-			curBackgroundColor = col
-			return env.getBackgroundColor(col)
+			cbc = col
+			return env.term.setBackgroundColor(col)
+		end
+
+		nenv.term.setBackgroundColour = function(col)
+			cbc = col
+			return env.term.setBackgroundColour(col)
 		end
 
 		nenv.term.getBackgroundColor = function()
-			return curBackgroundColor
+			return cbc
+		end
+
+		nenv.term.getBackgroundColour = function()
+			return cbc
+		end
+
+		nenv.term.setTextColor = function(col)
+			ctc = col
+			return env.term.setTextColor(col)
+		end
+
+		nenv.term.setTextColour = function(col)
+			ctc = col
+			return env.term.setTextColour(col)
+		end
+
+		nenv.term.getTextColour = function()
+			return ctc
+		end
+
+		nenv.term.getTextColor = function()
+			return ctc
+		end
+
+		nenv.term.write = function(text)
+			return env.term.write(text)
+		end
+
+		nenv.write = function(text)
+			return env.write(text)
+		end
+
+		nenv.print = function(...)
+			return env.print(...)
 		end
 
 		local oldScroll = term.scroll
 		term.scroll = function(n)
 			local x, y = env.term.getCursorPos()
 			oldScroll(n)
-			clearPage(website, curBackgroundColor, true)
+			clearPage(website, cbc, true)
 			env.term.setCursorPos(x, y)
 		end
+
+		nenv.prompt = function(list, dir)
+			--[[
+			local a = {}
+			for k, v in pairs(list) do
+				local b, t = v.b, v.t
+				if b == nil then b = cbg end
+				if t == nil then t = ctc end
+				table.insert(a, {v[1], v[2], v[3] + 1, bg = b, tc = t})
+			end
+
+			api.prompt(a, dir)
+			]]--
+
+			print("Prompt unavailable!")
+			return nil
+		end
+
+		nenv.scrollingPrompt = function(list, x, y, len, width)
+			--[[
+			api.scrollingPrompt(list, x, y + 1, len, width)
+			]]--
+
+			print("Prompt unavailable!")
+			return nil
+		end
+
+		nenv.loadImageFromServer = function(image)
+			sleep(0.1)
+			local mid, msgImage = curProtocol.getWebsite(site.."/"..image)
+			if mid then
+				local f = env.io.open(rootFolder .. "/temp_file", "w")
+				f:write(msgImage)
+				f:close()
+				local rImage = env.paintutils.loadImage(rootFolder .. "/temp_file")
+				fs.delete(rootFolder .. "/temp_file")
+				return rImage
+			end
+			return nil
+		end
+
+		nenv.ioReadFileFromServer = function(file)
+			sleep(0.1)
+			local mid, msgFile = curProtocol.getWebsite(site.."/"..file)
+			if mid then
+				local f = env.io.open(rootFolder .. "/temp_file", "w")
+				f:write(msgFile)
+				f:close()
+				local rFile = env.io.open(rootFolder .. "/temp_file", "r")
+				return rFile
+			end
+			return nil
+		end
+
+		--[[
+		nenv.getCookie = function(cookieId)
+			env.rednet.send(id, textutils.serialize({"getCookie", cookieId}))
+			local startClock = os.clock()
+			while os.clock() - startClock < 0.1 do
+				local mid, status = env.rednet.receive(0.1)
+				if mid == id then
+					if status == "[$notexist$]" then
+						return false
+					elseif env.string.find(status, "[$cookieData$]") then
+						return env.string.gsub(status, "[$cookieData$]", "")
+					end
+				end
+			end
+			return false
+		end
+
+		nenv.createCookie = function(cookieId)
+			env.rednet.send(id, textutils.serialize({"createCookie", cookieId}))
+			local startClock = os.clock()
+			while os.clock() - startClock < 0.1 do
+				local mid, status = env.rednet.receive(0.1)
+				if mid == id then
+					if status == "[$notexist$]" then
+						return false
+					elseif env.string.find(status, "[$cookieData$]") then
+						return env.string.gsub(status, "[$cookieData$]", "")
+					end
+				end
+			end
+			return false
+		end
+
+		nenv.bakeCookie = function(cookieId)
+			nenv.createCookie(cookieId)
+		end
+
+		nenv.deleteCookie = function(cookieId)
+
+		end
+
+		nenv.eatCookie = function(cookieId)
+			nenv.deleteCookie(cookieId)
+		end
+		]]--
 
 		nenv.redirect = function(url)
 			api.redirect(url)
@@ -2418,18 +2685,19 @@ local function loadSite(site)
 
 		nenv.shell.run = function(file, ...)
 			if file == "clear" then
-				api.clearPage(website, curBackgroundColor)
+				api.clearPage(website, cbc)
 				env.term.setCursorPos(1, 2)
 			else
 				env.shell.run(file, unpack({...}))
 			end
 		end
 
+		local queueWebsiteExit = false
 		nenv.os.pullEvent = function(a)
 			while true do
 				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
 				if e == event_exitWebsite then
-					os.queueEvent(event_exitWebsite)
+					queueWebsiteExit = true
 					env.error(event_exitWebsite)
 				elseif e == "terminate" then
 					env.error()
@@ -2446,14 +2714,15 @@ local function loadSite(site)
 
 		-- Run
 		local fn, err = loadfile(cacheLoc)
-		if fn and err == nil then
+		if fn and not(err) then
 			setfenv(fn, nenv)
 			_, err = pcall(fn)
-			setfenv(1, env)
+			setfenv(1, backupEnv)
 		end
 
 		-- Catch website error
 		if err and not(err:find(event_exitWebsite)) then errPages.crash(err) end
+		if queueWebsiteExit then os.queueEvent(event_exitWebsite) end
 	end
 
 	-- Draw
@@ -2706,6 +2975,7 @@ local function websiteMain()
 			loadingRate = 0
 			skip = true
 		end if not(skip) then
+			-- Add to history
 			appendToHistory(website)
 
 			-- Render site
@@ -2881,6 +3151,7 @@ local function main()
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Downloading Required Files...")
 	centerWrite(string.rep(" ", 47))
+	if not(verifyGitHub()) then return end
 	migrateFilesystem()
 	resetFilesystem()
 
@@ -2943,7 +3214,7 @@ local function startup()
 
 		api.centerPrint(string.rep(" ", 47))
 		api.centerWrite(string.rep(" ", 47))
-		if term.isColor() then api.centerPrint("Click to exit...")
+		if isAdvanced() then api.centerPrint("Click to exit...")
 		else api.centerPrint("Press any key to exit...") end
 		api.centerPrint(string.rep(" ", 47))
 
@@ -2999,7 +3270,7 @@ local function startup()
 		api.centerPrint("  " .. rootFolder .. "                              ")
 		api.centerPrint(string.rep(" ", 47))
 		api.centerWrite(string.rep(" ", 47))
-		if term.isColor() then api.centerPrint("Click to exit...")
+		if isAdvanced() then api.centerPrint("Click to exit...")
 		else api.centerPrint("Press any key to exit...") end
 		api.centerPrint(string.rep(" ", 47))
 
@@ -3015,7 +3286,7 @@ local function startup()
 end
 
 -- Theme
-if not(term.isColor()) then 
+if not(isAdvanced()) then 
 	theme = originalTheme
 else
 	theme = loadTheme(themeLocation)
@@ -3043,7 +3314,7 @@ end
 startup()
 
 -- Exit Message
-if term.isColor() then
+if isAdvanced() then
 	term.setBackgroundColor(colors.black)
 	term.setTextColor(colors.white)
 end
@@ -3065,7 +3336,7 @@ else
 	api.centerPrint("Thank You for Using Firewolf " .. version)
 	api.centerPrint("Made by 1lann and GravityScore")
 	print("")
-	if term.isColor() then api.centerPrint("Click to exit...")
+	if isAdvanced() then api.centerPrint("Click to exit...")
 	else api.centerPrint("Press any key to exit...") end
 
 	while true do

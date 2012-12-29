@@ -2,19 +2,29 @@
 --  
 --  Firewolf Server Software
 --  Created By GravityScore and 1lann
---  License: https://raw.github.com/1lann/Firewolf/master/LICENSE
---  
+--  License found here: https://raw.github.com/1lann/Firewolf/master/LICENSE  
+--
 --  Orignal Idea from RednetExplorer 2.4.1
 --  RednetExplorer Made by ComputerCraftFan11
 --  
 
 
+--  Features:
+--  - Password protection
+--  - Bug Fixes
+
+--  To Do:
+--  - Autoupdating option
+
 
 --  -------- Variables
 
 -- Version
-local version = "2.3"
+local version = "2.3.5"
 local serverID = "experimental"
+
+-- Prevent Control-T
+os.pullEvent = os.pullEventRaw
 
 -- Updating
 local autoupdate = true
@@ -50,6 +60,8 @@ local dataLocation = ""
 local pages = {}
 local totalRecordLines = {}
 local recordLines = {}
+local serverPassword = nil
+local serverLocked = true
 
 -- Locations
 local rootFolder = "/.Firewolf_Data"
@@ -57,10 +69,48 @@ local serverFolder = rootFolder .. "/servers"
 local statsLocation = rootFolder .. "/" .. website .. "_stats"
 local themeLocation = rootFolder .. "/theme"
 local defaultThemeLocation = rootFolder .. "/default_theme"
+local passwordDataLocation = rootFolder .. "/." .. website .. "_password"
 local serverSoftwareLocation = "/" .. shell.getRunningProgram()
 
+-- Parse Arguments
+if #args >= 2 then
+	website = args[1]:gsub("^%s*(.-)%s*$", "%1")
+	dataLocation = args[2]:gsub("^%s*(.-)%s*$", "%1")
+	statsLocation = rootFolder .. "/" .. website .. "_stats"
+	passwordDataLocation = rootFolder .. "/." .. website .. "_password"
+else
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.black)
+	term.clear()
+	term.setCursorPos(1, 3)
+	centerWrite("Invalid Arguments! D:")
+	sleep(1.1)
+	term.clear()
+	term.setCursorPos(1, 1)
+	return
+end
 
---  -------- API Functions
+
+--  -------- Utility Functions
+
+local function isAdvanced()
+	if term.isColor then return term.isColor()
+	else return false end
+end
+
+local function oldPullEvent(a)
+	while true do
+		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
+		if e == "terminate" then
+			print("Terminated")
+			error()
+		else
+			if e then
+				if e == a then return e, p1, p2, p3, p4, p5 end
+			else return e, p1, p2, p3, p4, p5 end
+		end
+	end
+end
 
 local function centerPrint(text)
 	local w, h = term.getSize()
@@ -108,7 +158,7 @@ local function clearPage(r)
 end
 
 local function prompt(list)
-	if term.isColor() then
+	if isAdvanced() then
 		for _, v in pairs(list) do
 			if v.bg then term.setBackgroundColor(v.bg) end
 			if v.tc then term.setTextColor(v.tc) end
@@ -189,7 +239,7 @@ local function scrollingPrompt(list, x, y, len, width)
 		return ret
 	end
 
-	if term.isColor() then
+	if isAdvanced() then
 		local function draw(a)
 			for i, v in ipairs(a) do
 				term.setCursorPos(1, y + i - 1)
@@ -281,9 +331,11 @@ end
 --  -------- Themes
 
 local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
-	["top-box"] = "red", ["bottom-box"] = "orange", ["text-color"] = "white", ["background"] = "gray"}
+	["address-bar-base"] = "lightGray", ["top-box"] = "red", ["bottom-box"] = "orange", 
+	["text-color"] = "white", ["background"] = "gray"}
 local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "black", 
-	["top-box"] = "black", ["bottom-box"] = "black", ["text-color"] = "white", ["background"] = "black"}
+	["address-bar-base"] = "black", ["top-box"] = "black", ["bottom-box"] = "black", 
+	["text-color"] = "white", ["background"] = "black"}
 
 local function loadTheme(path)
 	if fs.exists(path) and not(fs.isDir(path)) then
@@ -294,7 +346,7 @@ local function loadTheme(path)
 			l = l:gsub("^%s*(.-)%s*$", "%1")
 			if l ~= "" and l ~= nil and l ~= "\n" then
 				local b = l:find("=")
-				if a then
+				if a and b then
 					local c = l:sub(1, b - 1)
 					local d = l:sub(b + 1, -1)
 					if c == "" or d == "" then return nil
@@ -340,22 +392,22 @@ local function validateFilesystem()
 		print("")
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["top-box"]])
-		centerPrint(string.rep(" ", 46))
-		centerWrite(string.rep(" ", 46))
+		centerPrint(string.rep(" ", 47))
+		centerWrite(string.rep(" ", 47))
 		centerPrint("Invalid Filesystem!")
-		centerPrint(string.rep(" ", 46))
+		centerPrint(string.rep(" ", 47))
 		print("")
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
-		centerPrint(string.rep(" ", 46))
-		centerPrint("  The files required to run this server       ")
-		centerPrint("  cannot be found! Run Firewolf to create     ")
-		centerPrint("  them!                                       ")
-		centerPrint(string.rep(" ", 46))
-		centerWrite(string.rep(" ", 46))
-		if term.isColor() then centerPrint("Click to exit...")
+		centerPrint(string.rep(" ", 47))
+		centerPrint("  The files required to run this server        ")
+		centerPrint("  cannot be found! Run Firewolf to create      ")
+		centerPrint("  them!                                        ")
+		centerPrint(string.rep(" ", 47))
+		centerWrite(string.rep(" ", 47))
+		if isAdvanced() then centerPrint("Click to exit...")
 		else centerPrint("Press any key to exit...") end
-		centerPrint(string.rep(" ", 46))
+		centerPrint(string.rep(" ", 47))
 
 		while true do
 			local e = os.pullEvent()
@@ -533,7 +585,7 @@ local function checkForModem()
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Waiting for a modem to be attached...")
 			centerWrite(string.rep(" ", 43))
-			if term.isColor() then centerPrint("Click to exit...")
+			if isAdvanced() then centerPrint("Click to exit...")
 			else centerPrint("Press any key to exit...") end
 			centerPrint(string.rep(" ", 43))
 
@@ -553,6 +605,7 @@ end
 
 local i = 1
 local function record(text)
+	local oldX, oldY = term.getCursorPos()
 	local a = tostring(i) .. ":" .. string.rep(" ", 4 - tostring(i):len()) .. text
 	table.insert(totalRecordLines, a)
 	if #recordLines > 8 then table.remove(recordLines, 1) end
@@ -560,6 +613,9 @@ local function record(text)
 
 	if enableRecording then clearPage(true) end
 	i = i + 1
+	term.setCursorPos(oldX, oldY)
+	term.setBackgroundColor(colors[theme["top-box"]])
+	term.setTextColor(colors[theme["text-color"]])
 end
 
 local function respondToEvents()
@@ -675,7 +731,7 @@ local function edit()
 	while true do
 		shell.setDir(serverFolder .. "/" .. website)
 		term.setBackgroundColor(colors.black)
-		if term.isColor() then term.setTextColor(colors.yellow)
+		if isAdvanced() then term.setTextColor(colors.yellow)
 		else term.setTextColor(colors.white) end
 		write("> ")
 		term.setTextColor(colors.white)
@@ -713,6 +769,7 @@ local function edit()
 end
 
 local function interface()
+	local opt = ""
 	while true do
 		term.setBackgroundColor(colors[theme["background"]])
 		term.setTextColor(colors[theme["text-color"]])
@@ -723,18 +780,58 @@ local function interface()
 		print("")
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["top-box"]])
-		centerPrint(string.rep(" ", 47))
-		centerPrint(string.rep(" ", 47))
-		centerPrint(string.rep(" ", 47))
-		centerPrint(string.rep(" ", 47))
+		for i = 1, 4 do centerPrint(string.rep(" ", 47)) end
 		print("")
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 
-		local p1 = "Pause Server"
 		if enableResponse == false then p1 = "Unpause Server" end
 		term.setBackgroundColor(colors[theme["top-box"]])
-		local opt = prompt({{p1, 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
-			{"Stop", w - 13, 5}}, "vertical")
+		if not(serverLocked) and not(serverPassword) then
+			os.pullEvent = oldPullEvent
+			opt = prompt({{"Add Lock", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
+				{"Stop", w - 13, 5}}, "vertical")
+		elseif not serverLocked and serverPassword then
+			opt = prompt({{"Lock Server", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
+				{"Stop", w - 13, 5}}, "vertical")
+		elseif serverLocked then
+			while true do
+				enableRecording = true
+				term.setCursorPos(1, 2)
+				print("")
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["top-box"]])
+				for i = 1, 4 do centerPrint(string.rep(" ", 47)) end
+				term.setCursorPos(5, 4)
+				print("Enter Password:")
+				term.setCursorPos(5, 5)
+				write("> ")
+				local enteredPassword = read("*")
+				if enteredPassword == serverPassword then
+					term.setCursorPos(1, 2)
+					print("")
+					term.setTextColor(colors[theme["text-color"]])
+					term.setBackgroundColor(colors[theme["top-box"]])
+					for i = 1, 4 do centerPrint(string.rep(" ", 47)) end
+					term.setCursorPos(5, 4)
+					write("Password Accepted!")
+					opt = ""
+					serverLocked = false
+					os.pullEvent = oldPullEvent
+					sleep(1.3)
+					break
+				else
+					term.setCursorPos(1, 2)
+					print("")
+					term.setTextColor(colors[theme["text-color"]])
+					term.setBackgroundColor(colors[theme["top-box"]])
+					for i = 1, 4 do centerPrint(string.rep(" ", 47)) end
+					term.setCursorPos(5, 4)
+					write("Password Incorrect!")
+					sleep(1.3)
+				end
+			end
+		end
+
 		if opt == p1 then
 			enableResponse = not(enableResponse)
 		elseif opt == "Manage" then
@@ -750,9 +847,14 @@ local function interface()
 				write("Visits: " .. tostring(visits))
 				term.setCursorPos(5, 10)
 				write("Searches: " .. tostring(searches))
-
-				local opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
-					{"Back", 9, 15}}, "vertical")
+				local opt = ""
+				if serverPassword then
+					opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Remove Password", 9, 13}, 
+						{"Delete Server", 9, 14}, {"Back", 9, 16}}, "vertical")
+				else
+					opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
+						{"Back", 9, 15}}, "vertical")
+				end
 				if opt == "Manage Blocked IDs" then
 					while true do
 						clearPage()
@@ -762,7 +864,7 @@ local function interface()
 						for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
 
 						term.setCursorPos(5, 9)
-						if term.isColor() then write("Blocked IDs: (Click to Unblock)")
+						if isAdvanced() then write("Blocked IDs: (Click to Unblock)")
 						else write("Blocked IDs: (Select to Unblock)") end
 						local a = {"Back", "Block New ID"}
 						for _, v in pairs(permantentIgnoreDatabase) do
@@ -808,9 +910,47 @@ local function interface()
 						end
 					end
 				elseif opt == "Delete Server" then
-					fs.delete(dataLocation)
-					os.queueEvent(event_stopServer)
-					return
+					clearPage()
+					term.setCursorPos(1, 8)
+					term.setTextColor(colors[theme["text-color"]])
+					term.setBackgroundColor(colors[theme["bottom-box"]])
+					for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+					term.setCursorPos(9, 11)
+					centerPrint("Are you sure you want to delete the server?")
+					centerPrint("This cannot be undone!")
+					local opt = prompt({{"No", 11, 14}, {"Yes", 35, 14}}, "horizontal")
+					if opt == "Yes" then
+						fs.delete(dataLocation)
+						os.queueEvent(event_stopServer)
+						return
+					end
+				elseif opt == "Remove Password" then
+					clearPage()
+					term.setCursorPos(1, 8)
+					term.setTextColor(colors[theme["text-color"]])
+					term.setBackgroundColor(colors[theme["bottom-box"]])
+					for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+					term.setCursorPos(9, 11)
+					print("Enter your old password:")
+					term.setCursorPos(9, 12)
+					write("> ")
+					local oldPass = read("*")
+					if oldPass == serverPassword then
+						fs.delete(passwordDataLocation)
+						serverPassword = nil
+						serverLocked = false
+						term.setCursorPos(9, 14)
+						print("Password Removed!")
+						sleep(1.3)
+						break
+					else
+						term.setCursorPos(9, 14)
+						print("Password incorrect! Locking server...")
+						os.pullEvent = os.pullEventRaw
+						serverLocked = true
+						sleep(1.3)
+						break
+					end
 				elseif opt == "Back" then
 					break
 				end
@@ -839,6 +979,51 @@ local function interface()
 				if parallelWithServer == nil then record(" - parallelWithServer()") end
 			else record("Re-Loaded Server API") end
 			enableRecording = true
+		elseif opt == "Add Lock" then
+			enableRecording = false
+			clearPage()
+			term.setCursorPos(1, 8)
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
+			for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+			term.setCursorPos(5, 9)
+			write("Enter a password to secure your")
+			term.setCursorPos(5, 10)
+			write("server from being managed by others:")
+			term.setCursorPos(5, 11)
+			write("> ")
+			local newPassword = read("*")
+			term.setCursorPos(5, 13)
+			write("Enter the password again:")
+			term.setCursorPos(5, 14)
+			write("> ")
+			if read("*") == newPassword then
+				serverPassword = newPassword
+				serverLocked = false
+				local f = io.open(passwordDataLocation, "w")
+				f:write(newPassword)
+				f:close()
+				term.setCursorPos(5, 16)
+				write("Password Set!")
+				sleep(1.3)
+			else
+				term.setCursorPos(5, 16)
+				print("Passwords did not match!")
+				sleep(1.3)
+			end
+			enableRecording = false
+	
+		elseif opt == "Lock Server" then
+				os.pullEvent = os.pullEventRaw
+				serverLocked = true
+				term.setCursorPos(1, 2)
+				print("")
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["top-box"]])
+				for i = 1, 4 do centerPrint(string.rep(" ", 47)) end
+				term.setCursorPos(5, 4)
+				print("Server Locked!")
+				sleep(2)
 		elseif opt == "Stop" then
 			-- Stop server
 			os.queueEvent(event_stopServer)
@@ -884,21 +1069,8 @@ local function main()
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
-	centerPrint("Loading Firewolf Server...")
+	centerPrint("Loading Firewolf Server " .. version .. "...")
 	centerWrite(string.rep(" ", 47))
-
-	-- Args
-	if #args >= 2 then
-		website = args[1]:gsub("^%s*(.-)%s*$", "%1")
-		dataLocation = args[2]:gsub("^%s*(.-)%s*$", "%1")
-		statsLocation = rootFolder .. "/" .. website .. "_stats"
-	else
-		term.clear()
-		term.setCursorPos(1, 3)
-		centerWrite("Invalid Arguments! D:")
-		sleep(1.1)
-		return
-	end
 
 	-- Filesystem
 	if not(validateFilesystem()) then return end
@@ -941,14 +1113,14 @@ local function startup()
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		centerPrint(string.rep(" ", 47))
-		centerPrint("  Firewolf is unable to run without the HTTP   ")
+		centerPrint("  Firewolf is unable to run without the HTTP  ")
 		centerPrint("  API Enabled! Please enable it in the CC     ")
 		centerPrint("  Config!                                     ")
 		centerPrint(string.rep(" ", 47))
 
 		centerPrint(string.rep(" ", 47))
 		centerWrite(string.rep(" ", 47))
-		if term.isColor() then centerPrint("Click to exit...")
+		if isAdvanced() then centerPrint("Click to exit...")
 		else centerPrint("Press any key to exit...") end
 		centerPrint(string.rep(" ", 47))
 
@@ -1004,7 +1176,7 @@ local function startup()
 		centerPrint("  " .. rootFolder .. "                              ")
 		centerPrint(string.rep(" ", 47))
 		centerWrite(string.rep(" ", 47))
-		if term.isColor() then centerPrint("Click to Exit...")
+		if isAdvanced() then centerPrint("Click to Exit...")
 		else centerPrint("Press any key to exit...") end
 		centerPrint(string.rep(" ", 47))
 
@@ -1020,11 +1192,21 @@ local function startup()
 end
 
 -- Theme
-if not(term.isColor()) then 
+if not(isAdvanced()) then 
 	theme = originalTheme
 else
 	theme = loadTheme(themeLocation)
 	if theme == nil then theme = defaultTheme end
+end
+
+-- Pasword
+if fs.exists(passwordDataLocation) then
+	local f = io.open(passwordDataLocation, "r")
+	serverPassword = f:read("*l")
+	f:close()
+	serverLocked = true
+else
+	serverLocked = false
 end
 
 -- Start
