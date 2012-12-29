@@ -2646,17 +2646,17 @@ local function loadSite(site)
 
 		nenv.os.pullEvent = function(a)
 			while true do
-				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
+				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw(a)
 				if e == env.event_exitWebsite then
 					env.debugLog("Exiting Website Event")
-					env.os.queueEvent(event_exitWebsite)
-					env.error(event_exitWebsite)
+					env.os.queueEvent(env.event_exitWebsite)
+					env.error(env.event_exitWebsite)
 				elseif e == "terminate" then
 					env.error()
 				end
 
-				if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
-						and e ~= event_loadWebsite then
+				if e ~= env.event_exitWebsite and e ~= env.event_redirect and e ~= env.event_exitApp 
+						and e ~= env.event_loadWebsite then
 					if a then
 						if e == a then return e, p1, p2, p3, p4, p5 end
 					else return e, p1, p2, p3, p4, p5 end
