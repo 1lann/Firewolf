@@ -3027,7 +3027,7 @@ local function addressBarMain()
 
 				-- Exit
 				os.queueEvent(event_exitWebsite)
-				pcall(sleep(0.01))
+				pcall(function() sleep(0.01) end)
 				--debugLog("Address bar activated")
 
 				-- Read
