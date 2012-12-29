@@ -3055,12 +3055,12 @@ local function addressBarMain()
 				(e == "mouse_click" and y == 1) then
 			if openAddressBar then
 				local skip = false
-				if websiteRunning then
+				--[[if websiteRunning then
 					if x >= w - 3 and x <= w - 1 then
 						os.queueEvent(event_bookmark)
 						skip = true
 					end
-				end
+				end]]
 
 				if not(skip) then
 					-- Exit
