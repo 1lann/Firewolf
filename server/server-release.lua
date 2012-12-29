@@ -757,6 +757,7 @@ local function interface()
 				{"Stop", w - 13, 5}}, "vertical")
 		elseif serverLocked then
 		while true do
+			enableRecording = true
 			term.setCursorPos(1, 2)
 			print("")
 			term.setTextColor(colors[theme["text-color"]])
