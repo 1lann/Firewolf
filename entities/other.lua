@@ -2649,7 +2649,9 @@ local function loadSite(site)
 			while true do
 				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
 				if e == event_exitWebsite then
-					os.queueEvent(event_exitWebsite)
+					debugLog("Exiting Website Event")
+					env.os.queueEvent(event_exitWebsite)
+					env.error(event_exitWebsite)
 					env.error(event_exitWebsite)
 				elseif e == "terminate" then
 					env.error()
@@ -2664,18 +2666,6 @@ local function loadSite(site)
 			end
 		end
 
-		nenv.term.write = function(a)
-			return env.term.write(a)
-		end
-
-		nenv.write = function(a)
-			return env.write(a)
-		end
-
-		nenv.print = function(a)
-			return env.print(a)
-		end
-
 		-- Run
 		local fn, err = loadfile(cacheLoc)
 		if fn and err == nil then
@@ -2683,7 +2673,7 @@ local function loadSite(site)
 			_, err = pcall(fn)
 			setfenv(1, env)
 		end
-
+		debugLog("Exiting Website Properly")
 		-- Catch website error
 		if err and not(err:find(event_exitWebsite)) then errPages.crash(err) end
 	end
