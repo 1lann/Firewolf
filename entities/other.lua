@@ -2652,8 +2652,8 @@ local function loadSite(site)
 				end
 				if e == event_exitWebsite then
 					debugLog("Exiting Website Event")
-					env.os.queueEvent(env.event_exitWebsite)
-					env.error(env.event_exitWebsite)
+					env.os.queueEvent(event_exitWebsite)
+					env.error(event_exitWebsite)
 				elseif e == "terminate" then
 					env.error()
 				end
