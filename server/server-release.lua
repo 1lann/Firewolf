@@ -975,12 +975,10 @@ local function interface()
 				term.setCursorPos(5,16)
 				write("Password Set!")
 				sleep(2)
-				break
 			else
 				term.setCursorPos(5,16)
 				print("Passwords did not match!")
 				sleep(3)
-				break
 			end
 			enableRecording = false
 	
