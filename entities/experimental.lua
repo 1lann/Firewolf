@@ -114,7 +114,7 @@ local function isAdvanced()
 	else return false end
 end
 
-api.clearPage = function(site, color, redraw)
+api.clearPage = function(site, color, redraw, tcolor)
 	-- Site titles
 	local titles = {firewolf = "Firewolf Homepage", server = "Server Management", 
 		history = "Firewolf History", help = "Help Page", downloads = "Downloads Center", 
@@ -142,8 +142,9 @@ api.clearPage = function(site, color, redraw)
 		write(title)
 	end
 
-	term.setBackgroundColor(colors.black)
-	term.setTextColor(colors.white)
+	term.setBackgroundColor(c)
+	if tcolor then term.setTextColor(tcolor)
+	else term.setTextColor(colors.white) end
 	print("")
 end
 
@@ -2520,7 +2521,7 @@ local function loadSite(site)
 
 		nenv.term.clear = function()
 			local x, y = env.term.getCursorPos()
-			api.clearPage(website, cbg)
+			api.clearPage(website, cbc, nil, ctc)
 			env.term.setCursorPos(x, y)
 		end
 
@@ -2543,19 +2544,21 @@ local function loadSite(site)
 		end
 
 		nenv.term.setTextColor = function(col)
+			ctc = col
 			return env.term.setTextColor(col)
 		end
 
 		nenv.term.setTextColour = function(col)
+			ctc = col
 			return env.term.setTextColour(col)
 		end
 
 		nenv.term.getTextColour = function()
-			return env.term.getTextColour()
+			return ctc
 		end
 
 		nenv.term.getTextColor = function()
-			return env.term.getTextColor()
+			return ctc
 		end
 
 		nenv.term.write = function(text)
@@ -2588,10 +2591,18 @@ local function loadSite(site)
 			end
 
 			api.prompt(a, dir)
+
+			-- To cancel out the os.queueEvent at the end of the prompt software
+			-- It was causing the website to become non-responsive
+			os.pullEvent(event_exitWebsite)
 		end
 
 		nenv.scrollingPrompt = function(list, x, y, len, width)
 			api.scrollingPrompt(list, x, y + 1, len, width)
+
+			-- To cancel out the os.queueEvent at the end of the prompt software
+			-- It was causing the website to become non-responsive
+			os.pullEvent(event_exitWebsite)
 		end
 
 		nenv.loadImageFromServer = function(image)
@@ -2687,7 +2698,8 @@ local function loadSite(site)
 					queueWebsiteExit = true
 					env.error(event_exitWebsite)
 				elseif e == "terminate" then
-					queueWebsiteExit = true
+					nenv.term.setTextColor(colors.red)
+					print("Terminated!")
 					env.error()
 				end
 
