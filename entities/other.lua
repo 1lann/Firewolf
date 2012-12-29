@@ -2647,10 +2647,9 @@ local function loadSite(site)
 		nenv.os.pullEvent = function(a)
 			while true do
 				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
-				if e == event_exitWebsite then
+				if e == env.event_exitWebsite then
 					env.debugLog("Exiting Website Event")
 					env.os.queueEvent(event_exitWebsite)
-					env.error(event_exitWebsite)
 					env.error(event_exitWebsite)
 				elseif e == "terminate" then
 					env.error()
@@ -3028,9 +3027,6 @@ local function addressBarMain()
 			if openAddressBar then
 				-- Exit
 				os.queueEvent(event_exitWebsite)
-				sleep(0.01)
-				os.queueEvent(event_exitWebsite)
-				sleep(0.01)
 				debugLog("Address bar activated")
 
 				-- Read
