@@ -3203,6 +3203,7 @@ local function startup()
 				break
 			end
 		end
+	end
 	if err ~= nil then
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["background"]])
