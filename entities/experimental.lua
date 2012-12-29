@@ -2582,6 +2582,7 @@ local function loadSite(site)
 		end
 
 		nenv.prompt = function(list, dir)
+			--[[
 			local a = {}
 			for k, v in pairs(list) do
 				local b, t = v.b, v.t
@@ -2591,10 +2592,19 @@ local function loadSite(site)
 			end
 
 			api.prompt(a, dir)
+			]]--
+
+			print("Prompt unavailable!")
+			return nil
 		end
 
 		nenv.scrollingPrompt = function(list, x, y, len, width)
+			--[[
 			api.scrollingPrompt(list, x, y + 1, len, width)
+			]]--
+
+			print("Prompt unavailable!")
+			return nil
 		end
 
 		nenv.loadImageFromServer = function(image)
@@ -2624,7 +2634,8 @@ local function loadSite(site)
 			return nil
 		end
 
-		--[[nenv.getCookie = function(cookieId)
+		--[[
+		nenv.getCookie = function(cookieId)
 			env.rednet.send(id, textutils.serialize({"getCookie", cookieId}))
 			local startClock = os.clock()
 			while os.clock() - startClock < 0.1 do
@@ -2666,7 +2677,8 @@ local function loadSite(site)
 
 		nenv.eatCookie = function(cookieId)
 			nenv.deleteCookie(cookieId)
-		end]]
+		end
+		]]--
 
 		nenv.redirect = function(url)
 			api.redirect(url)
