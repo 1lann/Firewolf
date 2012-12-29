@@ -2647,8 +2647,9 @@ local function loadSite(site)
 			while true do
 				if a == "derp" then return true end
 				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw(a)
-				if e == event_exitWebsite then
+				if e == event_exitWebsite and not hasExited then
 					debugLog("Exiting Website Event")
+					hasExited = true
 					env.error(event_exitWebsite)
 				elseif e == "terminate" then
 					env.error()
@@ -2663,11 +2664,17 @@ local function loadSite(site)
 			end
 		end
 
+		nenv.hasExited = false
+		env.hasExited = true
+
 		-- Run
 		local fn, err = loadfile(cacheLoc)
 		if fn and err == nil then
 			setfenv(fn, nenv)
 			_, err = pcall(fn)
+			env.isWebsiteRunning = false
+			nenv.isWebsiteRunning = false
+			local isWebsiteRunning = true
 			setfenv(1, env)
 		end
 		debugLog("Exiting Website Properly")
@@ -3196,14 +3203,6 @@ local function startup()
 
 	-- Run
 	local _, err = pcall(main)
-	if err:find(event_exitWebsite) then
-		while true do
-			_, err = pcall(function() parallel.waitForAll(addressBarMain, websiteMain, retrieveSearchResults) end)
-			if not err:find(event_exitWebsite) then
-				break
-			end
-		end
-	end
 	if err ~= nil then
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["background"]])
