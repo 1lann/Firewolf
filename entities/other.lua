@@ -2645,14 +2645,10 @@ local function loadSite(site)
 
 		nenv.os.pullEvent = function(a)
 			while true do
-				if a == "derp" then debugLog("This is a test") return true end
+				if a == "derp" then return true end
 				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw(a)
-				if event_exitWebsite == nil then
-					debugLog("Warning: Exit Website Event is Nil")
-				end
 				if e == event_exitWebsite then
 					debugLog("Exiting Website Event")
-					env.os.queueEvent(event_exitWebsite)
 					env.error(event_exitWebsite)
 				elseif e == "terminate" then
 					env.error()
