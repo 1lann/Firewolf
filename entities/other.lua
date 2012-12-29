@@ -2647,19 +2647,19 @@ local function loadSite(site)
 			while true do
 				if a == "derp" then return true end
 				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw(a)
-				if env.event_exitWebsite == nil then
-					env.debugLog("Warning: Exit Website Event is Nil")
+				if event_exitWebsite == nil then
+					debugLog("Warning: Exit Website Event is Nil")
 				end
-				if e == env.event_exitWebsite then
-					env.debugLog("Exiting Website Event")
+				if e == event_exitWebsite then
+					debugLog("Exiting Website Event")
 					env.os.queueEvent(env.event_exitWebsite)
 					env.error(env.event_exitWebsite)
 				elseif e == "terminate" then
 					env.error()
 				end
 
-				if e ~= env.event_exitWebsite and e ~= env.event_redirect and e ~= env.event_exitApp 
-						and e ~= env.event_loadWebsite then
+				if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
+						and e ~= event_loadWebsite then
 					if a then
 						if e == a then return e, p1, p2, p3, p4, p5 end
 					else return e, p1, p2, p3, p4, p5 end
