@@ -2483,7 +2483,7 @@ local function loadSite(site)
 		for k, v in pairs(getfenv(0)) do nenv[k] = v end
 		for k, v in pairs(getfenv(1)) do nenv[k] = v end
 		nenv.term = {}
-		nenv.os = {}
+		--nenv.os = {}
 		nenv.shell = {}
 
 		nenv.term.getSize = function()
