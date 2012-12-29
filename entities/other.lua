@@ -2644,9 +2644,10 @@ local function loadSite(site)
 		end
 
 		nenv.os.pullEvent = function(a)
-			--[[while true do
+			while true do
 				env.debugLog("If you see this, that means shit is working")
 				debugLog("If you see this, that means something's wrong")
+				if a == "derp" then return true end
 				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw(a)
 				if env.event_exitWebsite == nil then
 					env.debugLog("Warning: Exit Website Event is Nil")
@@ -2665,8 +2666,7 @@ local function loadSite(site)
 						if e == a then return e, p1, p2, p3, p4, p5 end
 					else return e, p1, p2, p3, p4, p5 end
 				end
-			end]]
-			return nil
+			end
 		end
 
 		-- Run
