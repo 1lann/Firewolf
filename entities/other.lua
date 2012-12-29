@@ -3196,10 +3196,10 @@ local function startup()
 
 	-- Run
 	local _, err = pcall(main)
-	if err == event_exitWebsite then
+	if err:find(event_exitWebsite) then
 		while true do
 			_, err = pcall(function() parallel.waitForAll(addressBarMain, websiteMain, retrieveSearchResults) end)
-			if err ~= event_exitWebsite then
+			if not err:find(event_exitWebsite) then
 				break
 			end
 		end
