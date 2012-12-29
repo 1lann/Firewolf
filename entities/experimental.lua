@@ -2591,18 +2591,10 @@ local function loadSite(site)
 			end
 
 			api.prompt(a, dir)
-
-			-- To cancel out the os.queueEvent at the end of the prompt software
-			-- It was causing the website to become non-responsive
-			os.pullEvent(event_exitWebsite)
 		end
 
 		nenv.scrollingPrompt = function(list, x, y, len, width)
 			api.scrollingPrompt(list, x, y + 1, len, width)
-
-			-- To cancel out the os.queueEvent at the end of the prompt software
-			-- It was causing the website to become non-responsive
-			os.pullEvent(event_exitWebsite)
 		end
 
 		nenv.loadImageFromServer = function(image)
@@ -2698,8 +2690,6 @@ local function loadSite(site)
 					queueWebsiteExit = true
 					env.error(event_exitWebsite)
 				elseif e == "terminate" then
-					nenv.term.setTextColor(colors.red)
-					print("Terminated!")
 					env.error()
 				end
 
@@ -2717,7 +2707,7 @@ local function loadSite(site)
 		if fn and not(err) then
 			setfenv(fn, nenv)
 			_, err = pcall(fn)
-			setfenv(1, env)
+			setfenv(1, backupEnv)
 		end
 
 		-- Catch website error
