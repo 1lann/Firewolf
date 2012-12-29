@@ -583,6 +583,7 @@ end
 
 local i = 1
 local function record(text)
+	local oldX, oldY = term.getCursorPos()
 	local a = tostring(i) .. ":" .. string.rep(" ", 4 - tostring(i):len()) .. text
 	table.insert(totalRecordLines, a)
 	if #recordLines > 8 then table.remove(recordLines, 1) end
@@ -590,6 +591,7 @@ local function record(text)
 
 	if enableRecording then clearPage(true) end
 	i = i + 1
+	term.setCursorPos(oldX, oldY)
 end
 
 local function respondToEvents()
