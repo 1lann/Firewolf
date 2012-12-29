@@ -18,6 +18,7 @@
 --  To Do:
 --  - Finish Cookies
 --  - Back/Forward buttons
+--  - Fix sleep!
 
 
 --  -------- Variables

@@ -98,17 +98,13 @@ local function isAdvanced()
 	else return false end
 end
 
-local function oldPullEvent(a)
-	while true do
-		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
-		if e == "terminate" then
-			print("Terminated")
-			error()
-		else
-			if e then
-				if e == a then return e, p1, p2, p3, p4, p5 end
-			else return e, p1, p2, p3, p4, p5 end
-		end
+local function oldPullEvent(ex)
+	event, p1, p2, p3, p4, p5 = os.pullEventRaw(ex)
+	if event == "terminate" then
+		print("Terminated")
+		error()
+	else
+		return event, p1, p2, p3, p4, p5
 	end
 end
 
