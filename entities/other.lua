@@ -3138,7 +3138,7 @@ local function main()
 	website = homepage
 
 	-- Run
-	parallel.waitForAll(websiteMain, addressBarMain, retrieveSearchResults)
+	parallel.waitForAll(addressBarMain, websiteMain, retrieveSearchResults)
 end
 
 local function startup()
