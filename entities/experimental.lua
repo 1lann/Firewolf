@@ -12,7 +12,6 @@
 --  Features:
 --  - GitHub verification
 --  - Cookies
---  - Bookmarks
 --  - Back/Forward/Home buttons
 --  - Vastly improved Firewolf Rendering Engine
 
@@ -58,7 +57,6 @@ local verifiedDownloads = {}
 
 -- Website loading
 local website = ""
-local websiteRunning = false
 local homepage = ""
 local timeout = 0.08
 local openAddressBar = true
@@ -73,15 +71,11 @@ local protocols = {}
 local history = {}
 local addressBarHistory = {}
 
--- Bookmarks
-local bookmarks = {}
-
 -- Events
 local event_loadWebsite = "firewolf_loadWebsiteEvent"
 local event_exitWebsite = "firewolf_exitWebsiteEvent"
 local event_exitApp = "firewolf_exitAppEvent"
 local event_redirect = "firewolf_redirectEvent"
-local event_bookmark = "firewolf_bookmarkSiteEvent"
 
 -- Download URLs
 local firewolfURL = "https://raw.github.com/1lann/firewolf/master/entities/" .. serverID .. ".lua"
@@ -103,7 +97,6 @@ local availableThemesLocation = rootFolder .. "/available_themes"
 local serverSoftwareLocation = rootFolder .. "/server_software"
 local settingsLocation = rootFolder .. "/settings"
 local historyLocation = rootFolder .. "/history"
-local bookmarksLocation = rootFolder .. "/bookmarks"
 local firewolfLocation = "/" .. shell.getRunningProgram()
 
 local userBlacklist = rootFolder .. "/user_blacklist"
@@ -144,12 +137,6 @@ api.clearPage = function(site, color, redraw)
 	if title ~= nil then
 		term.setCursorPos(w - title:len(), 1)
 		write(title)
-	end
-
-	if websiteRunning then
-		term.setBackgroundColor(colors[theme["address-bar-background"]])
-		term.setCursorPos(w - 3, 1)
-		write("[B]")
 	end
 
 	term.setBackgroundColor(colors.black)
@@ -920,13 +907,6 @@ local function appendToHistory(site)
 	end
 end
 
-local function appendToBookmarks(site)
-	table.insert(bookmarks, site)
-	local f = io.open(bookmarksLocation, "w")
-	f:write(textutils.serialize(bookmarks))
-	f:close()
-end
-
 
 --  -------- Databases
 
@@ -1210,7 +1190,6 @@ pages.sites = function(site)
 	centerPrint(string.rep(" ", 43))
 	centerPrint("  rdnt://firewolf                Homepage  ")
 	centerPrint("  rdnt://history                  History  ")
-	centerPrint("  rdnt://bookmarks              Bookmarks  ")
 	centerPrint("  rdnt://downloads       Downloads Center  ")
 	centerPrint("  rdnt://server         Server Management  ")
 	centerPrint("  rdnt://help                   Help Page  ")
@@ -1225,14 +1204,13 @@ pages.sites = function(site)
 		if e == "mouse_click" and x >= 7 and x <= 45 then
 			if y == sx then redirect("firewolf") return
 			elseif y == sx + 1 then redirect("history") return
-			elseif y == sx + 2 then redirect("bookmarks") return
-			elseif y == sx + 3 then redirect("downloads") return
-			elseif y == sx + 4 then redirect("server") return
-			elseif y == sx + 5 then redirect("help") return
-			elseif y == sx + 6 then redirect("settings") return
-			elseif y == sx + 7 then redirect("sites") return
-			elseif y == sx + 8 then redirect("credits") return
-			elseif y == sx + 9 then redirect("exit") return
+			elseif y == sx + 2 then redirect("downloads") return
+			elseif y == sx + 3 then redirect("server") return
+			elseif y == sx + 4 then redirect("help") return
+			elseif y == sx + 5 then redirect("settings") return
+			elseif y == sx + 6 then redirect("sites") return
+			elseif y == sx + 7 then redirect("credits") return
+			elseif y == sx + 8 then redirect("exit") return
 			end
 		elseif e == event_exitWebsite then
 			os.queueEvent(event_exitWebsite)
@@ -1490,30 +1468,6 @@ pages.downloads = function(site)
 		os.queueEvent(event_exitWebsite)
 		return
 	end
-end
-
-pages.bookmarks = function(site)
-	clearPage(site, colors[theme["background"]])
-	term.setTextColor(colors[theme["text-color"]])
-	term.setBackgroundColor(colors[theme["top-box"]])
-	print("")
-	centerPrint(string.rep(" ", 47))
-	centerWrite(string.rep(" ", 47))
-	centerPrint("Bookmarks")
-	centerPrint(string.rep(" ", 47))
-	print("")
-
-	term.setBackgroundColor(colors[theme["bottom-box"]])
-	for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
-	
-end
-
-pages.favourites = function(site)
-	redirect("bookmarks")
-end
-
-pages.favorites = function(site)
-	redirect("bookmarks")
 end
 
 pages.server = function(site)
@@ -2521,7 +2475,7 @@ local function loadSite(site)
 		term.setTextColor(colors.white)
 
 		-- Setup environment
-		local curBackgroundColor, cur = colors.black, colors.white
+		local cbc, ctc = colors.black, colors.white
 		local nenv = {}
 		for k, v in pairs(env) do nenv[k] = v end
 		nenv.term = {}
@@ -2549,21 +2503,21 @@ local function loadSite(site)
 		end
 
 		nenv.term.setBackgroundColor = function(col)
-			curBackgroundColor = col
+			cbc = col
 			return env.term.setBackgroundColor(col)
 		end
 
 		nenv.term.setBackgroundColour = function(col)
-			curBackgroundColor = col
+			cbc = col
 			return env.term.setBackgroundColour(col)
 		end
 
 		nenv.term.getBackgroundColor = function()
-			return curBackgroundColor
+			return cbc
 		end
 
 		nenv.term.getBackgroundColour = function()
-			return curBackgroundColor
+			return cbc
 		end
 
 		nenv.term.setTextColor = function(col)
@@ -2598,7 +2552,7 @@ local function loadSite(site)
 		term.scroll = function(n)
 			local x, y = env.term.getCursorPos()
 			oldScroll(n)
-			clearPage(website, curBackgroundColor, true)
+			clearPage(website, cbc, true)
 			env.term.setCursorPos(x, y)
 		end
 
@@ -2620,30 +2574,74 @@ local function loadSite(site)
 
 		nenv.loadImageFromServer = function(image)
 			sleep(0.1)
-			local mid, msgImage = curProtocol.getWebsite(site .. "/" .. image)
+			local mid, msgImage = curProtocol.getWebsite(site.."/"..image)
 			if mid then
-				local f = env.io.open(rootFolder .. "/tempImage", "w")
+				local f = env.io.open("/.Firewolf_Data/tempImage", "w")
 				f:write(msgImage)
 				f:close()
-				local a = env.paintutils.loadImage(rootFolder .. "/tempImage")
-				fs.delete(rootFolder .. "/tempImage")
-				return a
+				local rImage = env.paintutils.loadImage("/.Firewolf_Data/tempImage")
+				fs.delete("/.Firewolf_Data/tempImage")
+				return rImage
 			end
 			return nil
 		end
 
 		nenv.ioReadFileFromServer = function(file)
 			sleep(0.1)
-			local mid, msgFile = curProtocol.getWebsite(site .. "/" .. file)
+			local mid, msgFile = curProtocol.getWebsite(site.."/"..file)
 			if mid then
-				local f = env.io.open(rootFolder .. "/tempFile", "w")
+				local f = env.io.open("/.Firewolf_Data/tempFile", "w")
 				f:write(msgFile)
 				f:close()
-				local a = env.io.open(rootFolder .. "/tempFile", "r")
-				return a
+				local rFile = env.io.open("/.Firewolf_Data/tempFile", "r")
+				return rFile
 			end
 			return nil
 		end
+
+		--[[nenv.getCookie = function(cookieId)
+			env.rednet.send(id, textutils.serialize({"getCookie", cookieId}))
+			local startClock = os.clock()
+			while os.clock() - startClock < 0.1 do
+				local mid, status = env.rednet.receive(0.1)
+				if mid == id then
+					if status == "[$notexist$]" then
+						return false
+					elseif env.string.find(status, "[$cookieData$]") then
+						return env.string.gsub(status, "[$cookieData$]", "")
+					end
+				end
+			end
+			return false
+		end
+
+		nenv.createCookie = function(cookieId)
+			env.rednet.send(id, textutils.serialize({"createCookie", cookieId}))
+			local startClock = os.clock()
+			while os.clock() - startClock < 0.1 do
+				local mid, status = env.rednet.receive(0.1)
+				if mid == id then
+					if status == "[$notexist$]" then
+						return false
+					elseif env.string.find(status, "[$cookieData$]") then
+						return env.string.gsub(status, "[$cookieData$]", "")
+					end
+				end
+			end
+			return false
+		end
+
+		nenv.bakeCookie = function(cookieId)
+			nenv.createCookie(cookieId)
+		end
+
+		nenv.deleteCookie = function(cookieId)
+
+		end
+
+		nenv.eatCookie = function(cookieId)
+			nenv.deleteCookie(cookieId)
+		end]]
 
 		nenv.redirect = function(url)
 			api.redirect(url)
@@ -2652,7 +2650,7 @@ local function loadSite(site)
 
 		nenv.shell.run = function(file, ...)
 			if file == "clear" then
-				api.clearPage(website, curBackgroundColor)
+				api.clearPage(website, cbc)
 				env.term.setCursorPos(1, 2)
 			else
 				env.shell.run(file, unpack({...}))
@@ -2667,23 +2665,10 @@ local function loadSite(site)
 					env.error(event_exitWebsite)
 				elseif e == "terminate" then
 					env.error()
-				elseif e == event_bookmark then
-					appendToBookmarks(website)
-					local b, t = nenv.term.getBackgroundColor(), nenv.term.getTextColor()
-					local ox, oy = term.getCursorPos()
-					term.setTextColor(colors[theme["address-bar-text"]])
-					term.setBackgroundColor(colors[theme["address-bar-background"]])
-					term.setCursorPos(w - 9, 1)
-					write("Added!")
-					sleep(1.1)
-
-					term.setBackgroundColor(b)
-					term.setTextColor(t)
-					term.setCursorPos(ox, oy)
 				end
 
 				if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
-						and e ~= event_loadWebsite and e ~= event_bookmark then
+						and e ~= event_loadWebsite then
 					if a then
 						if e == a then return e, p1, p2, p3, p4, p5 end
 					else return e, p1, p2, p3, p4, p5 end
@@ -2695,9 +2680,7 @@ local function loadSite(site)
 		local fn, err = loadfile(cacheLoc)
 		if fn and err == nil then
 			setfenv(fn, nenv)
-			websiteRunning = true
 			_, err = pcall(fn)
-			websiteRunning = false
 			setfenv(1, env)
 		end
 
@@ -3054,35 +3037,25 @@ local function addressBarMain()
 		if (e == "key" and (but == 29 or but == 157)) or 
 				(e == "mouse_click" and y == 1) then
 			if openAddressBar then
-				local skip = false
-				--[[if websiteRunning then
-					if x >= w - 3 and x <= w - 1 then
-						os.queueEvent(event_bookmark)
-						skip = true
-					end
-				end]]
+				-- Exit
+				os.queueEvent(event_exitWebsite)
 
-				if not(skip) then
-					-- Exit
-					os.queueEvent(event_exitWebsite)
-
-					-- Read
-					term.setBackgroundColor(colors[theme["address-bar-background"]])
-					term.setTextColor(colors[theme["address-bar-text"]])
-					term.setCursorPos(2, 1)
-					term.clearLine()
-					write("rdnt://")
-					local oldWebsite = website
-					website = addressBarRead()
-					if website == nil then
-						website = oldWebsite
-					elseif website == "home" or website == "homepage" then
-						website = homepage
-					end
-
-					-- Load
-					os.queueEvent(event_loadWebsite)
+				-- Read
+				term.setBackgroundColor(colors[theme["address-bar-background"]])
+				term.setTextColor(colors[theme["address-bar-text"]])
+				term.setCursorPos(2, 1)
+				term.clearLine()
+				write("rdnt://")
+				local oldWebsite = website
+				website = addressBarRead()
+				if website == nil then
+					website = oldWebsite
+				elseif website == "home" or website == "homepage" then
+					website = homepage
 				end
+
+				-- Load
+				os.queueEvent(event_loadWebsite)
 			end
 		elseif e == event_redirect then
 			if openAddressBar then

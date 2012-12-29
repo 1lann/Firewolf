@@ -2477,12 +2477,11 @@ local function loadSite(site)
 		term.setTextColor(colors.white)
 
 		-- Setup environment
-		local curBackgroundColor = colors.black
+		local cbc, ctc = colors.black, colors.white
 		local nenv = {}
-		for k, v in pairs(getfenv(0)) do nenv[k] = v end
-		for k, v in pairs(getfenv(1)) do nenv[k] = v end
+		for k, v in pairs(env) do nenv[k] = v end
 		nenv.term = {}
-		--nenv.os = {}
+		nenv.os = {}
 		nenv.shell = {}
 
 		nenv.term.getSize = function()
@@ -2501,27 +2500,26 @@ local function loadSite(site)
 
 		nenv.term.clear = function()
 			local x, y = env.term.getCursorPos()
-			local a = api.clearPage(website, curBackgroundColor)
+			api.clearPage(website, cbg)
 			env.term.setCursorPos(x, y)
-			return a
 		end
 
 		nenv.term.setBackgroundColor = function(col)
-			curBackgroundColor = col
+			cbc = col
 			return env.term.setBackgroundColor(col)
 		end
 
 		nenv.term.setBackgroundColour = function(col)
-			curBackgroundColor = col
+			cbc = col
 			return env.term.setBackgroundColour(col)
 		end
 
 		nenv.term.getBackgroundColor = function()
-			return curBackgroundColor
+			return cbc
 		end
 
 		nenv.term.getBackgroundColour = function()
-			return curBackgroundColor
+			return cbc
 		end
 
 		nenv.term.setTextColor = function(col)
@@ -2548,29 +2546,38 @@ local function loadSite(site)
 			return env.write(text)
 		end
 
-		nenv.print = function(text)
-			return env.print(text)
+		nenv.print = function(...)
+			return env.print(...)
 		end
 
 		local oldScroll = term.scroll
 		term.scroll = function(n)
 			local x, y = env.term.getCursorPos()
 			oldScroll(n)
-			clearPage(website, curBackgroundColor, true)
+			clearPage(website, cbc, true)
 			env.term.setCursorPos(x, y)
 		end
 
-		nenv.redirect = function(url)
-			api.redirect(url)
-			env.error()
+		nenv.prompt = function(list, dir)
+			local a = {}
+			for k, v in pairs(list) do
+				local b, t = v.b, v.t
+				if b == nil then b = cbg end
+				if t == nil then t = ctc end
+				table.insert(a, {v[1], v[2], v[3] + 1, bg = b, tc = t})
+			end
+
+			api.prompt(a, dir)
+		end
+
+		nenv.scrollingPrompt = function(list, x, y, len, width)
+			api.scrollingPrompt(list, x, y + 1, len, width)
 		end
 
 		nenv.loadImageFromServer = function(image)
 			sleep(0.1)
 			local mid, msgImage = curProtocol.getWebsite(site.."/"..image)
 			if mid then
-				--debugLog("ID: " .. tostring(mid))
-				--debugLog("Temp Image Data: " .. msgImage)
 				local f = env.io.open("/.Firewolf_Data/tempImage", "w")
 				f:write(msgImage)
 				f:close()
@@ -2585,8 +2592,6 @@ local function loadSite(site)
 			sleep(0.1)
 			local mid, msgFile = curProtocol.getWebsite(site.."/"..file)
 			if mid then
-				--debugLog("ID: " .. tostring(mid))
-				--debugLog("Temp File Data: " .. msgFile)
 				local f = env.io.open("/.Firewolf_Data/tempFile", "w")
 				f:write(msgFile)
 				f:close()
@@ -2595,9 +2600,8 @@ local function loadSite(site)
 			end
 			return nil
 		end
-		--[[
 
-		nenv.getCookie = function(cookieId)
+		--[[nenv.getCookie = function(cookieId)
 			env.rednet.send(id, textutils.serialize({"getCookie", cookieId}))
 			local startClock = os.clock()
 			while os.clock() - startClock < 0.1 do
@@ -2629,13 +2633,26 @@ local function loadSite(site)
 			return false
 		end
 
+		nenv.bakeCookie = function(cookieId)
+			nenv.createCookie(cookieId)
+		end
+
 		nenv.deleteCookie = function(cookieId)
 
+		end
+
+		nenv.eatCookie = function(cookieId)
+			nenv.deleteCookie(cookieId)
 		end]]
+
+		nenv.redirect = function(url)
+			api.redirect(url)
+			env.error()
+		end
 
 		nenv.shell.run = function(file, ...)
 			if file == "clear" then
-				api.clearPage(website, curBackgroundColor)
+				api.clearPage(website, cbc)
 				env.term.setCursorPos(1, 2)
 			else
 				env.shell.run(file, unpack({...}))
@@ -2644,10 +2661,9 @@ local function loadSite(site)
 
 		nenv.os.pullEvent = function(a)
 			while true do
-				if a == "derp" then return true end
-				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw(a)
+				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
 				if e == event_exitWebsite then
-					debugLog("Exiting Website Event")
+					os.queueEvent(event_exitWebsite)
 					env.error(event_exitWebsite)
 				elseif e == "terminate" then
 					env.error()
@@ -2669,7 +2685,7 @@ local function loadSite(site)
 			_, err = pcall(fn)
 			setfenv(1, env)
 		end
-		debugLog("Exiting Website Properly")
+
 		-- Catch website error
 		if err and not(err:find(event_exitWebsite)) then errPages.crash(err) end
 	end
