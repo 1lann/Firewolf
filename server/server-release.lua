@@ -73,6 +73,21 @@ local function oldPullEvent(ex)
 	end
 end
 
+-- Args
+	if #args >= 2 then
+		website = args[1]:gsub("^%s*(.-)%s*$", "%1")
+		dataLocation = args[2]:gsub("^%s*(.-)%s*$", "%1")
+		statsLocation = rootFolder .. "/" .. website .. "_stats"
+		passwordDataLocation = rootFolder .. "/." .. website .. "_password"
+	else
+		term.clear()
+		term.setCursorPos(1, 3)
+		centerWrite("Invalid Arguments! D:")
+		sleep(1.1)
+		return
+	end
+
+
 
 
 --  -------- API Functions
@@ -1044,20 +1059,6 @@ local function main()
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Loading Firewolf Server...")
 	centerWrite(string.rep(" ", 47))
-
-	-- Args
-	if #args >= 2 then
-		website = args[1]:gsub("^%s*(.-)%s*$", "%1")
-		dataLocation = args[2]:gsub("^%s*(.-)%s*$", "%1")
-		statsLocation = rootFolder .. "/" .. website .. "_stats"
-		passwordDataLocation = rootFolder .. "/." .. website .. "_password"
-	else
-		term.clear()
-		term.setCursorPos(1, 3)
-		centerWrite("Invalid Arguments! D:")
-		sleep(1.1)
-		return
-	end
 
 	-- Filesystem
 	if not(validateFilesystem()) then return end
