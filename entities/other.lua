@@ -2598,6 +2598,43 @@ local function loadSite(site)
 			end
 			return nil
 		end
+		--[[
+
+		nenv.getCookie = function(cookieId)
+			env.rednet.send(id, textutils.serialize({"getCookie", cookieId}))
+			local startClock = os.clock()
+			while os.clock() - startClock < 0.1 do
+				local mid, status = env.rednet.receive(0.1)
+				if mid == id then
+					if status == "[$notexist$]" then
+						return false
+					elseif env.string.find(status, "[$cookieData$]") then
+						return env.string.gsub(status, "[$cookieData$]", "")
+					end
+				end
+			end
+			return false
+		end
+
+		nenv.createCookie = function(cookieId)
+			env.rednet.send(id, textutils.serialize({"createCookie", cookieId}))
+			local startClock = os.clock()
+			while os.clock() - startClock < 0.1 do
+				local mid, status = env.rednet.receive(0.1)
+				if mid == id then
+					if status == "[$notexist$]" then
+						return false
+					elseif env.string.find(status, "[$cookieData$]") then
+						return env.string.gsub(status, "[$cookieData$]", "")
+					end
+				end
+			end
+			return false
+		end
+
+		nenv.deleteCookie = function(cookieId)
+
+		end]]
 
 		nenv.shell.run = function(file, ...)
 			if file == "clear" then
