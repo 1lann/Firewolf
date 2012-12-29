@@ -1146,7 +1146,6 @@ protocols.rdnt.getWebsite = function(site)
 		end
 	end
 	debugLog(site)
-	debugLog(content)
 	return id, content, status
 end
 
@@ -2649,7 +2648,7 @@ local function loadSite(site)
 			while true do
 				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
 				if e == event_exitWebsite then
-					debugLog("Exiting Website Event")
+					env.debugLog("Exiting Website Event")
 					env.os.queueEvent(event_exitWebsite)
 					env.error(event_exitWebsite)
 					env.error(event_exitWebsite)
@@ -3029,6 +3028,10 @@ local function addressBarMain()
 			if openAddressBar then
 				-- Exit
 				os.queueEvent(event_exitWebsite)
+				sleep(0.01)
+				os.queueEvent(event_exitWebsite)
+				sleep(0.01)
+				debugLog("Address bar activated")
 
 				-- Read
 				term.setBackgroundColor(colors[theme["address-bar-background"]])
