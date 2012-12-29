@@ -1,4 +1,3 @@
---  If you see this than that's great!
 --  
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
@@ -2645,7 +2644,7 @@ local function loadSite(site)
 		end
 
 		nenv.os.pullEvent = function(a)
-			while true do
+			--[[while true do
 				env.debugLog("If you see this, that means shit is working")
 				debugLog("If you see this, that means something's wrong")
 				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw(a)
@@ -2666,7 +2665,8 @@ local function loadSite(site)
 						if e == a then return e, p1, p2, p3, p4, p5 end
 					else return e, p1, p2, p3, p4, p5 end
 				end
-			end
+			end]]
+			return nil
 		end
 
 		-- Run
