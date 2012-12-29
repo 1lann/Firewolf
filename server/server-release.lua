@@ -592,6 +592,8 @@ local function record(text)
 	if enableRecording then clearPage(true) end
 	i = i + 1
 	term.setCursorPos(oldX, oldY)
+	term.setBackgroundColor(colors[theme["top-box"]])
+	term.setTextColor(colors[theme["text-color"]])
 end
 
 local function respondToEvents()
