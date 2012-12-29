@@ -2646,7 +2646,7 @@ local function loadSite(site)
 			while true do
 				if a == "derp" then return true end
 				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw(a)
-				if e == event_exitWebsite and then
+				if e == event_exitWebsite then
 					debugLog("Exiting Website Event")
 					env.error(event_exitWebsite)
 				elseif e == "terminate" then
