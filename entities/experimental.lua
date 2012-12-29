@@ -2677,13 +2677,15 @@ local function loadSite(site)
 			end
 		end
 
+		local queueWebsiteExit = false
 		nenv.os.pullEvent = function(a)
 			while true do
 				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
 				if e == event_exitWebsite then
-					os.queueEvent(event_exitWebsite)
+					queueWebsiteExit = true
 					env.error(event_exitWebsite)
 				elseif e == "terminate" then
+					queueWebsiteExit = true
 					env.error()
 				end
 
@@ -2698,7 +2700,7 @@ local function loadSite(site)
 
 		-- Run
 		local fn, err = loadfile(cacheLoc)
-		if fn and err == nil then
+		if fn and not(err) then
 			setfenv(fn, nenv)
 			_, err = pcall(fn)
 			setfenv(1, env)
@@ -2706,6 +2708,7 @@ local function loadSite(site)
 
 		-- Catch website error
 		if err and not(err:find(event_exitWebsite)) then errPages.crash(err) end
+		if queueWebsiteExit then os.queueEvent(event_exitWebsite) end
 	end
 
 	-- Draw
@@ -2958,6 +2961,7 @@ local function websiteMain()
 			loadingRate = 0
 			skip = true
 		end if not(skip) then
+			-- Add to history
 			appendToHistory(website)
 
 			-- Render site
