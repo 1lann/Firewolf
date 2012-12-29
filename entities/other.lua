@@ -2646,6 +2646,8 @@ local function loadSite(site)
 
 		nenv.os.pullEvent = function(a)
 			while true do
+				env.debugLog("If you see this, that means shit is working")
+				debugLog("If you see this, that means something's wrong")
 				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw(a)
 				if env.event_exitWebsite == nil then
 					env.debugLog("Warning: Exit Website Event is Nil")
