@@ -2667,9 +2667,6 @@ local function loadSite(site)
 		if fn and err == nil then
 			setfenv(fn, nenv)
 			_, err = pcall(fn)
-			env.isWebsiteRunning = false
-			nenv.isWebsiteRunning = false
-			local isWebsiteRunning = true
 			setfenv(1, env)
 		end
 		debugLog("Exiting Website Properly")
@@ -3030,6 +3027,7 @@ local function addressBarMain()
 
 				-- Exit
 				os.queueEvent(event_exitWebsite)
+				pcall(sleep(0.01))
 				--debugLog("Address bar activated")
 
 				-- Read
@@ -3039,7 +3037,7 @@ local function addressBarMain()
 				term.clearLine()
 				write("rdnt://")
 				local oldWebsite = website
-				website = addressBarRead()
+				pcall(function() website = addressBarRead() end)
 				if website == nil then
 					website = oldWebsite
 				elseif website == "home" or website == "homepage" then
