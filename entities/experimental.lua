@@ -2,7 +2,7 @@
 --  
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
---  License: https://raw.github.com/1lann/Firewolf/master/LICENSE
+--  License found here: https://raw.github.com/1lann/Firewolf/master/LICENSE
 --
 --  Original Concept From RednetExplorer 2.4.1
 --  RednetExplorer Made by ComputerCraftFan11
@@ -11,9 +11,12 @@
 
 --  Features:
 --  - GitHub verification
---  - Cookies
---  - Back/Forward/Home buttons
+--  - News
 --  - Vastly improved Firewolf Rendering Engine
+
+--  To Do:
+--  - Finish Cookies
+--  - Back/Forward buttons
 
 
 --  -------- Variables
@@ -389,6 +392,7 @@ setfenv(1, env)
 local function debugLog(n, ...)
 	local lArgs = {...}
 	if debugFile then
+		if n == nil then n = "" end
 		debugFile:write("\n" .. n .. " : ")
 		for k, v in pairs(lArgs) do 
 			if type(v) == "string" or type(v) == "number" or type(v) == nil then
@@ -536,9 +540,11 @@ ff f f ee
 --  -------- Themes
 
 local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
-	["top-box"] = "red", ["bottom-box"] = "orange", ["text-color"] = "white", ["background"] = "gray"}
+	["address-bar-base"] = "lightGray", ["top-box"] = "red", ["bottom-box"] = "orange", 
+	["text-color"] = "white", ["background"] = "gray"}
 local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "black", 
-	["top-box"] = "black", ["bottom-box"] = "black", ["text-color"] = "white", ["background"] = "black"}
+	["address-bar-base"] = "black", ["top-box"] = "black", ["bottom-box"] = "black", 
+	["text-color"] = "white", ["background"] = "black"}
 
 local ownThemeFileContent = [[
 -- Text color of the address bar
@@ -571,7 +577,7 @@ local function loadTheme(path)
 		local l = f:read("*l")
 		while l ~= nil do
 			l = l:gsub("^%s*(.-)%s*$", "%1")
-			if l ~= "" and l ~= nil and l ~= "\n" then
+			if l ~= "" and l ~= nil and l ~= "\n" and l:sub(1, 2) ~= "--" then
 				local b = l:find("=")
 				if a and b then
 					local c = l:sub(1, b - 1)
@@ -746,12 +752,12 @@ local function verifyGitHub()
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["background"]])
 			term.clear()
-			local f = io.open(rootFolder .. "/temp_image", "w")
+			local f = io.open(rootFolder .. "/temp_file", "w")
 			f:write(graphics.githubImage)
 			f:close()
-			local a = paintutils.loadImage(rootFolder .. "/temp_image")
+			local a = paintutils.loadImage(rootFolder .. "/temp_file")
 			paintutils.drawImage(a, 1, 3)
-			fs.delete(rootFolder .. "/temp_image")
+			fs.delete(rootFolder .. "/temp_file")
 
 			term.setCursorPos(19, 4)
 			term.setBackgroundColor(colors[theme["top-box"]])
@@ -865,6 +871,9 @@ local function resetFilesystem()
 			f:close()
 		end
 	end
+
+	-- Temp file
+	fs.delete(rootFolder .. "/temp_file")
 
 	return nil
 end
@@ -1523,6 +1532,7 @@ pages.server = function(site)
 					term.setTextColor(colors.white)
 					shell.run(com, unpack(words, 2))
 				else
+					term.setTextColor(colors.red)
 					print("Program Not Allowed!")
 				end
 			end
@@ -1547,7 +1557,7 @@ pages.server = function(site)
 		for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
 		term.setCursorPos(5, 9)
 		write("Name: ")
-		local name = modRead(nil, nil, 37)
+		local name = modRead(nil, nil, 28, true)
 		if name == nil then
 			os.queueEvent(event_exitWebsite)
 			return
@@ -1564,7 +1574,7 @@ pages.server = function(site)
 		url = url:gsub(" ", "")
 
 		local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
-			"[", "]", "{", "}", "\\", "\"", ":", ";", "?", "<", ">", ",", "`"}
+			"[", "]", "{", "}", "\\", "\"", "'", ":", ";", "?", "<", ">", ",", "`", "-"}
 		local b = false
 		for k, v in pairs(a) do
 			if url:find(v, 1, true) then
@@ -1647,7 +1657,10 @@ pages.server = function(site)
 			term.setCursorPos(30, 8)
 			write(string.rep(" ", 19))
 			term.setCursorPos(30, 8)
-			if l[sel] then write(l[sel])
+			if l[sel] then
+				local nv = v
+				if nv:len() > 18 then nv = nv:sub(1, 15) .. "..." end
+				write(nl)
 			else write("No Server Selected!") end
 			term.setCursorPos(30, 10)
 			write("[- Start -]")
@@ -1717,6 +1730,8 @@ pages.server = function(site)
 					return
 				elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
 					editPages(disList[sel])
+					redirect("server")
+					return
 				elseif x >= 30 and x <= 46 and y == 14 and #servers > 0 then
 					-- Startup
 					fs.delete("/old-startup")
@@ -2031,7 +2046,7 @@ pages.settings = function(site)
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 9 do centerPrint(string.rep(" ", 43)) end
-		local opt = prompt({{a, 6, 10}, {b, 6, 12}, {c, 6, 14}, {"Reset Firewolf", 6, 16}}, "vertical")
+		local opt = prompt({{a, 7, 10}, {b, 7, 12}, {c, 7, 14}, {"Reset Firewolf", 7, 16}}, "vertical")
 		if opt == a then
 			if autoupdate == "true" then autoupdate = "false"
 			elseif autoupdate == "false" then autoupdate = "true" end
@@ -2087,6 +2102,7 @@ pages.settings = function(site)
 				redirect("settings")
 				return
 			elseif opt == nil then
+				openAddressBar = true
 				os.queueEvent(event_exitWebsite)
 				return
 			end
@@ -2151,7 +2167,11 @@ pages.update = function(site)
 		fs.delete(updateLocation)
 		download(firewolfURL, updateLocation)
 		centerWrite(string.rep(" ", 43))
-		centerWrite("Done! Restarting...")
+		centerPrint("Done!")
+		centerWrite(string.rep(" ", 43))
+		if term.isColor() then centerPrint("Click to exit...")
+		else centerPrint("Press any key to exit...") end
+		centerPrint(string.rep(" ", 43))
 		sleep(1.1)
 		fs.delete(firewolfLocation)
 		fs.move(updateLocation, firewolfLocation)
@@ -2201,7 +2221,7 @@ end
 --	centerPrint("Retrieve Website Information")
 --	centerPrint(string.rep(" ", 43))
 --	print("\n")
---
+-- 
 --	term.setBackgroundColor(colors[theme["bottom-box"]])
 --	centerPrint(string.rep(" ", 43))
 --	centerPrint(string.rep(" ", 43))
@@ -2215,7 +2235,7 @@ end
 --		return
 --	end
 --	local id, content, status = getWebsite(a)
---
+-- 
 --	if id ~= nil then
 --		term.setCursorPos(1, 10)
 --		centerPrint("  rdnt://" .. a .. string.rep(" ", 34 - a:len()))
@@ -2576,11 +2596,11 @@ local function loadSite(site)
 			sleep(0.1)
 			local mid, msgImage = curProtocol.getWebsite(site.."/"..image)
 			if mid then
-				local f = env.io.open("/.Firewolf_Data/tempImage", "w")
+				local f = env.io.open(rootFolder .. "/temp_file", "w")
 				f:write(msgImage)
 				f:close()
-				local rImage = env.paintutils.loadImage("/.Firewolf_Data/tempImage")
-				fs.delete("/.Firewolf_Data/tempImage")
+				local rImage = env.paintutils.loadImage(rootFolder .. "/temp_file")
+				fs.delete(rootFolder .. "/temp_file")
 				return rImage
 			end
 			return nil
@@ -2590,10 +2610,10 @@ local function loadSite(site)
 			sleep(0.1)
 			local mid, msgFile = curProtocol.getWebsite(site.."/"..file)
 			if mid then
-				local f = env.io.open("/.Firewolf_Data/tempFile", "w")
+				local f = env.io.open(rootFolder .. "/temp_file", "w")
 				f:write(msgFile)
 				f:close()
-				local rFile = env.io.open("/.Firewolf_Data/tempFile", "r")
+				local rFile = env.io.open(rootFolder .. "/temp_file", "r")
 				return rFile
 			end
 			return nil
