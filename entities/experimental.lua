@@ -2038,8 +2038,9 @@ pages.settings = function(site)
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Firewolf Settings")
 		centerWrite(string.rep(" ", 43))
-		if not(fs.exists("/.var/settings")) then centerPrint("Designed For: " .. serverList[serverID])
-		else centerPrint("Designed For: NDF-OS") end
+		if fs.exists("/.var/settings") then centerPrint("Designed For: NDF-OS")
+		elseif fs.exists("/.bustedOs") then centerPrint("Designed For: BustedOS")
+		else centerPrint("Designed For: " .. serverList[serverID]) end
 		centerPrint(string.rep(" ", 43))
 		print("")
 
@@ -3463,16 +3464,12 @@ term.setCursorBlink(false)
 term.clear()
 term.setCursorPos(1, 1)
 
-if not(fs.exists("/.var/settings")) and not(skipExit) then
-	api.centerPrint("Thank You for Using Firewolf " .. version)
-	api.centerPrint("Made by 1lann and GravityScore")
-	term.setCursorPos(1, 3)
-elseif not(skipExit) then
+if (fs.exists("/.var/settings") or fs.exists("/.bustedOs")) and not(skipExit) then
 	term.setBackgroundColor(colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
 	term.clear()
 	term.setCursorPos(1, 5)
-	term.setBackgroundColor(colors[theme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	api.centerPrint(string.rep(" ", 43))
 	api.centerWrite(string.rep(" ", 43))
 	api.centerPrint("Thank You for Using Firewolf " .. version)
@@ -3493,6 +3490,10 @@ elseif not(skipExit) then
 	term.setBackgroundColor(colors.black)
 	term.clear()
 	term.setCursorPos(1, 1)
+elseif not(skipExit) then
+	api.centerPrint("Thank You for Using Firewolf " .. version)
+	api.centerPrint("Made by 1lann and GravityScore")
+	term.setCursorPos(1, 3)
 end
 
 -- Close

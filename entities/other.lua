@@ -30,7 +30,7 @@ browserAgent = browserAgentTemplate
 local tArgs = {...}
 
 -- Server Identification
-local serverID = "other"
+local serverID = "experimental"
 local serverList = {blackwolf = "BlackWolf", geevancraft = "GeevanCraft", 
 		experimental = "Experimental", other = "Other"}
 
@@ -895,9 +895,10 @@ local function updateClient()
 		fs.delete(firewolfLocation)
 		fs.move(updateLocation, firewolfLocation)
 		shell.run(firewolfLocation)
-		error()
+		return true
 	else
 		fs.delete(updateLocation)
+		return false
 	end
 end
 
@@ -2037,8 +2038,9 @@ pages.settings = function(site)
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Firewolf Settings")
 		centerWrite(string.rep(" ", 43))
-		if not(fs.exists("/.var/settings")) then centerPrint("Designed For: " .. serverList[serverID])
-		else centerPrint("Designed For: NDF-OS") end
+		if fs.exists("/.var/settings") then centerPrint("Designed For: NDF-OS")
+		elseif fs.exists("/.bustedOs") then centerPrint("Designed For: BustedOS")
+		else centerPrint("Designed For: " .. serverList[serverID]) end
 		centerPrint(string.rep(" ", 43))
 		print("")
 
@@ -3318,7 +3320,7 @@ local function main()
 	-- Update
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Checking For Updates...")
-	if autoupdate == "true" then updateClient() end
+	if autoupdate == "true" then if updateClient() then return true end end
 
 	-- Modem
 	if not(errPages.checkForModem()) then return end
@@ -3326,8 +3328,10 @@ local function main()
 
 	-- Run
 	parallel.waitForAll(websiteMain, addressBarMain, retrieveSearchResults)
+	return false
 end
 
+local skipExit = false
 local function startup()
 	-- HTTP API
 	if not(http) then
@@ -3382,7 +3386,7 @@ local function startup()
 	end
 
 	-- Run
-	local _, err = pcall(main)
+	local _, err = pcall(function() skipExit = main() end)
 	if err ~= nil then
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["background"]])
@@ -3458,18 +3462,14 @@ if isAdvanced() then
 end
 term.setCursorBlink(false)
 term.clear()
+term.setCursorPos(1, 1)
 
-if not(fs.exists("/.var/settings")) then
-	term.setCursorPos(1, 1)
-	api.centerPrint("Thank You for Using Firewolf " .. version)
-	api.centerPrint("Made by 1lann and GravityScore")
-	term.setCursorPos(1, 3)
-else
+if (fs.exists("/.var/settings") or fs.exists("/.bustedOs")) and not(skipExit) then
 	term.setBackgroundColor(colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
 	term.clear()
 	term.setCursorPos(1, 5)
-	term.setBackgroundColor(colors[theme["bottom-box"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
 	api.centerPrint(string.rep(" ", 43))
 	api.centerWrite(string.rep(" ", 43))
 	api.centerPrint("Thank You for Using Firewolf " .. version)
@@ -3485,6 +3485,15 @@ else
 		local e = os.pullEvent()
 		if e == "mouse_click" or e == "key" then break end
 	end
+
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.black)
+	term.clear()
+	term.setCursorPos(1, 1)
+elseif not(skipExit) then
+	api.centerPrint("Thank You for Using Firewolf " .. version)
+	api.centerPrint("Made by 1lann and GravityScore")
+	term.setCursorPos(1, 3)
 end
 
 -- Close
