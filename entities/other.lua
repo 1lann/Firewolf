@@ -2570,6 +2570,10 @@ local function loadSite(site)
 			return env.print(...)
 		end
 
+		nenv.term.isColor = function()
+			return isAdvanced()
+		end
+
 		local oldScroll = term.scroll
 		term.scroll = function(n)
 			local x, y = env.term.getCursorPos()
