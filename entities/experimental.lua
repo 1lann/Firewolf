@@ -895,9 +895,10 @@ local function updateClient()
 		fs.delete(firewolfLocation)
 		fs.move(updateLocation, firewolfLocation)
 		shell.run(firewolfLocation)
-		error()
+		return true
 	else
 		fs.delete(updateLocation)
+		return false
 	end
 end
 
@@ -3318,7 +3319,7 @@ local function main()
 	-- Update
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Checking For Updates...")
-	if autoupdate == "true" then updateClient() end
+	if autoupdate == "true" then if updateClient() then return true end end
 
 	-- Modem
 	if not(errPages.checkForModem()) then return end
@@ -3326,8 +3327,10 @@ local function main()
 
 	-- Run
 	parallel.waitForAll(websiteMain, addressBarMain, retrieveSearchResults)
+	return false
 end
 
+local skipExit = false
 local function startup()
 	-- HTTP API
 	if not(http) then
@@ -3382,7 +3385,7 @@ local function startup()
 	end
 
 	-- Run
-	local _, err = pcall(main)
+	local _, err = pcall(function() skipExit = main() end)
 	if err ~= nil then
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["background"]])
@@ -3458,13 +3461,13 @@ if isAdvanced() then
 end
 term.setCursorBlink(false)
 term.clear()
+term.setCursorPos(1, 1)
 
-if not(fs.exists("/.var/settings")) then
-	term.setCursorPos(1, 1)
+if not(fs.exists("/.var/settings")) and not(skipExit) then
 	api.centerPrint("Thank You for Using Firewolf " .. version)
 	api.centerPrint("Made by 1lann and GravityScore")
 	term.setCursorPos(1, 3)
-else
+elseif not(skipExit) then
 	term.setBackgroundColor(colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
 	term.clear()
@@ -3485,6 +3488,11 @@ else
 		local e = os.pullEvent()
 		if e == "mouse_click" or e == "key" then break end
 	end
+
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.black)
+	term.clear()
+	term.setCursorPos(1, 1)
 end
 
 -- Close
