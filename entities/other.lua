@@ -2711,144 +2711,144 @@ local function loadSite(site)
 			end
 		end
 
-	function nenv.read( _sReplaceChar, _tHistory )
-		term.setCursorBlink( true )
+		function nenv.read( _sReplaceChar, _tHistory )
+			term.setCursorBlink( true )
 
-	    local sLine = ""
-		local nHistoryPos = nil
-		local nPos = 0
-	    if _sReplaceChar then
-			_sReplaceChar = string.sub( _sReplaceChar, 1, 1 )
-		end
-		
-		local w, h = term.getSize()
-		local sx, sy = term.getCursorPos()	
+		    local sLine = ""
+			local nHistoryPos = nil
+			local nPos = 0
+		    if _sReplaceChar then
+				_sReplaceChar = string.sub( _sReplaceChar, 1, 1 )
+			end
+			
+			local w, h = term.getSize()
+			local sx, sy = term.getCursorPos()	
 
-		local function ospullEvent(a)
-			if a == "derp" then return true end
+			local function ospullEvent(a)
+				if a == "derp" then return true end
+				while true do
+					local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
+					if e == event_exitWebsite then
+						queueWebsiteExit = true
+						env.error(event_exitWebsite)
+					elseif e == "terminate" then
+						env.error()
+					end
+
+					if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
+							and e ~= event_loadWebsite then
+						if a then
+							if e == a then return e, p1, p2, p3, p4, p5 end
+						else return e, p1, p2, p3, p4, p5 end
+					end
+				end
+			end
+			
+			local function redraw( _sCustomReplaceChar )
+				local nScroll = 0
+				if sx + nPos >= w then
+					nScroll = (sx + nPos) - w
+				end
+					
+				term.setCursorPos( sx, sy )
+				local sReplace = _sCustomReplaceChar or _sReplaceChar
+				if sReplace then
+					term.write( string.rep(sReplace, string.len(sLine) - nScroll) )
+				else
+					term.write( string.sub( sLine, nScroll + 1 ) )
+				end
+				term.setCursorPos( sx + nPos - nScroll, sy )
+			end
+			
 			while true do
-				local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
-				if e == event_exitWebsite then
-					queueWebsiteExit = true
-					env.error(event_exitWebsite)
-				elseif e == "terminate" then
-					env.error()
-				end
-
-				if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
-						and e ~= event_loadWebsite then
-					if a then
-						if e == a then return e, p1, p2, p3, p4, p5 end
-					else return e, p1, p2, p3, p4, p5 end
-				end
-			end
-		end
-		
-		local function redraw( _sCustomReplaceChar )
-			local nScroll = 0
-			if sx + nPos >= w then
-				nScroll = (sx + nPos) - w
-			end
-				
-			term.setCursorPos( sx, sy )
-			local sReplace = _sCustomReplaceChar or _sReplaceChar
-			if sReplace then
-				term.write( string.rep(sReplace, string.len(sLine) - nScroll) )
-			else
-				term.write( string.sub( sLine, nScroll + 1 ) )
-			end
-			term.setCursorPos( sx + nPos - nScroll, sy )
-		end
-		
-		while true do
-			local sEvent, param = ospullEvent()
-			if sEvent == "char" then
-				sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
-				nPos = nPos + 1
-				redraw()
-				
-			elseif sEvent == "key" then
-			    if param == keys.enter then
-					-- Enter
-					break
+				local sEvent, param = ospullEvent()
+				if sEvent == "char" then
+					sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
+					nPos = nPos + 1
+					redraw()
 					
-				elseif param == keys.left then
-					-- Left
-					if nPos > 0 then
-						nPos = nPos - 1
-						redraw()
-					end
-					
-				elseif param == keys.right then
-					-- Right				
-					if nPos < string.len(sLine) then
-						nPos = nPos + 1
-						redraw()
-					end
-				
-				elseif param == keys.up or param == keys.down then
-	                -- Up or down
-					if _tHistory then
-						redraw(" ");
-						if param == keys.up then
-							-- Up
-							if nHistoryPos == nil then
-								if #_tHistory > 0 then
-									nHistoryPos = #_tHistory
-								end
-							elseif nHistoryPos > 1 then
-								nHistoryPos = nHistoryPos - 1
-							end
-						else
-							-- Down
-							if nHistoryPos == #_tHistory then
-								nHistoryPos = nil
-							elseif nHistoryPos ~= nil then
-								nHistoryPos = nHistoryPos + 1
-							end						
+				elseif sEvent == "key" then
+				    if param == keys.enter then
+						-- Enter
+						break
+						
+					elseif param == keys.left then
+						-- Left
+						if nPos > 0 then
+							nPos = nPos - 1
+							redraw()
 						end
 						
-						if nHistoryPos then
-	                    	sLine = _tHistory[nHistoryPos]
-	                    	nPos = string.len( sLine ) 
-	                    else
-							sLine = ""
-							nPos = 0
+					elseif param == keys.right then
+						-- Right				
+						if nPos < string.len(sLine) then
+							nPos = nPos + 1
+							redraw()
 						end
-						redraw()
-	                end
-				elseif param == keys.backspace then
-					-- Backspace
-					if nPos > 0 then
-						redraw(" ");
-						sLine = string.sub( sLine, 1, nPos - 1 ) .. string.sub( sLine, nPos + 1 )
-						nPos = nPos - 1					
+					
+					elseif param == keys.up or param == keys.down then
+		                -- Up or down
+						if _tHistory then
+							redraw(" ");
+							if param == keys.up then
+								-- Up
+								if nHistoryPos == nil then
+									if #_tHistory > 0 then
+										nHistoryPos = #_tHistory
+									end
+								elseif nHistoryPos > 1 then
+									nHistoryPos = nHistoryPos - 1
+								end
+							else
+								-- Down
+								if nHistoryPos == #_tHistory then
+									nHistoryPos = nil
+								elseif nHistoryPos ~= nil then
+									nHistoryPos = nHistoryPos + 1
+								end						
+							end
+							
+							if nHistoryPos then
+		                    	sLine = _tHistory[nHistoryPos]
+		                    	nPos = string.len( sLine ) 
+		                    else
+								sLine = ""
+								nPos = 0
+							end
+							redraw()
+		                end
+					elseif param == keys.backspace then
+						-- Backspace
+						if nPos > 0 then
+							redraw(" ");
+							sLine = string.sub( sLine, 1, nPos - 1 ) .. string.sub( sLine, nPos + 1 )
+							nPos = nPos - 1					
+							redraw()
+						end
+					elseif param == keys.home then
+						-- Home
+						nPos = 0
+						redraw()		
+					elseif param == keys.delete then
+						if nPos < string.len(sLine) then
+							redraw(" ");
+							sLine = string.sub( sLine, 1, nPos ) .. string.sub( sLine, nPos + 2 )
+							redraw()
+						end
+					elseif param == keys["end"] then
+						-- End
+						nPos = string.len(sLine)
 						redraw()
 					end
-				elseif param == keys.home then
-					-- Home
-					nPos = 0
-					redraw()		
-				elseif param == keys.delete then
-					if nPos < string.len(sLine) then
-						redraw(" ");
-						sLine = string.sub( sLine, 1, nPos ) .. string.sub( sLine, nPos + 2 )
-						redraw()
-					end
-				elseif param == keys["end"] then
-					-- End
-					nPos = string.len(sLine)
-					redraw()
 				end
 			end
+			
+			term.setCursorBlink( false )
+			term.setCursorPos( w + 1, sy )
+			print()
+			
+			return sLine
 		end
-		
-		term.setCursorBlink( false )
-		term.setCursorPos( w + 1, sy )
-		print()
-		
-		return sLine
-	end
 
 		-- Run
 		local fn, err = loadfile(cacheLoc)
