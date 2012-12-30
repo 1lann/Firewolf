@@ -2743,7 +2743,7 @@ local function loadSite(site)
 	end
 	
 	while true do
-		local sEvent, param = os.pullEvent()
+		local sEvent, param = env.os.pullEvent()
 		if sEvent == "char" then
 			sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
 			nPos = nPos + 1
