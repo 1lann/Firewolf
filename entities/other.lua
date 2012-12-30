@@ -813,11 +813,8 @@ local function migrateFilesystem()
 	-- Migrate from old version
 	if fs.exists("/.Firefox_Data") then
 		fs.move("/.Firefox_Data", rootFolder)
-		fs.delete(rootFolder .. "/server_software")
 		fs.delete(serverSoftwareLocation)
 	end
-
-	fs.delete(serverSoftwareLocation)
 end
 
 local function resetFilesystem()
@@ -2835,7 +2832,7 @@ local function loadSite(site)
 				elseif param == keys.delete then
 					if nPos < string.len(sLine) then
 						redraw(" ");
-						sLine = string.sub( sLine, 1, nPos ) .. string.sub( sLine, nPos + 2 )				
+						sLine = string.sub( sLine, 1, nPos ) .. string.sub( sLine, nPos + 2 )
 						redraw()
 					end
 				elseif param == keys["end"] then
