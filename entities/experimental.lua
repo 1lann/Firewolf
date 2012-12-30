@@ -814,11 +814,8 @@ local function migrateFilesystem()
 	-- Migrate from old version
 	if fs.exists("/.Firefox_Data") then
 		fs.move("/.Firefox_Data", rootFolder)
-		fs.delete(rootFolder .. "/server_software")
 		fs.delete(serverSoftwareLocation)
 	end
-
-	fs.delete(serverSoftwareLocation)
 end
 
 local function resetFilesystem()
@@ -2158,9 +2155,7 @@ pages.update = function(site)
 
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerPrint(string.rep(" ", 43))
-	centerPrint(string.rep(" ", 43))
+	for i = 1, 3 do centerPrint(string.rep(" ", 43)) end
 
 	local opt = prompt({{"Update", 7, 10}, {"Cancel", 34, 10}}, "horizontal")
 	if opt == "Update" then
