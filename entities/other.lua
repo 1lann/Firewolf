@@ -18,6 +18,7 @@
 --  To Do:
 --  - Finish Cookies
 --  - Back/Forward buttons
+--  - Fix sleep!
 
 
 --  -------- Variables
@@ -2155,9 +2156,7 @@ pages.update = function(site)
 
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerPrint(string.rep(" ", 43))
-	centerPrint(string.rep(" ", 43))
+	for i = 1, 3 do centerPrint(string.rep(" ", 43)) end
 
 	local opt = prompt({{"Update", 7, 10}, {"Cancel", 34, 10}}, "horizontal")
 	if opt == "Update" then
@@ -2692,7 +2691,7 @@ local function loadSite(site)
 
 		local queueWebsiteExit = false
 		nenv.os.pullEvent = function(a)
-		if a == "derp" then return true end
+			if a == "derp" then return true end
 			while true do
 				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
 				if e == event_exitWebsite then
@@ -3470,13 +3469,17 @@ else
 	term.setTextColor(colors[theme["text-color"]])
 	term.clear()
 	term.setCursorPos(1, 5)
-	term.setBackgroundColor(colors[theme["top-box"]])
-	print("")
+	term.setBackgroundColor(colors[theme["bottom-box"]])
+	api.centerPrint(string.rep(" ", 43))
+	api.centerWrite(string.rep(" ", 43))
 	api.centerPrint("Thank You for Using Firewolf " .. version)
+	api.centerWrite(string.rep(" ", 43))
 	api.centerPrint("Made by 1lann and GravityScore")
-	print("")
+	api.centerPrint(string.rep(" ", 43))
+	api.centerWrite(string.rep(" ", 43))
 	if isAdvanced() then api.centerPrint("Click to exit...")
 	else api.centerPrint("Press any key to exit...") end
+	api.centerPrint(string.rep(" ", 43))
 
 	while true do
 		local e = os.pullEvent()

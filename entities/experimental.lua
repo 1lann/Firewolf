@@ -3469,13 +3469,17 @@ else
 	term.setTextColor(colors[theme["text-color"]])
 	term.clear()
 	term.setCursorPos(1, 5)
-	term.setBackgroundColor(colors[theme["top-box"]])
-	print("")
+	term.setBackgroundColor(colors[theme["bottom-box"]])
+	api.centerPrint(string.rep(" ", 43))
+	api.centerWrite(string.rep(" ", 43))
 	api.centerPrint("Thank You for Using Firewolf " .. version)
+	api.centerWrite(string.rep(" ", 43))
 	api.centerPrint("Made by 1lann and GravityScore")
-	print("")
+	api.centerPrint(string.rep(" ", 43))
+	api.centerWrite(string.rep(" ", 43))
 	if isAdvanced() then api.centerPrint("Click to exit...")
 	else api.centerPrint("Press any key to exit...") end
+	api.centerPrint(string.rep(" ", 43))
 
 	while true do
 		local e = os.pullEvent()
