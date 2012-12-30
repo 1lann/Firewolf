@@ -1059,6 +1059,7 @@ protocols.http = {}
 protocols.rdnt = {}
 
 protocols.rdnt.getSearchResults = function(input)
+	input = input:lower()
 	local results = {}
 	local resultIDs = {}
 
