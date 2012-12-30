@@ -2713,7 +2713,7 @@ local function loadSite(site)
 			end
 		end
 
-	function read( _sReplaceChar, _tHistory )
+	function nenv.read( _sReplaceChar, _tHistory )
 	term.setCursorBlink( true )
 
     local sLine = ""
