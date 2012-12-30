@@ -2713,7 +2713,7 @@ local function loadSite(site)
 			end
 		end
 
-		function read( _sReplaceChar, _tHistory )
+	function read( _sReplaceChar, _tHistory )
 	term.setCursorBlink( true )
 
     local sLine = ""
@@ -2743,7 +2743,7 @@ local function loadSite(site)
 	end
 	
 	while true do
-		local sEvent, param = nenv.os.pullEvent()
+		local sEvent, param = os.pullEvent()
 		if sEvent == "char" then
 			sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
 			nPos = nPos + 1
@@ -2824,6 +2824,13 @@ local function loadSite(site)
 			end
 		end
 	end
+	
+	term.setCursorBlink( false )
+	term.setCursorPos( w + 1, sy )
+	print()
+	
+	return sLine
+end
 
 		-- Run
 		local fn, err = loadfile(cacheLoc)
