@@ -2726,10 +2726,10 @@ local function loadSite(site)
 	local w, h = term.getSize()
 	local sx, sy = term.getCursorPos()	
 
-	local os.pullEvent = function(a)
+	local function ospullEvent(a)
 		if a == "derp" then return true end
 			while true do
-				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
+				local e, p1, p2, p3, p4, p5 = ospullEventRaw()
 				if e == event_exitWebsite then
 					queueWebsiteExit = true
 					env.error(event_exitWebsite)
