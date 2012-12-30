@@ -3057,7 +3057,7 @@ local function addressBarRead()
 			draw(list)
 			return false, nil
 		elseif e == "mouse_click" then
-			for i = 1, len do
+			for i = 1, #list do
 				if y == i + 1 then
 					return true, list[i]:gsub("rdnt://", "")
 				end
