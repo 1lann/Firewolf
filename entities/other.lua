@@ -2725,6 +2725,26 @@ local function loadSite(site)
 	
 	local w, h = term.getSize()
 	local sx, sy = term.getCursorPos()	
+
+	local os.pullEvent = function(a)
+		if a == "derp" then return true end
+			while true do
+				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
+				if e == event_exitWebsite then
+					queueWebsiteExit = true
+					env.error(event_exitWebsite)
+				elseif e == "terminate" then
+					env.error()
+				end
+
+				if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
+						and e ~= event_loadWebsite then
+					if a then
+						if e == a then return e, p1, p2, p3, p4, p5 end
+					else return e, p1, p2, p3, p4, p5 end
+				end
+			end
+		end
 	
 	local function redraw( _sCustomReplaceChar )
 		local nScroll = 0
@@ -2743,7 +2763,7 @@ local function loadSite(site)
 	end
 	
 	while true do
-		local sEvent, param = env.os.pullEvent()
+		local sEvent, param = os.pullEvent()
 		if sEvent == "char" then
 			sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
 			nPos = nPos + 1
