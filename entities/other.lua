@@ -2499,8 +2499,8 @@ local function loadSite(site)
 		local nenv = {}
 		for k, v in pairs(env) do nenv[k] = v end
 		nenv.term = {}
-		nenv.os = {}
-		nenv.shell = {}
+		--nenv.os = {}
+		--nenv.shell = {}
 
 		nenv.term.getSize = function()
 			local wid, hei = env.term.getSize()
