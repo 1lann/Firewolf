@@ -24,13 +24,13 @@
 --  -------- Variables
 
 -- Version
-local version = "2.3.6"
+local version = "2.3.5"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
 
 -- Server Identification
-local serverID = "other"
+local serverID = "experimental"
 local serverList = {blackwolf = "BlackWolf", geevancraft = "GeevanCraft", 
 		experimental = "Experimental", other = "Other"}
 
@@ -2497,12 +2497,10 @@ local function loadSite(site)
 		-- Setup environment
 		local cbc, ctc = colors.black, colors.white
 		local nenv = {}
-		for k, v in pairs(env) do if type(v) ~= "table" then nenv[k] = v
-		else
-			nenv[k] = {}
-			for i, d in pairs(v) do nenv[k][i] = d end
-		end end
+		for k, v in pairs(env) do nenv[k] = v end
 		nenv.term = {}
+		nenv.os = {}
+		nenv.shell = {}
 
 		nenv.term.getSize = function()
 			local wid, hei = env.term.getSize()
