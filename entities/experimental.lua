@@ -37,6 +37,7 @@ local serverList = {blackwolf = "BlackWolf", geevancraft = "GeevanCraft",
 -- Updating
 local autoupdate = "true"
 local incognito = "false"
+local defaultProtocol = "rdnt"
 
 -- Geometry
 local w, h = term.getSize()
@@ -138,7 +139,9 @@ api.clearPage = function(site, color, redraw, tcolor)
 	term.setCursorPos(2, 1)
 	local a = site
 	if a:len() > w - 9 then a = a:sub(1, 39) .. "..." end
-	write("rdnt://" .. a)
+	local b = "rdnt"
+	if curProtocol == protocols.http then b = "http" end
+	write(b .. "://" .. a)
 	if title ~= nil then
 		term.setCursorPos(w - title:len(), 1)
 		write(title)
@@ -828,7 +831,8 @@ local function resetFilesystem()
 	-- Settings
 	if not(fs.exists(settingsLocation)) then
 		local f = io.open(settingsLocation, "w")
-		f:write(textutils.serialize({auto = "true", incog = "false", home = "firewolf"}))
+		f:write(textutils.serialize({auto = "true", incog = "false", home = "firewolf", 
+			defProt = "rdnt"}))
 		f:close()
 	end
 
@@ -2031,15 +2035,14 @@ end
 pages.settings = function(site)
 	while true do
 		clearPage(site, colors[theme["background"]])
-		print("\n")
+		print("")
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["top-box"]])
 		centerPrint(string.rep(" ", 43))
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Firewolf Settings")
 		centerWrite(string.rep(" ", 43))
-		if fs.exists("/.var/settings") then centerPrint("Designed For: NDF-OS")
-		elseif fs.exists("/.bustedOs") then centerPrint("Designed For: BustedOS")
+		if fs.exists("/.bustedOs") then centerPrint("Designed For: BustedOS")
 		else centerPrint("Designed For: " .. serverList[serverID]) end
 		centerPrint(string.rep(" ", 43))
 		print("")
@@ -2049,10 +2052,12 @@ pages.settings = function(site)
 		local b = "Record History - On"
 		if incognito == "true" then b = "Record History - Off" end
 		local c = "Homepage - rdnt://" .. homepage
+		local d = "Default Protocol - " .. defaultProtocol:upper()
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
-		for i = 1, 9 do centerPrint(string.rep(" ", 43)) end
-		local opt = prompt({{a, 7, 10}, {b, 7, 12}, {c, 7, 14}, {"Reset Firewolf", 7, 16}}, "vertical")
+		for i = 1, 11 do centerPrint(string.rep(" ", 43)) end
+		local opt = prompt({{a, 7, 9}, {b, 7, 11}, {c, 7, 13}, {d, 7, 15}, {"Reset Firewolf", 7, 17}}, 
+			"vertical")
 		if opt == a then
 			if autoupdate == "true" then autoupdate = "false"
 			elseif autoupdate == "false" then autoupdate = "true" end
@@ -2068,6 +2073,10 @@ pages.settings = function(site)
 				return
 			end
 			if a ~= "" then homepage = a end
+		elseif opt == d then
+			if defaultProtocol == "rdnt" then defaultProtocol = "http"
+			elseif defaultProtocol == "http" then defaultProtocol = "rdnt"
+			end
 		elseif opt == "Reset Firewolf" then
 			clearPage(site, colors[theme["background"]])
 			term.setTextColor(colors[theme["text-color"]])
@@ -2141,7 +2150,8 @@ pages.settings = function(site)
 
 		-- Save
 		local f = io.open(settingsLocation, "w")
-		f:write(textutils.serialize({auto = autoupdate, incog = incognito, home = homepage}))
+		f:write(textutils.serialize({auto = autoupdate, incog = incognito, home = homepage, 
+			defProt = defaultProtocol}))
 		f:close()
 	end
 end
@@ -3220,25 +3230,31 @@ local function addressBarMain()
 		if (e == "key" and (but == 29 or but == 157)) or 
 				(e == "mouse_click" and y == 1) then
 			if openAddressBar then
-				-- Exit
-				os.queueEvent(event_exitWebsite)
+				if x >= 2 and x <= 5 then
+					if curProtocol == protocols.rdnt then curProtocol = protocols.http
+					elseif curProtocol == protocols.http then curProtocol = protocols.rdnt 
+					end
+				else
+					-- Exit
+					os.queueEvent(event_exitWebsite)
 
-				-- Read
-				term.setBackgroundColor(colors[theme["address-bar-background"]])
-				term.setTextColor(colors[theme["address-bar-text"]])
-				term.setCursorPos(2, 1)
-				term.clearLine()
-				write("rdnt://")
-				local oldWebsite = website
-				website = addressBarRead()
-				if website == nil then
-					website = oldWebsite
-				elseif website == "home" or website == "homepage" then
-					website = homepage
+					-- Read
+					term.setBackgroundColor(colors[theme["address-bar-background"]])
+					term.setTextColor(colors[theme["address-bar-text"]])
+					term.setCursorPos(2, 1)
+					term.clearLine()
+					write("rdnt://")
+					local oldWebsite = website
+					website = addressBarRead()
+					if website == nil then
+						website = oldWebsite
+					elseif website == "home" or website == "homepage" then
+						website = homepage
+					end
+
+					-- Load
+					os.queueEvent(event_loadWebsite)
 				end
-
-				-- Load
-				os.queueEvent(event_loadWebsite)
 			end
 		elseif e == event_redirect then
 			if openAddressBar then
@@ -3315,7 +3331,9 @@ local function main()
 	autoupdate = a.auto
 	incognito = a.incog
 	homepage = a.home
+	defaultProtocol = a.defProt
 	curProtocol = protocols.rdnt
+	if defaultProtocol == "http" then curProtocol = protocols.http end
 	f:close()
 
 	-- Load history
@@ -3414,7 +3432,7 @@ local function startup()
 		api.centerPrint(string.rep(" ", 47))
 		api.centerPrint("  Please report this error to 1lann or         ")
 		api.centerPrint("  GravityScore so we are able to fix it!       ")
-		api.centerPrint("  If this problem persists, try deleting       ")
+		api.centerPrint("  If the problem persists, try deleting        ")
 		api.centerPrint("  " .. rootFolder .. "                              ")
 		api.centerPrint(string.rep(" ", 47))
 		api.centerWrite(string.rep(" ", 47))
@@ -3470,7 +3488,7 @@ term.setCursorBlink(false)
 term.clear()
 term.setCursorPos(1, 1)
 
-if (fs.exists("/.var/settings") or fs.exists("/.bustedOs")) and not(skipExit) then
+if fs.exists("/.bustedOs") and not(skipExit) then
 	term.setBackgroundColor(colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
 	term.clear()
