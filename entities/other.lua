@@ -24,7 +24,7 @@
 --  -------- Variables
 
 -- Version
-local version = "2.3.5"
+local version = "2.3.6"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -2497,14 +2497,13 @@ local function loadSite(site)
 		-- Setup environment
 		local cbc, ctc = colors.black, colors.white
 		local nenv = {}
-		local nenv = {}
-		for k, v in pairs(env) do if type(env[k]) ~= "table" then nenv[k] = v
+		for k, v in pairs(env) do if type(v) ~= "table" then nenv[k] = v
 		else
 			nenv[k] = {}
 			for i, d in pairs(v) do nenv[k][i] = d end
 		end end
 		nenv.term = {}
-		
+
 		nenv.term.getSize = function()
 			local wid, hei = env.term.getSize()
 			return wid, hei - 1
