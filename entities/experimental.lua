@@ -24,13 +24,13 @@
 --  -------- Variables
 
 -- Version
-local version = "2.3.6"
+local version = "2.4"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
 
 -- Server Identification
-local serverID = "other"
+local serverID = "experimental"
 local serverList = {blackwolf = "BlackWolf", geevancraft = "GeevanCraft", 
 		experimental = "Experimental", other = "Other"}
 
