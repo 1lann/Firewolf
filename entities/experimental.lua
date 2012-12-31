@@ -3230,7 +3230,7 @@ local function addressBarMain()
 		if (e == "key" and (but == 29 or but == 157)) or 
 				(e == "mouse_click" and y == 1) then
 			if openAddressBar then
-				if x >= 2 and x <= 5 then
+				if e == "mouse_click" and x >= 2 and x <= 5 then
 					if curProtocol == protocols.rdnt then curProtocol = protocols.http
 					elseif curProtocol == protocols.http then curProtocol = protocols.rdnt 
 					end
@@ -3334,6 +3334,7 @@ local function main()
 	defaultProtocol = a.defProt
 	curProtocol = protocols.rdnt
 	if defaultProtocol == "http" then curProtocol = protocols.http end
+	if defaultProtocol == nil then defaultProtocol = "rdnt" end
 	f:close()
 
 	-- Load history
