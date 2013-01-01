@@ -15,11 +15,6 @@
 --  - Vastly improved Firewolf Rendering Engine
 --  - Bug Fixes
 
---  To Do:
---  - Finish Cookies
---  - Back/Forward buttons
---  - Fix sleep!
-
 
 --  -------- Variables
 
@@ -2488,6 +2483,7 @@ errPages.blacklistRedirectionBots = function()
 	end
 end
 
+local skipExitWebsiteEvent = false
 local function loadSite(site)
 	local function runSite(cacheLoc)
 		-- Clear
@@ -2498,7 +2494,8 @@ local function loadSite(site)
 		-- Setup environment
 		local cbc, ctc = colors.black, colors.white
 		local nenv = {}
-		for k, v in pairs(env) do if type(v) ~= "table" then nenv[k] = v
+		for k, v in pairs(env) do 
+			if type(v) ~= "table" then nenv[k] = v
 		else
 			nenv[k] = {}
 			for i, d in pairs(v) do nenv[k][i] = d end
@@ -2689,10 +2686,13 @@ local function loadSite(site)
 				table.insert(a, {v[1], v[2], v[3] + 1, bg = b, tc = t})
 			end
 
+			skipExitWebsiteEvent = true
 			return fixPrompt(a, dir)
 		end
 
 		nenv.scrollingPrompt = function(list, x, y, len, width)
+			skipExitWebsiteEvent = true
+
 			local function ospullEvent(a)
 				if a == "derp" then return true end
 				while true do
@@ -3376,7 +3376,7 @@ local function websiteMain()
 		end
 
 		-- Wait
-		os.pullEvent(event_exitWebsite)
+		if not(skipExitWebsiteEvent) then os.pullEvent(event_exitWebsite) end
 		os.pullEvent(event_loadWebsite)
 	end
 end
