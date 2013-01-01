@@ -2892,7 +2892,7 @@ local function loadSite(site)
 
 	-- Display website
 	local cacheLoc = cacheFolder .. "/" .. site:gsub("/", "$slazh$")
-	if id ~= nil and not(status == "blacklist") then
+	if id ~= nil and not(status == nil) then
 		debugLog("Success Connect, Status:", status)
 		openAddressBar = true
 		if status == "antivirus" then
