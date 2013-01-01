@@ -2689,10 +2689,7 @@ local function loadSite(site)
 				table.insert(a, {v[1], v[2], v[3] + 1, bg = b, tc = t})
 			end
 
-			fixPrompt(a, dir)
-
-			print("Prompt unavailable!")
-			return nil
+			return fixPrompt(a, dir)
 		end
 
 		api.scrollingPrompt = function(list, x, y, len, width)
