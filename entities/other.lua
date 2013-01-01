@@ -1058,6 +1058,7 @@ protocols.http = {}
 protocols.rdnt = {}
 
 protocols.rdnt.getSearchResults = function(input)
+	debugLog("Start Search")
 	input = input:lower()
 	local results = {}
 	local resultIDs = {}
@@ -1066,8 +1067,11 @@ protocols.rdnt.getSearchResults = function(input)
 	local startClock = os.clock()
 	while os.clock() - startClock < timeout do
 		local id, i = rednet.receive(timeout)
+		debugLog("Search", os.clock())
 		if id then
-			local bl, wl = verify("blacklist", id), verify("whitelist", id, i)
+			local bl = verify("blacklist", id)
+			debugLog(bl)
+			local wl = verify("whitelist", id, i)
 			if not(i:find(" ")) and i:len() < 40 and (not(bl) or (bl and wl)) then
 				if not(resultIDs[tostring(id)]) then
 					resultIDs[tostring(id)] = 1
