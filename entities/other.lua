@@ -2034,7 +2034,8 @@ pages.settings = function(site)
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Firewolf Settings")
 		centerWrite(string.rep(" ", 43))
-		if fs.exists("/.bustedOs") then centerPrint("Designed For: BustedOS")
+		if fs.exists("/.var/settings") then centerPrint("Designed For: NDF-OS")
+		elseif fs.exists("/.bustedOs") then centerPrint("Designed For: BustedOS")
 		else centerPrint("Designed For: " .. serverList[serverID]) end
 		centerPrint(string.rep(" ", 43))
 		print("")
@@ -2207,7 +2208,7 @@ pages.credits = function(site)
 end
 
 pages.getinfo = function(site)
-	local res = curSites
+	local res = curProtocol.getSearchResults("")
 	if #res > 0 then
 		clearPage(site, colors[theme["background"]])
 		print("")
@@ -2243,7 +2244,7 @@ pages.getinfo = function(site)
 			print("")
 
 			term.setBackgroundColor(colors[theme["bottom-box"]])
-			for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+			for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 			if verify("blacklist", id) then
 				term.setCursorPos(4, 9)
 				write("Website Triggers Blacklist")
@@ -2255,11 +2256,11 @@ pages.getinfo = function(site)
 				write("Website Triggers Antivirus")
 			end
 
-			local b = prompt({{"Save Source", 4, 13}, {"Visit Site", 4, 15}}, "vertical")
-			if b == "Save Source" then
+			local opt = prompt({{"Save Source", 4, 13}, {"Visit Site", 4, 15}}, "vertical")
+			if opt == "Save Source" then
 				term.setCursorPos(7, 14)
 				write("Save As: /")
-				local a = "/" .. modRead(nil, nil, 32)
+				local a = "/" .. modRead(nil, nil, 38)
 
 				term.setCursorPos(1, 14)
 				centerWrite(string.rep(" ", 47))
@@ -2280,10 +2281,10 @@ pages.getinfo = function(site)
 				openAddressBar = true
 				redirect("getinfo")
 				return
-			elseif b == "Visit Site" then
+			elseif opt == "Visit Site" then
 				redirect(opt:gsub("rdnt://", ""))
 				return
-			elseif b == nil then
+			elseif opt == nil then
 				os.queueEvent(event_exitWebsite)
 				return
 			end
@@ -3579,7 +3580,7 @@ local function main()
 	-- Update
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Checking For Updates...")
-	if autoupdate == "true" then updateClient() end
+	if autoupdate == "true" then if updateClient() then return true end end
 
 	-- Modem
 	if not(errPages.checkForModem()) then return end
@@ -3587,8 +3588,10 @@ local function main()
 
 	-- Run
 	parallel.waitForAll(websiteMain, addressBarMain, retrieveSearchResults)
+	return false
 end
 
+local skipExit = false
 local function startup()
 	-- HTTP API
 	if not(http) then
@@ -3643,7 +3646,7 @@ local function startup()
 	end
 
 	-- Run
-	local _, err = pcall(main)
+	local _, err = pcall(function() skipExit = main() end)
 	if err ~= nil then
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["background"]])
@@ -3721,7 +3724,7 @@ term.setCursorBlink(false)
 term.clear()
 term.setCursorPos(1, 1)
 
-if fs.exists("/.bustedOs") then
+if (fs.exists("/.var/settings") or fs.exists("/.bustedOs")) and not(skipExit) then
 	term.setBackgroundColor(colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
 	term.clear()
@@ -3747,7 +3750,7 @@ if fs.exists("/.bustedOs") then
 	term.setBackgroundColor(colors.black)
 	term.clear()
 	term.setCursorPos(1, 1)
-else
+elseif not(skipExit) then
 	api.centerPrint("Thank You for Using Firewolf " .. version)
 	api.centerPrint("Made by 1lann and GravityScore")
 	term.setCursorPos(1, 3)
