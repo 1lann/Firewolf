@@ -2034,8 +2034,7 @@ pages.settings = function(site)
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Firewolf Settings")
 		centerWrite(string.rep(" ", 43))
-		if fs.exists("/.var/settings") then centerPrint("Designed For: NDF-OS")
-		elseif fs.exists("/.bustedOs") then centerPrint("Designed For: BustedOS")
+		if fs.exists("/.bustedOs") then centerPrint("Designed For: BustedOS")
 		else centerPrint("Designed For: " .. serverList[serverID]) end
 		centerPrint(string.rep(" ", 43))
 		print("")
@@ -3591,7 +3590,6 @@ local function main()
 	return false
 end
 
-local skipExit = false
 local function startup()
 	-- HTTP API
 	if not(http) then
@@ -3646,7 +3644,7 @@ local function startup()
 	end
 
 	-- Run
-	local _, err = pcall(function() skipExit = main() end)
+	local _, err = pcall(main())
 	if err ~= nil then
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["background"]])
@@ -3724,7 +3722,7 @@ term.setCursorBlink(false)
 term.clear()
 term.setCursorPos(1, 1)
 
-if (fs.exists("/.var/settings") or fs.exists("/.bustedOs")) and not(skipExit) then
+if fs.exists("/.bustedOs") then
 	term.setBackgroundColor(colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
 	term.clear()
@@ -3750,7 +3748,7 @@ if (fs.exists("/.var/settings") or fs.exists("/.bustedOs")) and not(skipExit) th
 	term.setBackgroundColor(colors.black)
 	term.clear()
 	term.setCursorPos(1, 1)
-elseif not(skipExit) then
+else
 	api.centerPrint("Thank You for Using Firewolf " .. version)
 	api.centerPrint("Made by 1lann and GravityScore")
 	term.setCursorPos(1, 3)
