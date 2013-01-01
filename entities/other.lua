@@ -1539,8 +1539,6 @@ pages.server = function(site)
 		shell.setDir(oldLoc)
 
 		openAddressBar = true
-		redirect("server")
-		return
 	end
 
 	local function newServer()
@@ -2223,7 +2221,7 @@ pages.getinfo = function(site)
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 		local opt = scrollingPrompt(res, 4, 8, 10, 43)
-		if opt == "Enter Website..." then
+		if opt == "Type Website Address..." then
 			clearPage(site, colors[theme["background"]])
 			print("")
 			term.setTextColor(colors[theme["text-color"]])
