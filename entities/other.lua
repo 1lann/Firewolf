@@ -2722,6 +2722,32 @@ local function loadSite(site)
 			end
 		end
 
+		function nenv.sleep( _nTime )
+			local function ospullEvent(a)
+				if a == "derp" then return true end
+				while true do
+					local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
+					if e == event_exitWebsite then
+						queueWebsiteExit = true
+						env.error(event_exitWebsite)
+					elseif e == "terminate" then
+						env.error()
+					end
+
+					if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
+							and e ~= event_loadWebsite then
+						if a then
+							if e == a then return e, p1, p2, p3, p4, p5 end
+						else return e, p1, p2, p3, p4, p5 end
+					end
+				end
+			end
+		    local timer = os.startTimer( _nTime )
+			repeat
+				local sEvent, param = ospullEvent( "timer" )
+			until param == timer
+		end
+
 		function nenv.read( _sReplaceChar, _tHistory )
 			term.setCursorBlink( true )
 
