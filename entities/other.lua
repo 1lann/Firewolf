@@ -2259,7 +2259,7 @@ pages.getinfo = function(site)
 			if b == "Save Source" then
 				term.setCursorPos(7, 14)
 				write("Save As: /")
-				local a = "/" .. modRead(nil, nil, 38)
+				local a = "/" .. modRead(nil, nil, 32)
 
 				term.setCursorPos(1, 14)
 				centerWrite(string.rep(" ", 47))
@@ -3579,7 +3579,7 @@ local function main()
 	-- Update
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Checking For Updates...")
-	if autoupdate == "true" then if updateClient() then return true end end
+	if autoupdate == "true" then updateClient() end
 
 	-- Modem
 	if not(errPages.checkForModem()) then return end
@@ -3587,7 +3587,6 @@ local function main()
 
 	-- Run
 	parallel.waitForAll(websiteMain, addressBarMain, retrieveSearchResults)
-	return false
 end
 
 local function startup()
