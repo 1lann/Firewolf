@@ -2207,74 +2207,102 @@ pages.credits = function(site)
 	centerPrint(string.rep(" ", 43))
 end
 
---pages.getinfo = function(site)
---	clearPage(site, colors[theme["background"]])
---	print("\n")
---	term.setTextColor(colors[theme["text-color"]])
---	term.setBackgroundColor(colors[theme["top-box"]])
---	centerPrint(string.rep(" ", 43))
---	centerWrite(string.rep(" ", 43))
---	centerPrint("Retrieve Website Information")
---	centerPrint(string.rep(" ", 43))
---	print("\n")
--- 
---	term.setBackgroundColor(colors[theme["bottom-box"]])
---	centerPrint(string.rep(" ", 43))
---	centerPrint(string.rep(" ", 43))
---	centerWrite(string.rep(" ", 43))
---	local x, y = term.getCursorPos()
---	term.setCursorPos(7, y - 1)
---	write("rdnt://")
---	local a = modRead(nil, nil, 31)
---	if a == nil then
---		os.queueEvent(event_exitWebsite)
---		return
---	end
---	local id, content, status = getWebsite(a)
--- 
---	if id ~= nil then
---		term.setCursorPos(1, 10)
---		centerPrint("  rdnt://" .. a .. string.rep(" ", 34 - a:len()))
---		for i = 1, 5 do
---			centerPrint(string.rep(" ", 43))
---		end
---		
---		if verify("blacklist", id) then 
---			centerPrint("  Triggers Blacklist" .. string.rep(" ", 43 - 20)) end
---		if verify("whitelist", id, site) then 
---			centerPrint("  Triggers Whitelist" .. string.rep(" ", 43 - 20)) end
---		if verify("antivirus", content) then
---			centerPrint("  Triggers Antivirus" .. string.rep(" ", 43 - 20)) end
---		centerPrint(string.rep(" ", 43))
---		local opt = prompt({{"Save Source", 7, 12}, {"Visit Site", 7, 14}}, "vertical")
---		if opt == "Save Source" then
---			term.setCursorPos(9, 13)
---			write("Save As: /")
---			local loc = modRead(nil, nil, 24)
---			if loc ~= nil and loc ~= "" then
---				loc = "/" .. loc
---				local f = io.open(loc, "w")
---				f:write(content)
---				f:close()
---				term.setCursorPos(1, 13)
---				centerWrite(string.rep(" ", 43))
---			elseif loc == nil then
---				os.queueEvent(event_exitWebsite)
---				return
---			end
---		elseif opt == "Visit Site" then
---			redirect(a)
---			return
---		elseif opt == nil then
---			os.queueEvent(event_exitWebsite)
---			return
---		end
---	else
---		term.setCursorPos(1, 10)
---		centerWrite(string.rep(" ", 43))
---		centerPrint("Webpage Not Found! D:")
---	end
---end
+pages.getinfo = function(site)
+	local res = curProtocol.getSearchResults(site)
+	if #res > 0 then
+		clearPage(site, colors[theme["background"]])
+		print("")
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
+		centerPrint(string.rep(" ", 47))
+		centerWrite(string.rep(" ", 47))
+		centerPrint("Retrieve Website Information")
+		centerPrint(string.rep(" ", 47))
+		print("")
+
+		term.setBackgroundColor(colors[theme["bottom-box"]])
+		for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
+		local opt = scrollingPrompt(res, 4, 8, 10, 43)
+		if opt then
+			term.setTextColor(colors[theme["text-color"]])
+			clearPage(site, colors[theme["background"]])
+			print("\n\n")
+			centerPrint("Connecting...")
+
+			local id, content, status = curProtocol.getWebsite(site)
+
+			clearPage(site, colors[theme["background"]])
+			print("")
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
+			centerPrint(string.rep(" ", 47))
+			centerWrite(string.rep(" ", 47))
+			centerPrint("Retrieve Website Information")
+			centerWrite(string.rep(" ", 47))
+			centerPrint(opt)
+			centerPrint(string.rep(" ", 47))
+			print("")
+
+			term.setBackgroundColor(colors[theme["bottom-box"]])
+			for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
+			if verify("blacklist", id) then
+				term.setCursorPos(4, 9)
+				write("Website Triggers Blacklist")
+			end if verify("whitelist", id, site) then
+				term.setCursorPos(4, 10)
+				write("Website Triggers Whitelist")
+			end if verify("antivirus", content) then
+				term.setCursorPos(4, 11)
+				write("Website Triggers Antivirus")
+			end
+
+			local opt = prompt({{"Save Source", 4, 13}, {"Visit Site", 4, 15}}, "vertical")
+			if opt == "Save Source" then
+				term.setCursorPos(7, 14)
+				write("Save As: /")
+				local a = "/" .. modRead(nil, nil, 38)
+
+				term.setCursorPos(1, 14)
+				centerWrite(string.rep(" ", 47))
+				term.setCursorPos(7, 14)
+				if fs.exists(a) then
+					write("File already exists!")
+				elseif fs.isReadOnly(a) then
+					write("Location is read only!")
+				else
+					write("Saved Successfully!")
+					local f = io.open(a, "w")
+					f:write(content)
+					f:close()
+				end
+
+				openAddressBar = false
+				sleep(1.3)
+				openAddressBar = true
+				redirect("getinfo")
+				return
+			elseif opt == "Visit Site" then
+				redirect(opt:gsub("rdnt://", ""))
+				return
+			elseif opt == nil then
+				os.queueEvent(event_exitWebsite)
+				return
+			end
+		else
+			os.queueEvent(event_exitWebsite)
+			return
+		end
+	else
+		clearPage(site, colors[theme["background"]])
+		print("\n\n")
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
+		centerPrint(string.rep(" ", 47))
+		centerWrite(string.rep(" ", 47))
+		centerPrint("No Websites are Currently Online! D:")
+		centerPrint(string.rep(" ", 47))
+	end
+end
 
 pages.kitteh = function(site)
 	openAddressBar = false
