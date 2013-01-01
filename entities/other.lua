@@ -3549,7 +3549,7 @@ local function main()
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Downloading Required Files...")
 	centerWrite(string.rep(" ", 47))
-	if not(verifyGitHub()) then return end
+	if not(verifyGitHub()) then return false end
 	migrateFilesystem()
 	resetFilesystem()
 
@@ -3582,7 +3582,7 @@ local function main()
 	if autoupdate == "true" then if updateClient() then return true end end
 
 	-- Modem
-	if not(errPages.checkForModem()) then return end
+	if not(errPages.checkForModem()) then return false end
 	website = homepage
 
 	-- Run
