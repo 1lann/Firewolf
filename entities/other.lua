@@ -2589,7 +2589,98 @@ local function loadSite(site)
 		end
 
 		nenv.prompt = function(list, dir)
-			--[[
+			local fixPrompt = function(list, dir)
+				local function ospullEvent(a)
+					if a == "derp" then return true end
+					while true do
+						local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
+						if e == event_exitWebsite then
+							queueWebsiteExit = true
+							env.error(event_exitWebsite)
+						elseif e == "terminate" then
+							env.error()
+						end
+
+						if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
+								and e ~= event_loadWebsite then
+							if a then
+								if e == a then return e, p1, p2, p3, p4, p5 end
+							else return e, p1, p2, p3, p4, p5 end
+						end
+					end
+				end
+				if isAdvanced() then
+					for _, v in pairs(list) do
+						if v.bg then term.setBackgroundColor(v.bg) end
+						if v.tc then term.setTextColor(v.tc) end
+						if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 6)/2) end
+
+						term.setCursorPos(v[2], v[3])
+						write("[- " .. v[1])
+						term.setCursorPos(v[2] + v[1]:len() + 3, v[3])
+						write(" -]")
+					end
+
+					while true do
+						local e, but, x, y = ospullEvent()
+						if e == "mouse_click" then
+							for _, v in pairs(list) do
+								if x >= v[2] and x <= v[2] + v[1]:len() + 5 and y == v[3] then
+									return v[1]
+								end
+							end
+						elseif e == event_exitWebsite then
+							return nil
+						end
+					end
+				else
+					for _, v in pairs(list) do
+						term.setBackgroundColor(colors.black)
+						term.setTextColor(colors.white)
+						if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 4)/2) end
+
+						term.setCursorPos(v[2], v[3])
+						write("  " .. v[1])
+						term.setCursorPos(v[2] + v[1]:len() + 2, v[3])
+						write("  ")
+					end
+
+					local key1 = 200
+					local key2 = 208
+					if dir == "horizontal" then
+						key1 = 203
+						key2 = 205
+					end
+
+					local curSel = 1
+					term.setCursorPos(list[curSel][2], list[curSel][3])
+					write("[")
+					term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
+					write("]")
+
+					while true do
+						local e, key = ospullEvent()
+						term.setCursorPos(list[curSel][2], list[curSel][3])
+						write(" ")
+						term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
+						write(" ")
+						if e == "key" and key == key1 and curSel > 1 then
+							curSel = curSel - 1
+						elseif e == "key" and key == key2 and curSel < #list then
+							curSel = curSel + 1
+						elseif e == "key" and key == 28 then
+							return list[curSel][1]
+						elseif e == event_exitWebsite then
+							return nil
+						end
+						term.setCursorPos(list[curSel][2], list[curSel][3])
+						write("[")
+						term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
+						write("]")
+					end
+				end
+			end
+
 			local a = {}
 			for k, v in pairs(list) do
 				local b, t = v.b, v.t
@@ -2598,20 +2689,135 @@ local function loadSite(site)
 				table.insert(a, {v[1], v[2], v[3] + 1, bg = b, tc = t})
 			end
 
-			api.prompt(a, dir)
-			]]--
+			fixPrompt(a, dir)
 
 			print("Prompt unavailable!")
 			return nil
 		end
 
-		nenv.scrollingPrompt = function(list, x, y, len, width)
-			--[[
-			api.scrollingPrompt(list, x, y + 1, len, width)
-			]]--
+		api.scrollingPrompt = function(list, x, y, len, width)
+			local function ospullEvent(a)
+				if a == "derp" then return true end
+				while true do
+					local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
+					if e == event_exitWebsite then
+						queueWebsiteExit = true
+						env.error(event_exitWebsite)
+					elseif e == "terminate" then
+						env.error()
+					end
 
-			print("Prompt unavailable!")
-			return nil
+					if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
+							and e ~= event_loadWebsite then
+						if a then
+							if e == a then return e, p1, p2, p3, p4, p5 end
+						else return e, p1, p2, p3, p4, p5 end
+					end
+				end
+			end
+			local y = y+1
+			local wid = width
+			if wid == nil then wid = w - 3 end
+
+			local function updateDisplayList(items, loc, len)
+				local ret = {}
+				for i = 1, len do
+					local item = items[i + loc - 1]
+					if item ~= nil then table.insert(ret, item) end
+				end
+				return ret
+			end
+
+			if isAdvanced() then
+				local function draw(a)
+					for i, v in ipairs(a) do
+						term.setCursorPos(1, y + i - 1)
+						api.centerWrite(string.rep(" ", wid + 2))
+						term.setCursorPos(x, y + i - 1)
+						write("[ " .. v:sub(1, wid - 5))
+						term.setCursorPos(wid + x - 2, y + i - 1)
+						write("  ]")
+					end
+				end
+
+				local loc = 1
+				local disList = updateDisplayList(list, loc, len)
+				draw(disList)
+				
+				while true do
+					local e, but, clx, cly = ospullEvent()
+					if e == "key" and but == 200 and loc > 1 then
+						loc = loc - 1
+						disList = updateDisplayList(list, loc, len)
+						draw(disList)
+					elseif e == "key" and but == 208 and loc + len - 1 < #list then
+						loc = loc + 1
+						disList = updateDisplayList(list, loc, len)
+						draw(disList)
+					elseif e == "mouse_scroll" and but > 0 and loc + len - 1 < #list then
+						loc = loc + but
+						disList = updateDisplayList(list, loc, len)
+						draw(disList)
+					elseif e == "mouse_scroll" and but < 0 and loc > 1 then
+						loc = loc + but
+						disList = updateDisplayList(list, loc, len)
+						draw(disList)
+					elseif e == "mouse_click" then
+						for i, v in ipairs(disList) do
+							if clx >= x and clx <= x + wid and cly == i + y - 1 then
+								return v
+							end
+						end
+					elseif e == event_exitWebsite then
+						return nil
+					end
+				end
+			else
+				local function draw(a)
+					for i, v in ipairs(a) do
+						term.setCursorPos(1, y + i - 1)
+						api.centerWrite(string.rep(" ", wid + 2))
+						term.setCursorPos(x, y + i - 1)
+						write("[ ] " .. v:sub(1, wid - 5))
+					end
+				end
+
+				local loc = 1
+				local curSel = 1
+				local disList = updateDisplayList(list, loc, len)
+				draw(disList)
+				term.setCursorPos(x + 1, y + curSel - 1)
+				write("x")
+
+				while true do
+					local e, key = ospullEvent()
+					term.setCursorPos(x + 1, y + curSel - 1)
+					write(" ")
+					if e == "key" and key == 200 then
+						if curSel > 1 then
+							curSel = curSel - 1
+						elseif loc > 1 then
+							loc = loc - 1
+							disList = updateDisplayList(list, loc, len)
+							draw(disList)
+						end
+					elseif e == "key" and key == 208 then
+						if curSel < #disList then
+							curSel = curSel + 1
+						elseif loc + len - 1 < #list then
+							loc = loc + 1
+							disList = updateDisplayList(list, loc, len)
+							draw(disList)
+						end
+					elseif e == "key" and key == 28 then
+						return list[curSel + loc - 1]
+					elseif e == event_exitWebsite then
+						return nil
+					end
+					term.setCursorPos(x + 1, y + curSel - 1)
+					write("x")
+				end
+			end
 		end
 
 		nenv.loadImageFromServer = function(image)
