@@ -396,9 +396,9 @@ local function debugLog(n, ...)
 	local lArgs = {...}
 	if debugFile then
 		if n == nil then n = "" end
-		debugFile:write("\n" .. n .. " : ")
+		debugFile:write("\n" .. tostring(n) .. " : ")
 		for k, v in pairs(lArgs) do 
-			if type(v) == "string" or type(v) == "number" or type(v) == nil then
+			if type(v) == "string" or type(v) == "number" or type(v) == nil or type(v) == "boolean" then
 				debugFile:write(tostring(v) .. ", ")
 			else debugFile:write("type-" .. type(v) .. ", ") end
 		end
@@ -1070,7 +1070,7 @@ protocols.rdnt.getSearchResults = function(input)
 		debugLog("Search", os.clock())
 		if id then
 			local bl = verify("blacklist", id)
-			debugLog(bl)
+			debugLog("Blacklist status", bl)
 			local wl = verify("whitelist", id, i)
 			if not(i:find(" ")) and i:len() < 40 and (not(bl) or (bl and wl)) then
 				if not(resultIDs[tostring(id)]) then
