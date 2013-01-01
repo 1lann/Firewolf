@@ -2207,7 +2207,7 @@ pages.credits = function(site)
 end
 
 pages.getinfo = function(site)
-	local res = curProtocol.getSearchResults("")
+	local res = curSites
 	if #res > 0 then
 		clearPage(site, colors[theme["background"]])
 		print("")
@@ -2243,7 +2243,7 @@ pages.getinfo = function(site)
 			print("")
 
 			term.setBackgroundColor(colors[theme["bottom-box"]])
-			for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
+			for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
 			if verify("blacklist", id) then
 				term.setCursorPos(4, 9)
 				write("Website Triggers Blacklist")
@@ -2255,8 +2255,8 @@ pages.getinfo = function(site)
 				write("Website Triggers Antivirus")
 			end
 
-			local opt = prompt({{"Save Source", 4, 13}, {"Visit Site", 4, 15}}, "vertical")
-			if opt == "Save Source" then
+			local b = prompt({{"Save Source", 4, 13}, {"Visit Site", 4, 15}}, "vertical")
+			if b == "Save Source" then
 				term.setCursorPos(7, 14)
 				write("Save As: /")
 				local a = "/" .. modRead(nil, nil, 38)
@@ -2280,10 +2280,10 @@ pages.getinfo = function(site)
 				openAddressBar = true
 				redirect("getinfo")
 				return
-			elseif opt == "Visit Site" then
+			elseif b == "Visit Site" then
 				redirect(opt:gsub("rdnt://", ""))
 				return
-			elseif opt == nil then
+			elseif b == nil then
 				os.queueEvent(event_exitWebsite)
 				return
 			end
