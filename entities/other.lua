@@ -3377,7 +3377,7 @@ local function websiteMain()
 		end
 
 		-- Wait
-		os.pullEvent(event_exitWebsite)
+		--os.pullEvent(event_exitWebsite)
 		os.pullEvent(event_loadWebsite)
 	end
 end
