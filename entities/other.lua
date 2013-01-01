@@ -2034,8 +2034,7 @@ pages.settings = function(site)
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Firewolf Settings")
 		centerWrite(string.rep(" ", 43))
-		if fs.exists("/.var/settings") then centerPrint("Designed For: NDF-OS")
-		elseif fs.exists("/.bustedOs") then centerPrint("Designed For: BustedOS")
+		if fs.exists("/.bustedOs") then centerPrint("Designed For: BustedOS")
 		else centerPrint("Designed For: " .. serverList[serverID]) end
 		centerPrint(string.rep(" ", 43))
 		print("")
@@ -3709,7 +3708,7 @@ if #tArgs > 0 and tArgs[1] == "debug" then
 	if fs.exists("/firewolf-log") then debugFile = io.open("/firewolf-log", "a")
 	else debugFile = io.open("/firewolf-log", "w") end
 	debugFile:write("\n-- [" .. textutils.formatTime(os.time()) .. "] New Log --")
-	sleep(1.8)
+	sleep(1.3)
 end
 
 -- Start
@@ -3724,7 +3723,7 @@ term.setCursorBlink(false)
 term.clear()
 term.setCursorPos(1, 1)
 
-if (fs.exists("/.var/settings") or fs.exists("/.bustedOs")) and not(skipExit) then
+if fs.exists("/.bustedOs") and not(skipExit) then
 	term.setBackgroundColor(colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
 	term.clear()
