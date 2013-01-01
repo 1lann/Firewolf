@@ -2593,7 +2593,7 @@ local function loadSite(site)
 				local function ospullEvent(a)
 					if a == "derp" then return true end
 					while true do
-						local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
+						local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
 						if e == event_exitWebsite then
 							queueWebsiteExit = true
 							env.error(event_exitWebsite)
@@ -2696,7 +2696,7 @@ local function loadSite(site)
 			local function ospullEvent(a)
 				if a == "derp" then return true end
 				while true do
-					local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
+					local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
 					if e == event_exitWebsite then
 						queueWebsiteExit = true
 						env.error(event_exitWebsite)
@@ -2929,7 +2929,7 @@ local function loadSite(site)
 			local function ospullEvent(a)
 				if a == "derp" then return true end
 				while true do
-					local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
+					local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
 					if e == event_exitWebsite then
 						queueWebsiteExit = true
 						env.error(event_exitWebsite)
@@ -2967,7 +2967,7 @@ local function loadSite(site)
 			local function ospullEvent(a)
 				if a == "derp" then return true end
 				while true do
-					local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
+					local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
 					if e == event_exitWebsite then
 						queueWebsiteExit = true
 						env.error(event_exitWebsite)
