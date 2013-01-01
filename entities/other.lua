@@ -2881,9 +2881,10 @@ local function loadSite(site)
 	-- Redirection bots
 	errPages.blacklistRedirectionBots()
 	loadingRate = loadingRate + 1
-
+	debugLog("Blacklist Redirection Compweted")
 	-- Get website
 	local id, content, status = curProtocol.getWebsite(site)
+	debugLog("Website download Compweted")
 
 	-- Display website
 	local cacheLoc = cacheFolder .. "/" .. site:gsub("/", "$slazh$")
