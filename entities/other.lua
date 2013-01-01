@@ -3020,6 +3020,7 @@ local function loadSite(site)
 				return
 			end
 		else
+			debugLog("Attempting to search")
 			local res = curProtocol.getSearchResults(site)
 			debugLog("Search success!")
 
