@@ -1064,7 +1064,7 @@ protocols.rdnt.getSearchResults = function(input)
 
 	rednet.broadcast("rednet.api.ping.searchengine")
 	local startClock = os.clock()
-	while os.clock() - startClock < 1 do
+	while os.clock() - startClock < timeout do
 		local id, i = rednet.receive(timeout)
 		if id then
 			local bl, wl = verify("blacklist", id), verify("whitelist", id, i)
@@ -3017,6 +3017,7 @@ local function loadSite(site)
 			end
 		else
 			local res = curProtocol.getSearchResults(site)
+			debugLog("Search success!")
 
 			openAddressBar = true
 			if #res > 0 then
