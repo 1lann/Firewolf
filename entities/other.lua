@@ -3643,7 +3643,7 @@ local function startup()
 	end
 
 	-- Run
-	local _, err = pcall(main())
+	local _, err = pcall(function() main() end)
 	if err ~= nil then
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["background"]])
