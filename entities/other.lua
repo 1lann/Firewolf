@@ -2208,7 +2208,7 @@ pages.credits = function(site)
 end
 
 pages.getinfo = function(site)
-	local res = curProtocol.getSearchResults(site)
+	local res = curProtocol.getSearchResults("")
 	if #res > 0 then
 		clearPage(site, colors[theme["background"]])
 		print("")
@@ -2229,7 +2229,7 @@ pages.getinfo = function(site)
 			print("\n\n")
 			centerPrint("Connecting...")
 
-			local id, content, status = curProtocol.getWebsite(site)
+			local id, content, status = curProtocol.getWebsite(opt:gsub("rdnt://", ""))
 
 			clearPage(site, colors[theme["background"]])
 			print("")
