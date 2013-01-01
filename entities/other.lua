@@ -399,8 +399,8 @@ local function debugLog(n, ...)
 		debugFile:write("\n" .. n .. " : ")
 		for k, v in pairs(lArgs) do 
 			if type(v) == "string" or type(v) == "number" or type(v) == nil then
-				f:write(tostring(v) .. ", ")
-			else f:write("type-" .. type(v) .. ", ") end
+				debugFile:write(tostring(v) .. ", ")
+			else debugFile:write("type-" .. type(v) .. ", ") end
 		end
 	end
 end
