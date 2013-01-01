@@ -981,7 +981,7 @@ local function loadDatabases()
 			end
 			l = bf:read("*l")
 		end
-		f:close()
+		bf:close()
 	end
 
 	-- User Whitelist
@@ -1000,7 +1000,7 @@ local function loadDatabases()
 			end
 			l = wf:read("*l")
 		end
-		f:close()
+		wf:close()
 	end
 end
 
