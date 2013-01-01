@@ -1058,7 +1058,6 @@ protocols.http = {}
 protocols.rdnt = {}
 
 protocols.rdnt.getSearchResults = function(input)
-	debugLog("Start Search")
 	input = input:lower()
 	local results = {}
 	local resultIDs = {}
@@ -1067,11 +1066,8 @@ protocols.rdnt.getSearchResults = function(input)
 	local startClock = os.clock()
 	while os.clock() - startClock < timeout do
 		local id, i = rednet.receive(timeout)
-		debugLog("Search", os.clock())
 		if id then
-			local bl = verify("blacklist", id)
-			debugLog("Blacklist status", bl)
-			local wl = verify("whitelist", id, i)
+			local bl, wl = verify("blacklist", id), verify("whitelist", id, i)
 			if not(i:find(" ")) and i:len() < 40 and (not(bl) or (bl and wl)) then
 				if not(resultIDs[tostring(id)]) then
 					resultIDs[tostring(id)] = 1
@@ -1448,6 +1444,7 @@ pages.downloads = function(site)
 		centerPrint(string.rep(" ", 47))
 		print("\n")
 
+		term.setBackgroundColor(colors[theme["bottom-box"]])
 		centerPrint(string.rep(" ", 47))
 		centerWrite(string.rep(" ", 47))
 		centerPrint("Themes are not available on normal")
@@ -2609,6 +2606,7 @@ local function loadSite(site)
 						end
 					end
 				end
+
 				if isAdvanced() then
 					for _, v in pairs(list) do
 						if v.bg then term.setBackgroundColor(v.bg) end
@@ -2630,6 +2628,7 @@ local function loadSite(site)
 								end
 							end
 						elseif e == event_exitWebsite then
+							os.queueEvent(event_exitWebsite)
 							return nil
 						end
 					end
@@ -2671,6 +2670,7 @@ local function loadSite(site)
 						elseif e == "key" and key == 28 then
 							return list[curSel][1]
 						elseif e == event_exitWebsite then
+							os.queueEvent(event_exitWebsite)
 							return nil
 						end
 						term.setCursorPos(list[curSel][2], list[curSel][3])
@@ -2692,7 +2692,7 @@ local function loadSite(site)
 			return fixPrompt(a, dir)
 		end
 
-		api.scrollingPrompt = function(list, x, y, len, width)
+		nenv.scrollingPrompt = function(list, x, y, len, width)
 			local function ospullEvent(a)
 				if a == "derp" then return true end
 				while true do
@@ -2712,7 +2712,8 @@ local function loadSite(site)
 					end
 				end
 			end
-			local y = y+1
+
+			local y = y + 1
 			local wid = width
 			if wid == nil then wid = w - 3 end
 
@@ -2766,6 +2767,7 @@ local function loadSite(site)
 							end
 						end
 					elseif e == event_exitWebsite then
+						os.queueEvent(event_exitWebsite)
 						return nil
 					end
 				end
@@ -2809,6 +2811,7 @@ local function loadSite(site)
 					elseif e == "key" and key == 28 then
 						return list[curSel + loc - 1]
 					elseif e == event_exitWebsite then
+						os.queueEvent(event_exitWebsite)
 						return nil
 					end
 					term.setCursorPos(x + 1, y + curSel - 1)
@@ -2925,7 +2928,7 @@ local function loadSite(site)
 			end
 		end
 
-		function nenv.sleep( _nTime )
+		nenv.sleep = function( _nTime )
 			local function ospullEvent(a)
 				if a == "derp" then return true end
 				while true do
@@ -2945,13 +2948,14 @@ local function loadSite(site)
 					end
 				end
 			end
+
 		    local timer = os.startTimer( _nTime )
 			repeat
-				local sEvent, param = ospullEvent( "timer" )
+				local _, param = ospullEvent("timer")
 			until param == timer
 		end
 
-		function nenv.read( _sReplaceChar, _tHistory )
+		nenv.read = function( _sReplaceChar, _tHistory )
 			term.setCursorBlink( true )
 
 		    local sLine = ""
@@ -3114,15 +3118,13 @@ local function loadSite(site)
 	-- Redirection bots
 	errPages.blacklistRedirectionBots()
 	loadingRate = loadingRate + 1
-	debugLog("Blacklist Redirection Compweted")
+
 	-- Get website
 	local id, content, status = curProtocol.getWebsite(site)
-	debugLog("Website download Compweted")
 
 	-- Display website
 	local cacheLoc = cacheFolder .. "/" .. site:gsub("/", "$slazh$")
-	if id ~= nil and not(status == nil) then
-		debugLog("Success Connect, Status:", status)
+	if id ~= nil and status ~= nil then
 		openAddressBar = true
 		if status == "antivirus" then
 			local offences = verify("antivirus offences", content)
@@ -3192,7 +3194,6 @@ local function loadSite(site)
 			return
 		end
 	else
-		debugLog("Failure Connect")
 		if fs.exists(cacheLoc) and site ~= "" and site ~= "." and site ~= ".." and
 				not(verify("blacklist", site)) then
 			openAddressBar = true
@@ -3251,9 +3252,7 @@ local function loadSite(site)
 				return
 			end
 		else
-			debugLog("Attempting to search")
 			local res = curProtocol.getSearchResults(site)
-			debugLog("Search success!")
 
 			openAddressBar = true
 			if #res > 0 then
@@ -3377,7 +3376,7 @@ local function websiteMain()
 		end
 
 		-- Wait
-		--os.pullEvent(event_exitWebsite)
+		os.pullEvent(event_exitWebsite)
 		os.pullEvent(event_loadWebsite)
 	end
 end
@@ -3496,17 +3495,6 @@ end
 
 --  -------- Main
 
---  centerPrint([[          ______ ____ ____   ______            ]])
---  centerPrint([[ ------- / ____//  _// __ \ / ____/            ]])
---  centerPrint([[ ------ / /_    / / / /_/ // __/               ]])
---  centerPrint([[ ----- / __/  _/ / / _  _// /___               ]])
---  centerPrint([[ ---- / /    /___//_/ |_|/_____/               ]])
---  centerPrint([[ --- / /       _       __ ____   __     ______ ]])
---  centerPrint([[ -- /_/       | |     / // __ \ / /    / ____/ ]])
---  centerPrint([[              | | /| / // / / // /    / /_     ]])
---  centerPrint([[              | |/ |/ // /_/ // /___ / __/     ]])
---  centerPrint([[              |__/|__/ \____//_____//_/        ]])
-
 local function main()
 	-- Logo
 	term.setBackgroundColor(colors[theme["background"]])
@@ -3515,16 +3503,16 @@ local function main()
 	term.setCursorPos(1, 2)
 	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 47))
-	centerPrint([[                    _...._                     ]])
-	centerPrint([[                  .::o:::::.                   ]])
-	centerPrint([[                 .:::'''':o:.                  ]])
-	centerPrint([[                 :o:_    _:::                  ]])
-	centerPrint([[                 `:(_>()<_):'                  ]])
-	centerPrint([[                   `'//\\''                    ]])
-	centerPrint([[                    //  \\                     ]])
-	centerPrint([[                   /'    '\                    ]])
-	centerPrint([[                                               ]])
-	centerPrint([[      Merry Christmas! -The Firewolf Team      ]])
+	centerPrint([[          ______ ____ ____   ______            ]])
+	centerPrint([[ ------- / ____//  _// __ \ / ____/            ]])
+	centerPrint([[ ------ / /_    / / / /_/ // __/               ]])
+	centerPrint([[ ----- / __/  _/ / / _  _// /___               ]])
+	centerPrint([[ ---- / /    /___//_/ |_|/_____/               ]])
+	centerPrint([[ --- / /       _       __ ____   __     ______ ]])
+	centerPrint([[ -- /_/       | |     / // __ \ / /    / ____/ ]])
+	centerPrint([[              | | /| / // / / // /    / /_     ]])
+	centerPrint([[              | |/ |/ // /_/ // /___ / __/     ]])
+	centerPrint([[              |__/|__/ \____//_____//_/        ]])
 	centerPrint(string.rep(" ", 47))
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
@@ -3593,8 +3581,8 @@ local function startup()
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		api.centerPrint(string.rep(" ", 47))
 		api.centerPrint("  Firewolf is unable to run without the HTTP   ")
-		api.centerPrint("  API Enabled! Please enable it in the CC     ")
-		api.centerPrint("  Config!                                     ")
+		api.centerPrint("  API Enabled! Please enable it in the CC      ")
+		api.centerPrint("  Config!                                      ")
 		api.centerPrint(string.rep(" ", 47))
 
 		api.centerPrint(string.rep(" ", 47))
