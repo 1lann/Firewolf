@@ -3432,7 +3432,7 @@ local function loadSite(site)
 					write("[ " .. v)
 				end
 				while true do
-					local opt = prompt({{"Allow", 5, 17}, {"Cancel", 15, 17}, {"View Source", 30,17}}, 
+					local opt = prompt({{"Allow", 5, 17}, {"Cancel", 17, 17}, {"View Source", 35,17}}, 
 							"horizontal")
 					if opt == "Allow" then
 						antivirusEnv = allowFunctions(offences)
@@ -3463,7 +3463,9 @@ local function loadSite(site)
 						centerPrint(string.rep(" ", 47))
 						break
 					elseif opt == "View Source" then
-						fs.copy(cacheLoc, rootFolder .. "/temp-source")
+						local f = io.open(rootFolder .. "/temp-source", "w")
+						f:write(content)
+						f:close()
 						shell.run("edit", rootFolder .. "/temp-source")
 						fs.delete(rootFolder .. "/temp-source")
 					elseif opt == nil then
