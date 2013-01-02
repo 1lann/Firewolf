@@ -594,136 +594,6 @@ local function loadTheme(path)
 	end
 end
 
-
---  -------- Download API
-
-function urlDownload(url)
-	clearPage(website, colors[theme["background"]])
-	print("\n\n")
-	term.setTextColor(colors[theme["text-color"]])
-	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 47))
-	centerWrite(string.rep(" ", 47))
-	centerPrint("Processing Download Request...")
-	centerPrint(string.rep(" ", 47))
-
-	openAddressBar = false
-	local res = http.get(url)
-	openAddressBar = true
-	local data = nil
-	if res then
-		data = res.readAll()
-		res.close()
-	else
-		term.setCursorPos(1, 5)
-		centerWrite(string.rep(" ", 47))
-		centerPrint("Download Failed!")
-		centerPrint("Please report this to the website owner!")
-		centerPrint(string.rep(" ", 47))
-		openAddressBar = false
-		sleep(1.1)
-		openAddressBar = true
-
-		clearPage(website, colors.black)
-		term.setCursorPos(1, 2)
-		return nil
-	end
-
-	clearPage(website, colors[theme["background"]])
-	print("")
-	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 47))
-	centerWrite(string.rep(" ", 47))
-	centerPrint("Download Files")
-	centerPrint(string.rep(" ", 47))
-	print("")
-
-	local a = website
-	if a:find("/") then a = a:sub(1, a:find("/") - 1) end
-
-	term.setBackgroundColor(colors[theme["bottom-box"]])
-	for i = 1, 10 do centerPrint(string.rep(" ", 47)) end
-	term.setCursorPos(1, 8)
-	centerPrint("  The website:                                 ")
-	centerPrint("     rdnt://" .. a .. string.rep(" ", w - a:len() - 16))
-	centerPrint("  Is attempting to download a file to this     ")
-	centerPrint("  computer!                                    ")
-
-	local opt = prompt({{"Download", 6, 14}, {"Cancel", w - 16, 14}}, "horizontal")
-	if opt == "Download" then
-		clearPage(website, colors[theme["background"]])
-		print("")
-		term.setTextColor(colors[theme["text-color"]])
-		term.setBackgroundColor(colors[theme["top-box"]])
-		centerPrint(string.rep(" ", 47))
-		centerWrite(string.rep(" ", 47))
-		centerPrint("Download Files")
-		centerPrint(string.rep(" ", 47))
-		print("")
-
-		term.setBackgroundColor(colors[theme["bottom-box"]])
-		for i = 1, 10 do centerPrint(string.rep(" ", 47)) end
-		local a = tostring(math.random(1000, 9999))
-		term.setCursorPos(5, 8)
-		write("This is for security purposes: " .. a)
-		term.setCursorPos(5, 9)
-		write("Enter the 4 numbers above: ")
-		local b = modRead(nil, nil, 4, true)
-		if b == nil then
-			os.queueEvent(event_exitWebsite)
-			return
-		end
-
-		if b == a then
-			term.setCursorPos(5, 11)
-			write("Save As: /")
-			local c = modRead(nil, nil, w - 18, false)
-			if c ~= "" and c ~= nil then
-				c = "/" .. c
-				local f = io.open(c, "w")
-				f:write(data)
-				f:close()
-				term.setCursorPos(5, 13)
-				centerWrite("Download Successful! Continuing to Website...")
-				openAddressBar = false
-				sleep(1.1)
-				openAddressBar = true
-
-				clearPage(website, colors.black)
-				term.setCursorPos(1, 2)
-				return c
-			elseif c == nil then
-				os.queueEvent(event_exitWebsite)
-				return
-			end
-		else
-			term.setCursorPos(5, 13)
-			centerWrite("Incorrect! Cancelling Download...")
-			openAddressBar = false
-			sleep(1.1)
-			openAddressBar = true
-		end
-	elseif opt == "Cancel" then
-		term.setCursorPos(1, 15)
-		centerWrite("Download Canceled!")
-		openAddressBar = false
-		sleep(1.1)
-		openAddressBar = true
-	elseif opt == nil then
-		os.queueEvent(event_exitWebsite)
-		return
-	end
-
-	clearPage(website, colors.black)
-	term.setCursorPos(1, 2)
-	return nil
-end
-
-function pastebinDownload(code)
-	return urlDownload("http://pastebin.com/raw.php?i=" .. code)
-end
-
-
 --  -------- Filesystem
 
 local function download(url, path)
@@ -3168,6 +3038,269 @@ local function loadSite(site)
 			print()
 			
 			return sLine
+		end
+
+		--  -------- Download API
+
+		function nenv.urlDownload(url)
+			local function webmodRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exitOnControl)
+				local function ospullEvent(a)
+					if a == "derp" then return true end
+					while true do
+						local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
+						if e == event_exitWebsite then
+							queueWebsiteExit = true
+							env.error(event_exitWebsite)
+						elseif e == "terminate" then
+							env.error()
+						end
+
+						if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
+								and e ~= event_loadWebsite then
+							if a then
+								if e == a then return e, p1, p2, p3, p4, p5 end
+							else return e, p1, p2, p3, p4, p5 end
+						end
+					end
+				end
+				term.setCursorBlink(true)
+				local line = ""
+				local hisPos = nil
+				local pos = 0
+				if replaceChar then replaceChar = replaceChar:sub(1, 1) end
+				local w, h = term.getSize()
+				local sx, sy = term.getCursorPos()
+
+				local function redraw(repl)
+					local scroll = 0
+					if line:len() >= maxLen then scroll = line:len() - maxLen end
+
+					term.setCursorPos(sx, sy)
+					local a = repl or replaceChar
+					if a then term.write(string.rep(a, line:len() - scroll))
+					else term.write(line:sub(scroll + 1)) end
+					term.setCursorPos(sx + pos - scroll, sy)
+				end
+
+				while true do
+					local e, but, x, y, p4, p5 = ospullEvent()
+					if e == "char" and not(stopAtMaxLen == true and line:len() >= maxLen) then
+						line = line:sub(1, pos) .. but .. line:sub(pos + 1, -1)
+						pos = pos + 1
+						redraw()
+					elseif e == "key" then
+						if but == keys.enter then
+							break
+						elseif but == keys.left then
+							if pos > 0 then pos = pos - 1 redraw() end
+						elseif but == keys.right then
+							if pos < line:len() then pos = pos + 1 redraw() end
+						elseif (but == keys.up or but == keys.down) and his then
+							redraw(" ")
+							if but == keys.up then
+								if hisPos == nil and #his > 0 then hisPos = #his
+								elseif hisPos > 1 then hisPos = hisPos - 1 end
+							elseif but == keys.down then
+								if hisPos == #his then hisPos = nil
+								elseif hisPos ~= nil then hisPos = hisPos + 1 end
+							end
+
+							if hisPos then
+								line = his[hisPos]
+								pos = line:len()
+							else
+								line = ""
+								pos = 0
+							end
+							redraw()
+							if liveUpdates then
+								local a, data = liveUpdates(line, "update_history", nil, nil, nil, nil, nil)
+								if a == true and data == nil then
+									term.setCursorBlink(false)
+									return line
+								elseif a == true and data ~= nil then
+									term.setCursorBlink(false)
+									return data
+								end
+							end
+						elseif but == keys.backspace and pos > 0 then
+							redraw(" ")
+							line = line:sub(1, pos - 1) .. line:sub(pos + 1, -1)
+							pos = pos - 1
+							redraw()
+							if liveUpdates then
+								local a, data = liveUpdates(line, "delete", nil, nil, nil, nil, nil)
+								if a == true and data == nil then
+									term.setCursorBlink(false)
+									return line
+								elseif a == true and data ~= nil then
+									term.setCursorBlink(false)
+									return data
+								end
+							end
+						elseif but == keys.home then
+							pos = 0
+							redraw()
+						elseif but == keys.delete and pos < line:len() then
+							redraw(" ")
+							line = line:sub(1, pos) .. line:sub(pos + 2, -1)
+							redraw()
+							if liveUpdates then
+								local a, data = liveUpdates(line, "delete", nil, nil, nil, nil, nil)
+								if a == true and data == nil then
+									term.setCursorBlink(false)
+									return line
+								elseif a == true and data ~= nil then
+									term.setCursorBlink(false)
+									return data
+								end
+							end
+						elseif but == keys["end"] then
+							pos = line:len()
+							redraw()
+						elseif (but == 29 or but == 157) and not(exitOnControl) then 
+							term.setCursorBlink(false)
+							return nil
+						end
+					end if liveUpdates then
+						local a, data = liveUpdates(line, e, but, x, y, p4, p5)
+						if a == true and data == nil then
+							term.setCursorBlink(false)
+							return line
+						elseif a == true and data ~= nil then
+							term.setCursorBlink(false)
+							return data
+						end
+					end
+				end
+
+				term.setCursorBlink(false)
+				if line ~= nil then line = line:gsub("^%s*(.-)%s*$", "%1") end
+				return line
+			end
+			clearPage(website, colors[theme["background"]])
+			print("\n\n")
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
+			centerPrint(string.rep(" ", 47))
+			centerWrite(string.rep(" ", 47))
+			centerPrint("Processing Download Request...")
+			centerPrint(string.rep(" ", 47))
+
+			openAddressBar = false
+			local res = http.get(url)
+			openAddressBar = true
+			local data = nil
+			if res then
+				data = res.readAll()
+				res.close()
+			else
+				term.setCursorPos(1, 5)
+				centerWrite(string.rep(" ", 47))
+				centerPrint("Download Failed!")
+				centerPrint("Please report this to the website owner!")
+				centerPrint(string.rep(" ", 47))
+				openAddressBar = false
+				sleep(1.1)
+				openAddressBar = true
+
+				clearPage(website, colors.black)
+				term.setCursorPos(1, 2)
+				return nil
+			end
+
+			clearPage(website, colors[theme["background"]])
+			print("")
+			term.setBackgroundColor(colors[theme["top-box"]])
+			centerPrint(string.rep(" ", 47))
+			centerWrite(string.rep(" ", 47))
+			centerPrint("Download Files")
+			centerPrint(string.rep(" ", 47))
+			print("")
+
+			local a = website
+			if a:find("/") then a = a:sub(1, a:find("/") - 1) end
+
+			term.setBackgroundColor(colors[theme["bottom-box"]])
+			for i = 1, 10 do centerPrint(string.rep(" ", 47)) end
+			term.setCursorPos(1, 8)
+			centerPrint("  The website:                                 ")
+			centerPrint("     rdnt://" .. a .. string.rep(" ", w - a:len() - 16))
+			centerPrint("  Is attempting to download a file to this     ")
+			centerPrint("  computer!                                    ")
+
+			local opt = nenv.prompt({{"Download", 6, 14}, {"Cancel", w - 16, 14}}, "horizontal")
+			if opt == "Download" then
+				clearPage(website, colors[theme["background"]])
+				print("")
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["top-box"]])
+				centerPrint(string.rep(" ", 47))
+				centerWrite(string.rep(" ", 47))
+				centerPrint("Download Files")
+				centerPrint(string.rep(" ", 47))
+				print("")
+
+				term.setBackgroundColor(colors[theme["bottom-box"]])
+				for i = 1, 10 do centerPrint(string.rep(" ", 47)) end
+				local a = tostring(math.random(1000, 9999))
+				term.setCursorPos(5, 8)
+				write("This is for security purposes: " .. a)
+				term.setCursorPos(5, 9)
+				write("Enter the 4 numbers above: ")
+				local b = webmodRead(nil, nil, 4, true)
+				if b == nil then
+					os.queueEvent(event_exitWebsite)
+					return
+				end
+
+				if b == a then
+					term.setCursorPos(5, 11)
+					write("Save As: /")
+					local c = webmodRead(nil, nil, w - 18, false)
+					if c ~= "" and c ~= nil then
+						c = "/" .. c
+						local f = io.open(c, "w")
+						f:write(data)
+						f:close()
+						term.setCursorPos(5, 13)
+						centerWrite("Download Successful! Continuing to Website...")
+						openAddressBar = false
+						sleep(1.1)
+						openAddressBar = true
+
+						clearPage(website, colors.black)
+						term.setCursorPos(1, 2)
+						return c
+					elseif c == nil then
+						os.queueEvent(event_exitWebsite)
+						return
+					end
+				else
+					term.setCursorPos(5, 13)
+					centerWrite("Incorrect! Cancelling Download...")
+					openAddressBar = false
+					sleep(1.1)
+					openAddressBar = true
+				end
+			elseif opt == "Cancel" then
+				term.setCursorPos(1, 15)
+				centerWrite("Download Canceled!")
+				openAddressBar = false
+				sleep(1.1)
+				openAddressBar = true
+			elseif opt == nil then
+				os.queueEvent(event_exitWebsite)
+				return
+			end
+
+			clearPage(website, colors.black)
+			term.setCursorPos(1, 2)
+			return nil
+		end
+
+		function nenv.pastebinDownload(code)
+			return nenv.urlDownload("http://pastebin.com/raw.php?i=" .. code)
 		end
 
 		-- Run
