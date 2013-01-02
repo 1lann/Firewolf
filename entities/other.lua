@@ -2569,7 +2569,7 @@ local function loadSite(site)
 		for k, v in pairs(env) do 
 			if isSafeFunc(k) then
 				if type(v) ~= "table" then
-					then nenv[k] = v
+					nenv[k] = v
 				else
 					nenv[k] = {}
 					for i, d in pairs(v) do nenv[k][i] = d end
