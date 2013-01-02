@@ -9,19 +9,11 @@
 --  
 
 
---  Features:
---  - Password protection
---  - Bug Fixes
-
---  To Do:
---  - Autoupdating option
-
-
 --  -------- Variables
 
 -- Version
-local version = "2.3.5"
-local serverID = "experimental"
+local version = "2.3.6"
+local serverID = "release"
 
 -- Prevent Control-T
 os.pullEvent = os.pullEventRaw
@@ -722,7 +714,7 @@ local function edit()
 	local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
 		"eject", "exit", "help", "id", "mkdir", "monitor", "rename", "alias", "clear",
 		"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", "programs",
-		"redset", "reboot", "hello", "label", "list", "ls", "easter"}
+		"redset", "reboot", "hello", "label", "list", "ls", "easter", "pastebin", "dir"}
 	
 	while true do
 		shell.setDir(serverFolder .. "/" .. website)
@@ -1031,17 +1023,6 @@ end
 
 --  -------- Main
 
---  centerPrint([[          ______ ____ ____   ______            ]])
---  centerPrint([[ ------- / ____//  _// __ \ / ____/            ]])
---  centerPrint([[ ------ / /_    / / / /_/ // __/               ]])
---  centerPrint([[ ----- / __/  _/ / / _  _// /___               ]])
---  centerPrint([[ ---- / /    /___//_/ |_|/_____/               ]])
---  centerPrint([[ --- / /       _       __ ____   __     ______ ]])
---  centerPrint([[ -- /_/       | |     / // __ \ / /    / ____/ ]])
---  centerPrint([[              | | /| / // / / // /    / /_     ]])
---  centerPrint([[              | |/ |/ // /_/ // /___ / __/     ]])
---  centerPrint([[              |__/|__/ \____//_____//_/        ]])
-
 local function main()
 	-- Logo
 	term.setBackgroundColor(colors[theme["background"]])
@@ -1050,16 +1031,16 @@ local function main()
 	term.setCursorPos(1, 2)
 	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 47))
-	centerPrint([[                    _...._                     ]])
-	centerPrint([[                  .::o:::::.                   ]])
-	centerPrint([[                 .:::'''':o:.                  ]])
-	centerPrint([[                 :o:_    _:::                  ]])
-	centerPrint([[                 `:(_>()<_):'                  ]])
-	centerPrint([[                   `'//\\''                    ]])
-	centerPrint([[                    //  \\                     ]])
-	centerPrint([[                   /'    '\                    ]])
-	centerPrint([[                                               ]])
-	centerPrint([[      Merry Christmas! -The Firewolf Team      ]])
+	centerPrint([[          ______ ____ ____   ______            ]])
+	centerPrint([[ ------- / ____//  _// __ \ / ____/            ]])
+	centerPrint([[ ------ / /_    / / / /_/ // __/               ]])
+	centerPrint([[ ----- / __/  _/ / / _  _// /___               ]])
+	centerPrint([[ ---- / /    /___//_/ |_|/_____/               ]])
+	centerPrint([[ --- / /       _       __ ____   __     ______ ]])
+	centerPrint([[ -- /_/       | |     / // __ \ / /    / ____/ ]])
+	centerPrint([[              | | /| / // / / // /    / /_     ]])
+	centerPrint([[              | |/ |/ // /_/ // /___ / __/     ]])
+	centerPrint([[              |__/|__/ \____//_____//_/        ]])
 	centerPrint(string.rep(" ", 47))
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
