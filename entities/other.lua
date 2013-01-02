@@ -3243,7 +3243,7 @@ local function loadSite(site)
 	end
 
 	local function allowFunctions(offences)
-		local function appendTable(tableData, addTable, tableName, ignore, overrideFunc)
+		--[[local function appendTable(tableData, addTable, tableName, ignore, overrideFunc)
 			if not(tableData[tableName]) then
 				tableData[tableName] = {}
 			end
@@ -3301,7 +3301,7 @@ local function loadSite(site)
 				returnTable["setfenv"] = setfenv
 			end
 		end
-		return returnTable
+		return returnTable]]
 	end
 
 	-- Draw
