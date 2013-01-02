@@ -3931,10 +3931,18 @@ local function startup()
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		api.centerPrint(string.rep(" ", 47))
-		api.centerPrint("  Please report this error to 1lann or         ")
-		api.centerPrint("  GravityScore so we are able to fix it!       ")
-		api.centerPrint("  If this problem persists, try deleting       ")
-		api.centerPrint("  " .. rootFolder .. "                              ")
+		if autoupdate then
+			api.centerPrint("  Please report this error to 1lann or         ")
+			api.centerPrint("  GravityScore so we are able to fix it!       ")
+			api.centerPrint("  If this problem persists, try deleting       ")
+			api.centerPrint("  " .. rootFolder .. "                              ")
+		else
+			api.centerPrint("  Auto-updating is currently turned off!       ")
+			api.centerPrint("  This may be the cause of the problem, a      ")
+			api.centerPrint("  modified version of Firewolf!")
+			api.centerPrint("  If you didn't intend to turn Auto-updating   ")
+			api.centerPrint("  off, delete /.Firewolf_Data                  ")
+		end
 		api.centerPrint(string.rep(" ", 47))
 		api.centerWrite(string.rep(" ", 47))
 		if isAdvanced() then api.centerPrint("Click to exit...")
