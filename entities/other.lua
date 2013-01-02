@@ -3283,7 +3283,7 @@ local function loadSite(site)
 					write("[ " .. v)
 				end
 				while true do
-					local opt = prompt({{"Allow", 3, 17}, {"Cancel", 10, 17}, {"View Source", 18,17}}, "horizontal")
+					local opt = prompt({{"Allow", 5, 17}, {"Cancel", 15, 17}, {"View Source", 30,17}}, "horizontal")
 					if opt == "Allow" then
 						antivirusEnv = allowFunctions(offences)
 						status = "safe"
