@@ -656,7 +656,7 @@ local function verifyGitHub()
 			return false
 		else
 			term.clear()
-			term.setCursorPos(1,1)
+			term.setCursorPos(1, 1)
 			term.setBackgroundColor(colors.black)
 			term.setTextColor(colors.white)
 			print("\n")
@@ -2357,7 +2357,7 @@ errPages.blacklistRedirectionBots = function()
 	local alphabet = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", 
 				      "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "."}
 	local name = ""
-	for i = 1, math.random(1,3) do
+	for i = 1, math.random(1, 3) do
 		name = ""
 		for d = 1, math.random(6, 17) do
 			name = name .. alphabet[math.random(1, 27)]
@@ -2420,13 +2420,9 @@ local skipExitWebsiteEvent = false
 local function loadSite(site)
 	local function runSite(cacheLoc, antivirusEnv)
 		local function isSafeFunc(func)
-			local unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
-				"getfenv", "setfenv"}
-			for k,v in pairs(unsafeFunc) do
-				if func == v then return false end
-			end
-			return true
+			
 		end
+
 		-- Clear
 		clearPage(site, colors.black)
 		term.setBackgroundColor(colors.black)
@@ -2436,12 +2432,19 @@ local function loadSite(site)
 		local cbc, ctc = colors.black, colors.white
 		local nenv = {}
 		if antivirusEnv then
-			for k,v in pairs(antivirusEnv) do
+			for k, v in pairs(antivirusEnv) do
 				nenv[k] = v
 			end
 		end
 		for k, v in pairs(env) do 
-			if isSafeFunc(k) then
+			local safeFunc = true
+			local unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
+				"getfenv", "setfenv"}
+			for ki, vi in pairs(unsafeFunc) do
+				if k == vi then safeFunc = false end
+			end
+
+			if safeFunc then
 				if type(v) ~= "table" then
 					nenv[k] = v
 				else
@@ -2451,6 +2454,26 @@ local function loadSite(site)
 			end
 		end
 		nenv.term = {}
+
+		local function ospullEvent(a)
+			if a == "derp" then return true end
+			while true do
+				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
+				if e == event_exitWebsite then
+					queueWebsiteExit = true
+					env.error(event_exitWebsite)
+				elseif e == "terminate" then
+					env.error()
+				end
+
+				if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
+						and e ~= event_loadWebsite then
+					if a then
+						if e == a then return e, p1, p2, p3, p4, p5 end
+					else return e, p1, p2, p3, p4, p5 end
+				end
+			end
+		end
 
 		nenv.term.getSize = function()
 			local wid, hei = env.term.getSize()
@@ -2534,26 +2557,6 @@ local function loadSite(site)
 
 		nenv.prompt = function(list, dir)
 			local fixPrompt = function(list, dir)
-				local function ospullEvent(a)
-					if a == "derp" then return true end
-					while true do
-						local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
-						if e == event_exitWebsite then
-							queueWebsiteExit = true
-							env.error(event_exitWebsite)
-						elseif e == "terminate" then
-							env.error()
-						end
-
-						if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
-								and e ~= event_loadWebsite then
-							if a then
-								if e == a then return e, p1, p2, p3, p4, p5 end
-							else return e, p1, p2, p3, p4, p5 end
-						end
-					end
-				end
-
 				if isAdvanced() then
 					for _, v in pairs(list) do
 						if v.bg then term.setBackgroundColor(v.bg) end
@@ -2645,26 +2648,6 @@ local function loadSite(site)
 
 		nenv.scrollingPrompt = function(list, x, y, len, width)
 			skipExitWebsiteEvent = true
-
-			local function ospullEvent(a)
-				if a == "derp" then return true end
-				while true do
-					local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
-					if e == event_exitWebsite then
-						queueWebsiteExit = true
-						env.error(event_exitWebsite)
-					elseif e == "terminate" then
-						env.error()
-					end
-
-					if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
-							and e ~= event_loadWebsite then
-						if a then
-							if e == a then return e, p1, p2, p3, p4, p5 end
-						else return e, p1, p2, p3, p4, p5 end
-					end
-				end
-			end
 
 			local y = y + 1
 			local wid = width
@@ -2802,10 +2785,11 @@ local function loadSite(site)
 
 		--[[
 		nenv.getCookie = function(cookieId)
+			sleep(0.1)
 			env.rednet.send(id, textutils.serialize({"getCookie", cookieId}))
 			local startClock = os.clock()
-			while os.clock() - startClock < 0.1 do
-				local mid, status = env.rednet.receive(0.1)
+			while os.clock() - startClock < timeout do
+				local mid, status = env.rednet.receive(timeout)
 				if mid == id then
 					if status == "[$notexist$]" then
 						return false
@@ -2817,11 +2801,16 @@ local function loadSite(site)
 			return false
 		end
 
+		nenv.takeFromCookieJar = function(cookieId)
+			nenv.getCookie(cookieId)
+		end
+
 		nenv.createCookie = function(cookieId)
+			sleep(0.1)
 			env.rednet.send(id, textutils.serialize({"createCookie", cookieId}))
 			local startClock = os.clock()
-			while os.clock() - startClock < 0.1 do
-				local mid, status = env.rednet.receive(0.1)
+			while os.clock() - startClock < timeout do
+				local mid, status = env.rednet.receive(timeout)
 				if mid == id then
 					if status == "[$notexist$]" then
 						return false
@@ -2881,114 +2870,65 @@ local function loadSite(site)
 			end
 		end
 
-		nenv.sleep = function( _nTime )
-			local function ospullEvent(a)
-				if a == "derp" then return true end
-				while true do
-					local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
-					if e == event_exitWebsite then
-						queueWebsiteExit = true
-						env.error(event_exitWebsite)
-					elseif e == "terminate" then
-						env.error()
-					end
-
-					if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
-							and e ~= event_loadWebsite then
-						if a then
-							if e == a then return e, p1, p2, p3, p4, p5 end
-						else return e, p1, p2, p3, p4, p5 end
-					end
-				end
-			end
-
-		    local timer = os.startTimer( _nTime )
-			repeat
-				local _, param = ospullEvent("timer")
+		nenv.sleep = function(_nTime)
+		    local timer = os.startTimer(_nTime)
+			repeat local _, param = ospullEvent("timer")
 			until param == timer
 		end
 
-		nenv.read = function( _sReplaceChar, _tHistory )
-			term.setCursorBlink( true )
+		nenv.read = function(_sReplaceChar, _tHistory)
+			term.setCursorBlink(true)
 
 		    local sLine = ""
 			local nHistoryPos = nil
 			local nPos = 0
 		    if _sReplaceChar then
-				_sReplaceChar = string.sub( _sReplaceChar, 1, 1 )
+				_sReplaceChar = string.sub(_sReplaceChar, 1, 1)
 			end
 			
 			local w, h = term.getSize()
-			local sx, sy = term.getCursorPos()	
-
-			local function ospullEvent(a)
-				if a == "derp" then return true end
-				while true do
-					local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
-					if e == event_exitWebsite then
-						queueWebsiteExit = true
-						env.error(event_exitWebsite)
-					elseif e == "terminate" then
-						env.error()
-					end
-
-					if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
-							and e ~= event_loadWebsite then
-						if a then
-							if e == a then return e, p1, p2, p3, p4, p5 end
-						else return e, p1, p2, p3, p4, p5 end
-					end
-				end
-			end
+			local sx, sy = term.getCursorPos()
 			
-			local function redraw( _sCustomReplaceChar )
+			local function redraw(_sCustomReplaceChar)
 				local nScroll = 0
 				if sx + nPos >= w then
 					nScroll = (sx + nPos) - w
 				end
 					
-				term.setCursorPos( sx, sy )
+				term.setCursorPos(sx, sy)
 				local sReplace = _sCustomReplaceChar or _sReplaceChar
 				if sReplace then
-					term.write( string.rep(sReplace, string.len(sLine) - nScroll) )
+					term.write(string.rep(sReplace, string.len(sLine) - nScroll))
 				else
-					term.write( string.sub( sLine, nScroll + 1 ) )
+					term.write(string.sub(sLine, nScroll + 1))
 				end
-				term.setCursorPos( sx + nPos - nScroll, sy )
+				term.setCursorPos(sx + nPos - nScroll, sy)
 			end
 			
 			while true do
 				local sEvent, param = ospullEvent()
 				if sEvent == "char" then
-					sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1)
+					sLine = string.sub(sLine, 1, nPos) .. param .. string.sub(sLine, nPos + 1)
 					nPos = nPos + 1
 					redraw()
 					
 				elseif sEvent == "key" then
 				    if param == keys.enter then
-						-- Enter
 						break
-						
 					elseif param == keys.left then
-						-- Left
 						if nPos > 0 then
 							nPos = nPos - 1
 							redraw()
 						end
-						
 					elseif param == keys.right then
-						-- Right				
 						if nPos < string.len(sLine) then
 							nPos = nPos + 1
 							redraw()
 						end
-					
 					elseif param == keys.up or param == keys.down then
-		                -- Up or down
 						if _tHistory then
 							redraw(" ");
 							if param == keys.up then
-								-- Up
 								if nHistoryPos == nil then
 									if #_tHistory > 0 then
 										nHistoryPos = #_tHistory
@@ -2997,7 +2937,6 @@ local function loadSite(site)
 									nHistoryPos = nHistoryPos - 1
 								end
 							else
-								-- Down
 								if nHistoryPos == #_tHistory then
 									nHistoryPos = nil
 								elseif nHistoryPos ~= nil then
@@ -3007,7 +2946,7 @@ local function loadSite(site)
 							
 							if nHistoryPos then
 		                    	sLine = _tHistory[nHistoryPos]
-		                    	nPos = string.len( sLine ) 
+		                    	nPos = string.len(sLine) 
 		                    else
 								sLine = ""
 								nPos = 0
@@ -3015,61 +2954,39 @@ local function loadSite(site)
 							redraw()
 		                end
 					elseif param == keys.backspace then
-						-- Backspace
 						if nPos > 0 then
 							redraw(" ");
-							sLine = string.sub( sLine, 1, nPos - 1 ) .. string.sub( sLine, nPos + 1)
+							sLine = string.sub(sLine, 1, nPos - 1) .. string.sub(sLine, nPos + 1)
 							nPos = nPos - 1					
 							redraw()
 						end
 					elseif param == keys.home then
-						-- Home
 						nPos = 0
 						redraw()		
 					elseif param == keys.delete then
 						if nPos < string.len(sLine) then
 							redraw(" ");
-							sLine = string.sub( sLine, 1, nPos ) .. string.sub( sLine, nPos + 2)
+							sLine = string.sub(sLine, 1, nPos) .. string.sub(sLine, nPos + 2)
 							redraw()
 						end
 					elseif param == keys["end"] then
-						-- End
 						nPos = string.len(sLine)
 						redraw()
 					end
 				end
 			end
 			
-			term.setCursorBlink( false )
-			term.setCursorPos( w + 1, sy )
+			term.setCursorBlink(false)
+			term.setCursorPos(w + 1, sy)
 			print()
 			
 			return sLine
 		end
 
 		-- Download API
-		function nenv.urlDownload(url)
+		nenv.urlDownload = function(url)
 			local function webmodRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, 
 					exitOnControl)
-				local function ospullEvent(a)
-					if a == "derp" then return true end
-					while true do
-						local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
-						if e == event_exitWebsite then
-							queueWebsiteExit = true
-							env.error(event_exitWebsite)
-						elseif e == "terminate" then
-							env.error()
-						end
-
-						if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
-								and e ~= event_loadWebsite then
-							if a then
-								if e == a then return e, p1, p2, p3, p4, p5 end
-							else return e, p1, p2, p3, p4, p5 end
-						end
-					end
-				end
 				term.setCursorBlink(true)
 				local line = ""
 				local hisPos = nil
@@ -3308,7 +3225,7 @@ local function loadSite(site)
 			return nil
 		end
 
-		function nenv.pastebinDownload(code)
+		nenv.pastebinDownload = function(code)
 			return nenv.urlDownload("http://pastebin.com/raw.php?i=" .. code)
 		end
 
@@ -3327,15 +3244,15 @@ local function loadSite(site)
 
 	local function allowFunctions(offences)
 		local function appendTable(tableData, addTable, tableName, ignore, overrideFunc)
-			if not tableData[tableName] then
+			if not(tableData[tableName]) then
 				tableData[tableName] = {}
 			end
-			for k,v in pairs(addTable) do
+			for k, v in pairs(addTable) do
 				if ignore then
 					if ignore ~= k then
 						if overrideFunc then
 							tableData[tableName][k] = function() 
-								env.error("Firewolf Antivirus: unauthorized function") end
+								env.error("Firewolf Antivirus: Unauthorized Function") end
 						else
 						tableData[tableName][k] = v
 						end
@@ -3343,7 +3260,7 @@ local function loadSite(site)
 				else
 					if overrideFunc then
 						tableData[tableName][k] = function() 
-							env.error("Firewolf Antivirus: unauthorized function") end
+							env.error("Firewolf Antivirus: Unauthorized Function") end
 					else
 					tableData[tableName][k] = v
 					end
@@ -3357,18 +3274,18 @@ local function loadSite(site)
 		returnTable = appendTable(returnTable, os, "io", nil, true)
 		returnTable = appendTable(returnTable, os, "shell", nil, true)
 		returnTable["loadfile"] = function() 
-				env.error("Firewolf Antivirus: unauthorised function") end
+				env.error("Firewolf Antivirus: Unauthorised Function") end
 		returnTable["loadstring"] = function() 
-				env.error("Firewolf Antivirus: unauthorised function") end
+				env.error("Firewolf Antivirus: Unauthorised Function") end
 		returnTable["dofile"] = function() 
-				env.error("Firewolf Antivirus: unauthorised function") end
+				env.error("Firewolf Antivirus: Unauthorised Function") end
 		returnTable["getfenv"] = function() 
-				env.error("Firewolf Antivirus: unauthorised function") end
+				env.error("Firewolf Antivirus: Unauthorised Function") end
 		returnTable["setfenv"] = function() 
-				env.error("Firewolf Antivirus: unauthorised function") end
+				env.error("Firewolf Antivirus: Unauthorised Function") end
 
 		returnTable = appendTable(returnTable, os, "os", "run")
-		for k,v in pairs(offences) do
+		for k, v in pairs(offences) do
 			if v == "Modify Files" then
 				returnTable = appendTable(returnTable, io, "io")
 				returnTable = appendTable(returnTable, fs, "fs")
@@ -3432,7 +3349,7 @@ local function loadSite(site)
 					write("[ " .. v)
 				end
 				while true do
-					local opt = prompt({{"Allow", 5, 17}, {"Cancel", 17, 17}, {"View Source", 31,17}}, 
+					local opt = prompt({{"Allow", 5, 17}, {"Cancel", 17, 17}, {"View Source", 31, 17}}, 
 							"horizontal")
 					if opt == "Allow" then
 						antivirusEnv = allowFunctions(offences)
@@ -3933,7 +3850,7 @@ local function startup()
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		api.centerPrint(string.rep(" ", 47))
-		if autoupdate then
+		if autoupdate == "true" then
 			api.centerPrint("  Please report this error to 1lann or         ")
 			api.centerPrint("  GravityScore so we are able to fix it!       ")
 			api.centerPrint("  If this problem persists, try deleting       ")
@@ -3941,7 +3858,7 @@ local function startup()
 		else
 			api.centerPrint("  Auto-updating is currently turned off!       ")
 			api.centerPrint("  This may be the cause of the problem, a      ")
-			api.centerPrint("  modified version of Firewolf!")
+			api.centerPrint("  modified version of Firewolf!                ")
 			api.centerPrint("  If you didn't intend to turn Auto-updating   ")
 			api.centerPrint("  off, delete /.Firewolf_Data                  ")
 		end
