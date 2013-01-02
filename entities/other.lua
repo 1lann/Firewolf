@@ -3466,7 +3466,9 @@ local function loadSite(site)
 						local f = io.open(rootFolder .. "/temp-source", "w")
 						f:write(content)
 						f:close()
+						openAddressBar = false
 						shell.run("edit", rootFolder .. "/temp-source")
+						openAddressBar = true
 						fs.delete(rootFolder .. "/temp-source")
 					elseif opt == nil then
 						os.queueEvent(event_exitWebsite)
