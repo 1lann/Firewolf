@@ -5,14 +5,6 @@ START-WHITELIST
 START-DOWNLOADS
 
 START-DEFINITIONS
-os.pullEvent=| |Modify Events
-functionos.pullEvent(| |Modify Events
-os["pullEvent"]=| |Modify Events
-shell=| |Modify APIs
-fs=| |Modify APIs
-io=| |Modify APIs
-os=| |Modify APIs
-browserAgent=| |Modify Browser Agent
 shell.| |Run Files
 shell.| |Modify Filesystem
 fs.| |Modify Files
@@ -24,7 +16,6 @@ fs)| |Modify Files
 io)| |Modify Files
 os)| |Run Files
 loadstring| |Execute Text
-loadfile| |Run Files
 fs--| |Modify Files
 io--| |Modify Files
 os--| |Run Files
@@ -38,14 +29,8 @@ os["run| |Run Files
 loadstring| |Run Files
 loadfile| |Run Files
 dofile| |Run Files
-assert| |Exit Firefox
-getfenv| |Modify Environment
-setfenv| |Modify Environment
-_g| |Modify Environment
-_G| |Modify Environment
-.write| |Write to Files
-.read| |Read from Files
-:write| |Write to Files
-:read| |Read from Files
-.open| |Modify Files
+getfenv| |Modify Env
+setfenv| |Modify Env
+_g| |Modify Env
+_G| |Modify Env
 END-DATABASE
