@@ -2545,7 +2545,14 @@ end
 
 local skipExitWebsiteEvent = false
 local function loadSite(site)
-	local function runSite(cacheLoc)
+	local function runSite(cacheLoc, antivirusEnv)
+		local function isSafeFunc(func)
+			local unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", "getfenv", "setfenv"}
+			for k,v in pairs(unsafeFunc) do
+				if func == v then return false end
+			end
+			return true
+		end
 		-- Clear
 		clearPage(site, colors.black)
 		term.setBackgroundColor(colors.black)
@@ -2554,12 +2561,21 @@ local function loadSite(site)
 		-- Setup environment
 		local cbc, ctc = colors.black, colors.white
 		local nenv = {}
+		if antivirusEnv then
+			for k,v in pairs(antivirusEnv) do
+				nenv[k] = v
+			end
+		end
 		for k, v in pairs(env) do 
-			if type(v) ~= "table" then nenv[k] = v
-		else
-			nenv[k] = {}
-			for i, d in pairs(v) do nenv[k][i] = d end
-		end end
+			if isSafeFunc(k) then
+				if type(v) ~= "table" then
+					then nenv[k] = v
+				else
+					nenv[k] = {}
+					for i, d in pairs(v) do nenv[k][i] = d end
+				end
+			end
+		end
 		nenv.term = {}
 
 		nenv.term.getSize = function()
@@ -3167,6 +3183,61 @@ local function loadSite(site)
 		if queueWebsiteExit then os.queueEvent(event_exitWebsite) end
 	end
 
+	local function allowFunctions(offences)
+		local function appendTable(tableData, addTable, tableName, ignore, overrideFunc)
+			if not tableData[tableName] then
+				tableData[tableName] = {}
+			end
+			for k,v in pairs(addTable) do
+				if ignore then
+					if ignore ~= k then
+						if overrideFunc then
+							tableData[tableName][k] = function() env.error("Firewolf Antivirus unauthorized function") end
+						else
+						tableData[tableName][k] = v
+						end
+					end
+				else
+					if overrideFunc then
+						tableData[tableName][k] = function() env.error("Firewolf Antivirus unauthorized function") end
+					else
+					tableData[tableName][k] = v
+					end
+				end
+			end
+			return tableData
+		end
+
+		local returnTable = appendTable({}, os, "os", nil, true)
+		returnTable = appendTable(returnTable, os, "fs", nil, true)
+		returnTable = appendTable(returnTable, os, "io", nil, true)
+		returnTable = appendTable(returnTable, os, "shell", nil, true)
+		returnTable["loadfile"] = function() env.error("Firewolf Antivirus unauthorised function") end
+		returnTable["loadstring"] = function() env.error("Firewolf Antivirus unauthorised function") end
+		returnTable["dofile"] = function() env.error("Firewolf unauthorised function") end
+		returnTable["getfenv"] = function() env.error("Firewolf unauthorised function") end
+		returnTable["setfenv"] = function() env.error("Firewolf unauthorised function") end
+
+		returnTable = appendTable(returnTable, os, "os", "run")
+		for k,v in pairs(offences) do
+			if v == "Modify Files" then
+				returnTable = appendTable(returnTable, io, "io")
+				returnTable = appendTable(returnTable, fs, "fs")
+			elseif v == "Run Files" then 
+				returnTable = appendTable(returnTable, os, "os")
+				returnTable = appendTable(returnTable, shell, "shell")
+				returnTable["loadfile"] = loadfile
+				returnTable["dofile"] = dofile
+			elseif v == "Execute Text" then
+				returnTable["loadstring"] = loadstring
+			elseif v == "Modify Env" then
+				returnTable["getfenv"] = getfenv
+				returnTable["setfenv"] = setfenv
+			end
+		end
+		return returnTable
+	end
+
 	-- Draw
 	openAddressBar = false
 	clearPage(site, colors[theme["background"]])
@@ -3184,6 +3255,7 @@ local function loadSite(site)
 
 	-- Display website
 	local cacheLoc = cacheFolder .. "/" .. site:gsub("/", "$slazh$")
+	local antivirusEnv = {}
 	if id ~= nil and status ~= nil then
 		openAddressBar = true
 		if status == "antivirus" then
@@ -3210,36 +3282,44 @@ local function loadSite(site)
 					else term.setCursorPos(6, i + 11) end
 					write("[ " .. v)
 				end
+				while true do
+					local opt = prompt({{"Allow", 3, 17}, {"Cancel", 10, 17}, {"View Source", 18,17}}, "horizontal")
+					if opt == "Allow" then
+						antivirusEnv = allowFunctions(offences)
+						status = "safe"
+						break
+					elseif opt == "Cancel" then
+						clearPage(site, colors[theme["background"]])
+						print("")
+						term.setTextColor(colors[theme["text-color"]])
+						term.setBackgroundColor(colors[theme["top-box"]])
+						centerPrint(string.rep(" ", 47))
+						centerWrite(string.rep(" ", 47))
+						centerPrint("O Noes!")
+						centerPrint(string.rep(" ", 47))
+						print("")
 
-				local opt = prompt({{"Allow", 6, 17}, {"Cancel", w - 16, 17}}, "horizontal")
-				if opt == "Allow" then
-					status = "safe"
-				elseif opt == "Cancel" then
-					clearPage(site, colors[theme["background"]])
-					print("")
-					term.setTextColor(colors[theme["text-color"]])
-					term.setBackgroundColor(colors[theme["top-box"]])
-					centerPrint(string.rep(" ", 47))
-					centerWrite(string.rep(" ", 47))
-					centerPrint("O Noes!")
-					centerPrint(string.rep(" ", 47))
-					print("")
-
-					term.setBackgroundColor(colors[theme["bottom-box"]])
-					centerPrint(string.rep(" ", 47))
-					centerPrint("         ______                          __    ")
-					centerPrint("        / ____/_____ _____ ____   _____ / /    ")
-					centerPrint("       / __/  / ___// ___// __ \\ / ___// /     ")
-					centerPrint("      / /___ / /   / /   / /_/ // /   /_/      ")
-					centerPrint("     /_____//_/   /_/    \\____//_/   (_)       ")
-					centerPrint(string.rep(" ", 47))
-					centerPrint("  Could not connect to the website! The        ")
-					centerPrint("  website was not given enough permissions to  ")
-					centerPrint("  execute properly!                            ")
-					centerPrint(string.rep(" ", 47))
-				elseif opt == nil then
-					os.queueEvent(event_exitWebsite)
-					return
+						term.setBackgroundColor(colors[theme["bottom-box"]])
+						centerPrint(string.rep(" ", 47))
+						centerPrint("         ______                          __    ")
+						centerPrint("        / ____/_____ _____ ____   _____ / /    ")
+						centerPrint("       / __/  / ___// ___// __ \\ / ___// /     ")
+						centerPrint("      / /___ / /   / /   / /_/ // /   /_/      ")
+						centerPrint("     /_____//_/   /_/    \\____//_/   (_)       ")
+						centerPrint(string.rep(" ", 47))
+						centerPrint("  Could not connect to the website! The        ")
+						centerPrint("  website was not given enough permissions to  ")
+						centerPrint("  execute properly!                            ")
+						centerPrint(string.rep(" ", 47))
+						break
+					elseif opt == "View Source" then
+						fs.copy(cacheLoc, rootFolder .. "/temp-source")
+						shell.run("edit", rootFolder .. "/temp-source")
+						fs.delete(rootFolder .. "/temp-source")
+					elseif opt == nil then
+						os.queueEvent(event_exitWebsite)
+						return
+					end
 				end
 			else
 				status = "safe"
@@ -3250,7 +3330,7 @@ local function loadSite(site)
 			local f = io.open(cacheLoc, "w")
 			f:write(content)
 			f:close()
-			runSite(cacheLoc)
+			runSite(cacheLoc, antivirusEnv)
 			return
 		end
 	else
