@@ -393,7 +393,8 @@ local function debugLog(n, ...)
 		if n == nil then n = "" end
 		debugFile:write("\n" .. tostring(n) .. " : ")
 		for k, v in pairs(lArgs) do 
-			if type(v) == "string" or type(v) == "number" or type(v) == nil or type(v) == "boolean" then
+			if type(v) == "string" or type(v) == "number" or type(v) == nil or 
+					type(v) == "boolean" then
 				debugFile:write(tostring(v) .. ", ")
 			else debugFile:write("type-" .. type(v) .. ", ") end
 		end
@@ -1590,7 +1591,8 @@ pages.server = function(site)
 					term.setTextColor(colors.white)
 					openAddressBar = false
 					setfenv(1, oldEnv)
-					shell.run(serverSoftwareLocation, disList[sel], serverFolder .. "/" .. disList[sel])
+					shell.run(serverSoftwareLocation, disList[sel], serverFolder .. "/" .. 
+						disList[sel])
 					setfenv(1, env)
 					openAddressBar = true
 					errPages.checkForModem()
@@ -1915,7 +1917,8 @@ pages.settings = function(site)
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 9 do centerPrint(string.rep(" ", 43)) end
-		local opt = prompt({{a, 7, 10}, {b, 7, 12}, {c, 7, 14}, {"Reset Firewolf", 7, 16}}, "vertical")
+		local opt = prompt({{a, 7, 10}, {b, 7, 12}, {c, 7, 14}, 
+			{"Reset Firewolf", 7, 16}}, "vertical")
 		if opt == a then
 			if autoupdate == "true" then autoupdate = "false"
 			elseif autoupdate == "false" then autoupdate = "true" end
@@ -2212,20 +2215,20 @@ pages.kitteh = function(site)
 	term.setBackgroundColor(colors[theme["background"]])
 	term.clear()
 	term.setCursorPos(1, 3)
-	centerPrint("       .__....._             _.....__,         ")
-	centerPrint("         .\": o :':         ;': o :\".           ")
-	centerPrint("         '. '-' .'.       .'. '-' .'           ")
-	centerPrint("           '---'             '---'             ")
-	centerPrint("                                               ")
-	centerPrint("    _...----...    ...   ...    ...----..._    ")
-	centerPrint(" .-'__..-\"\"'----  '.  '\"'  .'  ----'\"\"-..__'-. ")
-	centerPrint("'.-'   _.--\"\"\"'     '-._.-'     '\"\"\"--._   '-.'")
-	centerPrint("'  .-\"'                :                '\"-.  '")
-	centerPrint("  '   '.            _.'\"'._            .'   '  ")
-	centerPrint("        '.     ,.-'\"       \"'-.,     .'        ")
-	centerPrint("          '.                       .'          ")
-	centerPrint("            '-._               _.-'            ")
-	centerPrint("                '\"'--.....--'\"'                ")
+	centerPrint([[       .__....._             _.....__,         ]])
+	centerPrint([[         .": o :':         ;': o :".           ]])
+	centerPrint([[         '. '-' .'.       .'. '-' .'           ]])
+	centerPrint([[           '---'             '---'             ]])
+	centerPrint([[                                               ]])
+	centerPrint([[    _...----...    ...   ...    ...----..._    ]])
+	centerPrint([[ .-'__..-""'----  '.  '"'  .'  ----'""-..__'-. ]])
+	centerPrint([['.-'   _.--"""'     '-._.-'     '"""--._   '-.']])
+	centerPrint([['  .-"'                :                '"-.  ']])
+	centerPrint([[  '   '.            _.'"'._            .'   '  ]])
+	centerPrint([[        '.     ,.-'"       "'-.,     .'        ]])
+	centerPrint([[          '.                       .'          ]])
+	centerPrint([[            '-._               _.-'            ]])
+	centerPrint([[                '"'--.....--'"'                ]])
 	print("")
 	centerPrint("Firewolf Kitteh is Not Amused...")
 	sleep(6)
@@ -2417,7 +2420,8 @@ local skipExitWebsiteEvent = false
 local function loadSite(site)
 	local function runSite(cacheLoc, antivirusEnv)
 		local function isSafeFunc(func)
-			local unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", "getfenv", "setfenv"}
+			local unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
+				"getfenv", "setfenv"}
 			for k,v in pairs(unsafeFunc) do
 				if func == v then return false end
 			end
@@ -2597,14 +2601,16 @@ local function loadSite(site)
 					local curSel = 1
 					term.setCursorPos(list[curSel][2], list[curSel][3])
 					write("[")
-					term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
+					term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, 
+						list[curSel][3])
 					write("]")
 
 					while true do
 						local e, key = ospullEvent()
 						term.setCursorPos(list[curSel][2], list[curSel][3])
 						write(" ")
-						term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
+						term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, 
+							list[curSel][3])
 						write(" ")
 						if e == "key" and key == key1 and curSel > 1 then
 							curSel = curSel - 1
@@ -2618,7 +2624,8 @@ local function loadSite(site)
 						end
 						term.setCursorPos(list[curSel][2], list[curSel][3])
 						write("[")
-						term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
+						term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, 
+							list[curSel][3])
 						write("]")
 					end
 				end
@@ -2953,7 +2960,7 @@ local function loadSite(site)
 			while true do
 				local sEvent, param = ospullEvent()
 				if sEvent == "char" then
-					sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
+					sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1)
 					nPos = nPos + 1
 					redraw()
 					
@@ -3011,7 +3018,7 @@ local function loadSite(site)
 						-- Backspace
 						if nPos > 0 then
 							redraw(" ");
-							sLine = string.sub( sLine, 1, nPos - 1 ) .. string.sub( sLine, nPos + 1 )
+							sLine = string.sub( sLine, 1, nPos - 1 ) .. string.sub( sLine, nPos + 1)
 							nPos = nPos - 1					
 							redraw()
 						end
@@ -3022,7 +3029,7 @@ local function loadSite(site)
 					elseif param == keys.delete then
 						if nPos < string.len(sLine) then
 							redraw(" ");
-							sLine = string.sub( sLine, 1, nPos ) .. string.sub( sLine, nPos + 2 )
+							sLine = string.sub( sLine, 1, nPos ) .. string.sub( sLine, nPos + 2)
 							redraw()
 						end
 					elseif param == keys["end"] then
@@ -3040,10 +3047,10 @@ local function loadSite(site)
 			return sLine
 		end
 
-		--  -------- Download API
-
+		-- Download API
 		function nenv.urlDownload(url)
-			local function webmodRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exitOnControl)
+			local function webmodRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, 
+					exitOnControl)
 				local function ospullEvent(a)
 					if a == "derp" then return true end
 					while true do
@@ -3114,7 +3121,8 @@ local function loadSite(site)
 							end
 							redraw()
 							if liveUpdates then
-								local a, data = liveUpdates(line, "update_history", nil, nil, nil, nil, nil)
+								local a, data = liveUpdates(line, "update_history", nil, nil, 
+										nil, nil, nil)
 								if a == true and data == nil then
 									term.setCursorBlink(false)
 									return line
@@ -3178,6 +3186,7 @@ local function loadSite(site)
 				if line ~= nil then line = line:gsub("^%s*(.-)%s*$", "%1") end
 				return line
 			end
+
 			clearPage(website, colors[theme["background"]])
 			print("\n\n")
 			term.setTextColor(colors[theme["text-color"]])
@@ -3325,14 +3334,16 @@ local function loadSite(site)
 				if ignore then
 					if ignore ~= k then
 						if overrideFunc then
-							tableData[tableName][k] = function() env.error("Firewolf Antivirus unauthorized function") end
+							tableData[tableName][k] = function() 
+								env.error("Firewolf Antivirus: unauthorized function") end
 						else
 						tableData[tableName][k] = v
 						end
 					end
 				else
 					if overrideFunc then
-						tableData[tableName][k] = function() env.error("Firewolf Antivirus unauthorized function") end
+						tableData[tableName][k] = function() 
+							env.error("Firewolf Antivirus: unauthorized function") end
 					else
 					tableData[tableName][k] = v
 					end
@@ -3345,11 +3356,16 @@ local function loadSite(site)
 		returnTable = appendTable(returnTable, os, "fs", nil, true)
 		returnTable = appendTable(returnTable, os, "io", nil, true)
 		returnTable = appendTable(returnTable, os, "shell", nil, true)
-		returnTable["loadfile"] = function() env.error("Firewolf Antivirus unauthorised function") end
-		returnTable["loadstring"] = function() env.error("Firewolf Antivirus unauthorised function") end
-		returnTable["dofile"] = function() env.error("Firewolf unauthorised function") end
-		returnTable["getfenv"] = function() env.error("Firewolf unauthorised function") end
-		returnTable["setfenv"] = function() env.error("Firewolf unauthorised function") end
+		returnTable["loadfile"] = function() 
+				env.error("Firewolf Antivirus: unauthorised function") end
+		returnTable["loadstring"] = function() 
+				env.error("Firewolf Antivirus: unauthorised function") end
+		returnTable["dofile"] = function() 
+				env.error("Firewolf Antivirus: unauthorised function") end
+		returnTable["getfenv"] = function() 
+				env.error("Firewolf Antivirus: unauthorised function") end
+		returnTable["setfenv"] = function() 
+				env.error("Firewolf Antivirus: unauthorised function") end
 
 		returnTable = appendTable(returnTable, os, "os", "run")
 		for k,v in pairs(offences) do
@@ -3416,7 +3432,8 @@ local function loadSite(site)
 					write("[ " .. v)
 				end
 				while true do
-					local opt = prompt({{"Allow", 5, 17}, {"Cancel", 15, 17}, {"View Source", 30,17}}, "horizontal")
+					local opt = prompt({{"Allow", 5, 17}, {"Cancel", 15, 17}, {"View Source", 30,17}}, 
+							"horizontal")
 					if opt == "Allow" then
 						antivirusEnv = allowFunctions(offences)
 						status = "safe"
