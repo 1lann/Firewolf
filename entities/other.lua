@@ -2427,6 +2427,9 @@ local function loadSite(site)
 		-- Setup environment
 		local cbc, ctc = colors.black, colors.white
 		local nenv = antivirusEnv
+		if nenv then
+			debugLog("exists")
+		end
 		local safeFunc = true
 		local unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
 			"getfenv", "setfenv"}
@@ -3239,6 +3242,7 @@ local function loadSite(site)
 
 	local function allowFunctions(offences)
 		local function appendTable(tableData, addTable, tableName, ignore, overrideFunc)
+			debugLog("Appending", tableName)
 			if not(tableData[tableName]) then
 				tableData[tableName] = {}
 			end
@@ -3249,6 +3253,7 @@ local function loadSite(site)
 							tableData[tableName][k] = function() 
 								env.error("Firewolf Antivirus: Unauthorized Function") end
 						else
+						debugLog("Allowing", k)
 						tableData[tableName][k] = v
 						end
 					end
@@ -3257,6 +3262,7 @@ local function loadSite(site)
 						tableData[tableName][k] = function() 
 							env.error("Firewolf Antivirus: Unauthorized Function") end
 					else
+					debugLog("Allowing", k)
 					tableData[tableName][k] = v
 					end
 				end
