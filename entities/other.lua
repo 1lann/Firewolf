@@ -3584,7 +3584,7 @@ local function loadSite(site)
 					local e, p1, p2, p3 = os.pullEvent()
 					if e == "mouse_click" then
 						debugLog("CLICK!", p2, p3)
-						if p2 < 50 and p2 > 2 and p3 > 4 and p3 < 10 then
+						if p2 < 50 and p2 > 2 and p3 > 4 and p3 < 11 then
 							debugLog("Success!")
 							redirect("server")
 							break
