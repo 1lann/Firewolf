@@ -2430,7 +2430,10 @@ local function loadSite(site)
 		if antivirusEnv then
 			for k, v in pairs(antivirusEnv) do
 				debugLog(k)
-				nenv[k] = v
+				nenv[k] = {}
+				for i, d in pairs(v) do
+					nenv[k][i] = d
+				end
 			end
 		end
 
@@ -2451,8 +2454,8 @@ local function loadSite(site)
 					nenv[k] = {}
 					for i, d in pairs(v) do nenv[k][i] = d end
 				end
-			elseif type(v) == "table" then
-				nenv[k] = {}
+			--elseif type(v) == "table" then
+				--nenv[k] = {}
 			end
 		end
 		nenv.term = {}
