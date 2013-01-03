@@ -2429,11 +2429,11 @@ local function loadSite(site)
 		local nenv = {}
 		if antivirusEnv then
 			for k, v in pairs(antivirusEnv) do
-				debugLog(k)
-				nenv[k] = {}
+				debugLog(k, v)
+				--[[nenv[k] = {}
 				for i, d in pairs(v) do
 					nenv[k][i] = d
-				end
+				end]]
 			end
 		end
 
@@ -3295,6 +3295,7 @@ local function loadSite(site)
 				debugLog("MF")
 				returnTable = appendTable(returnTable, io, "io")
 				returnTable = appendTable(returnTable, fs, "fs")
+				debugLog(returnTable.fs.open)
 			elseif v == "Run Files" then 
 				debugLog("RF")
 				returnTable = appendTable(returnTable, os, "os")
