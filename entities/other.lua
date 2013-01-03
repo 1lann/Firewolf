@@ -2447,7 +2447,7 @@ local function loadSite(site)
 					nenv[k] = v
 				else
 					nenv[k] = {}
-					for i, d in pairs(v) do nenv[k][i] = d debugLog("Adding Table", i) end
+					for i, d in pairs(v) do nenv[k][i] = d debugLog("Adding Table", k) end
 				end
 			elseif type(v) == "table" then
 				nenv[k] = {}
