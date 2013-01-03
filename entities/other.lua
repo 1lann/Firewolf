@@ -1523,6 +1523,12 @@ pages.server = function(site)
 					write("  " .. nv)
 				end
 			end
+			if #l < 1 then
+				term.setCursorPos(4,10)
+				write("A website is literally just a lua")
+				term.setCursorPos(4,10)
+				write("script! Go ahead and make one!")
+			end
 
 			term.setCursorPos(30, 8)
 			write(string.rep(" ", 19))
@@ -3565,7 +3571,22 @@ local function loadSite(site)
 				centerPrint(string.rep(" ", 47))
 				centerWrite(string.rep(" ", 47))
 				centerPrint("No Websites are Currently Online! D:")
+				centerWrite(string.rep(" ", 47))
+				centerPrint("Why not make one yourself?")
+				centerWrite(string.rep(" ", 47))
+				centerPrint("rdnt://server")
 				centerPrint(string.rep(" ", 47))
+				while true do
+					local e, p1, p2, p3 = os.pullEvent()
+					if e == "mouse_click" then
+						if p2 < 50 and p2 > 2 and p3 > 4 and p3 < 9 then
+							redirect("server")
+						end
+					elseif e == event_exitWebsite then
+						os.queueEvent(event_exitWebsite)
+						break
+					end
+				end
 			else
 				clearPage(site, colors[theme["background"]])
 				print("\n")
