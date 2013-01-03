@@ -3597,7 +3597,7 @@ local function loadSite(site)
 							debugLog("Success!")
 							redirect("server")
 							break
-						elseif e == "event_loadWebsite" then
+						elseif e == event_loadWebsite then
 							break
 						end
 					end
