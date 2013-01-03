@@ -709,6 +709,7 @@ local function edit()
 	print("")
 	print(" Server Shell Editing")
 	print(" Type 'exit' to return to Firewolf.")
+	print(" Note: The 'home' file is the index of your site")
 	print("")
 
 	local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
