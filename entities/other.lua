@@ -2840,26 +2840,6 @@ local function loadSite(site)
 			env.error()
 		end
 
-		nenv.shell.run = function(file, ...)
-			if file == "clear" then
-				api.clearPage(website, cbc)
-				env.term.setCursorPos(1, 2)
-			else
-				env.shell.run(file, ...)
-			end
-
-
-
-		end
-
-
-
-
-
-
-
-
-
 		local queueWebsiteExit = false
 		nenv.os.pullEvent = function(a)
 			if a == "derp" then return true end
