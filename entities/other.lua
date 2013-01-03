@@ -1536,9 +1536,9 @@ pages.server = function(site)
 				term.setCursorPos(4,15)
 				write("out Firewolf's APIs to")
 				term.setCursorPos(4,16)
-				write("help you make your site!")
+				write("help you make your")
 				term.setCursorPos(4,17)
-				write("at rdnt://help")
+				write("site, at rdnt://help")
 			end
 
 			term.setCursorPos(30, 8)
