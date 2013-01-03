@@ -2419,10 +2419,6 @@ end
 local skipExitWebsiteEvent = false
 local function loadSite(site)
 	local function runSite(cacheLoc, antivirusEnv)
-		local function isSafeFunc(func)
-			
-		end
-
 		-- Clear
 		clearPage(site, colors.black)
 		term.setBackgroundColor(colors.black)
@@ -2438,7 +2434,7 @@ local function loadSite(site)
 		end
 		for k, v in pairs(env) do 
 			local safeFunc = true
-			local unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
+			local unsafeFunc = {"os", "fs", "io", "loadstring", "loadfile", "dofile", 
 				"getfenv", "setfenv"}
 			for ki, vi in pairs(unsafeFunc) do
 				if k == vi then safeFunc = false end
@@ -2838,6 +2834,15 @@ local function loadSite(site)
 		nenv.redirect = function(url)
 			api.redirect(url)
 			env.error()
+		end
+
+		nenv.shell.run = function(file, ...)
+			if file == "clear" then
+				api.clearPage(website, cbc)
+				env.term.setCursorPos(1, 2)
+			else
+				env.shell.run(file, ...)
+			end
 		end
 
 		local queueWebsiteExit = false
