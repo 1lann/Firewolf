@@ -3394,8 +3394,29 @@ local function loadSite(site)
 						f:close()
 						openAddressBar = false
 						shell.run("edit", rootFolder .. "/temp-source")
-						openAddressBar = true
 						fs.delete(rootFolder .. "/temp-source")
+						clearPage(site, colors[theme["background"]])
+						print("")
+						term.setTextColor(colors[theme["text-color"]])
+						term.setBackgroundColor(colors[theme["top-box"]])
+						centerPrint(string.rep(" ", 47))
+						centerWrite(string.rep(" ", 47))
+						centerPrint("Antivirus Triggered!")
+						centerPrint(string.rep(" ", 47))
+						print("")
+
+						term.setBackgroundColor(colors[theme["bottom-box"]])
+						centerPrint(string.rep(" ", 47))
+						centerPrint("  The antivirus has been triggered on this     ")
+						centerPrint("  website! Do you want to give this website    ")
+						centerPrint("  permissions to:                              ")
+						for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
+						for i, v in ipairs(offences) do
+							if i > 3 then term.setCursorPos(w - 21, i + 8)
+							else term.setCursorPos(6, i + 11) end
+							write("[ " .. v)
+						end
+						openAddressBar = true
 					elseif opt == nil then
 						os.queueEvent(event_exitWebsite)
 						return
