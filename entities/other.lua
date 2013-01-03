@@ -2437,6 +2437,7 @@ local function loadSite(site)
 		local unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
 			"getfenv", "setfenv"}
 		for k, v in pairs(env) do 
+			safeFunc = true
 			debugLog("Testing", k)
 			for ki, vi in pairs(unsafeFunc) do
 				if k == vi then safeFunc = false debugLog("Bad", vi) break end
