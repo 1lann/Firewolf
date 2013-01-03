@@ -3327,12 +3327,14 @@ local function loadSite(site)
 
 	-- Display website
 	local cacheLoc = cacheFolder .. "/" .. site:gsub("/", "$slazh$")
+	local antivirusProcessed = false
 	local antivirusEnv = {}
 	if id ~= nil and status ~= nil then
 		openAddressBar = true
 		if status == "antivirus" then
 			local offences = verify("antivirus offences", content)
 			if #offences > 0 then
+				antivirusProcessed = true
 				clearPage(site, colors[theme["background"]])
 				print("")
 				term.setTextColor(colors[theme["text-color"]])
@@ -3425,6 +3427,9 @@ local function loadSite(site)
 		end
 
 		if status == "safe" and site ~= "" then
+			if not antivirusProcessed then
+				antivirusEnv = allowFunctions("")
+			end
 			local f = io.open(cacheLoc, "w")
 			f:write(content)
 			f:close()
