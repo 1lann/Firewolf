@@ -2432,14 +2432,14 @@ local function loadSite(site)
 				nenv[k] = v
 			end
 		end
+
+		local safeFunc = true
+		local unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
+			"getfenv", "setfenv"}
 		for k, v in pairs(env) do 
-			local safeFunc = true
-			local unsafeFunc = {"os", "fs", "io", "loadstring", "loadfile", "dofile", 
-				"getfenv", "setfenv"}
 			for ki, vi in pairs(unsafeFunc) do
 				if k == vi then safeFunc = false end
 			end
-
 			if safeFunc then
 				if type(v) ~= "table" then
 					nenv[k] = v
@@ -2447,6 +2447,8 @@ local function loadSite(site)
 					nenv[k] = {}
 					for i, d in pairs(v) do nenv[k][i] = d end
 				end
+			elseif type(v) == "table" then
+				nenv[k] = {}
 			end
 		end
 		nenv.term = {}
