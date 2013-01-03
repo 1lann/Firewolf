@@ -2426,17 +2426,7 @@ local function loadSite(site)
 
 		-- Setup environment
 		local cbc, ctc = colors.black, colors.white
-		local nenv = {}
-		if antivirusEnv then
-			for k, v in pairs(antivirusEnv) do
-				debugLog(k, v)
-				--[[nenv[k] = {}
-				for i, d in pairs(v) do
-					nenv[k][i] = d
-				end]]
-			end
-		end
-
+		local nenv = antivirusEnv
 		local safeFunc = true
 		local unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
 			"getfenv", "setfenv"}
