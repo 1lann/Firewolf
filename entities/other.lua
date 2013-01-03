@@ -2273,33 +2273,75 @@ errPages.overspeed = function()
 end
 
 errPages.crash = function(err)
-	clearPage("crash", colors[theme["background"]])
-	print("")
-	term.setTextColor(colors[theme["text-color"]])
-	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
-	centerPrint("The Website Has Crashed! D:")
-	centerPrint(string.rep(" ", 43))
-	print("")
+	if err:find("Firewolf Antivirus: Unauthorized Function") then
+		clearPage("crash", colors[theme["background"]])
+		print("")
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
+		centerPrint(string.rep(" ", 43))
+		centerWrite(string.rep(" ", 43))
+		centerPrint("Website Aborted!")
+		centerPrint(string.rep(" ", 43))
+		print("")
+		term.setBackgroundColor(colors[theme["bottom-box"]])
+		centerPrint(string.rep(" ", 43))
+		centerWrite(string.rep(" ", 43))
+		centerPrint("The website has attempted to use a")
+		centerWrite(string.rep(" ", 43))
+		centerPrint("potentially malicious function you")
+		centerWrite(string.rep(" ", 43))
+		centerPrint("did not authorize! This could also")
+		centerWrite(string.rep(" ", 43))
+		centerPrint("be in mistake.")
+		centerWrite(string.rep(" ", 43))
+		centerPrint("Please be very cautious on this website")
+		centerPrint(string.rep(" ", 43))
+		centerWrite(string.rep(" ", 43))
+		centerPrint("If you're the website")
+		centerWrite(string.rep(" ", 43))
+		centerPrint("owner and didn't intend this, please put")
+		centerWrite(string.rep(" ", 43))
+		centerPrint("a dummy function to trigger the antivirus")
+		centerWrite(string.rep(" ", 43))
+		centerPrint("Ex: fs.open")
+		centerPrint(string.rep(" ", 43))
+		print("")
 
-	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
-	centerPrint("It looks like the website has crashed!")
-	centerWrite(string.rep(" ", 43))
-	centerPrint("Report this error to the website owner:")
-	centerPrint(string.rep(" ", 43))
-	term.setBackgroundColor(colors[theme["background"]])
-	print("")
-	print("  " .. err)
-	print("")
+		term.setBackgroundColor(colors[theme["bottom-box"]])
+		centerPrint(string.rep(" ", 43))
+		centerWrite(string.rep(" ", 43))
+		centerPrint("You may now browse normally!")
+		centerPrint(string.rep(" ", 43))
 
-	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
-	centerPrint("You may now browse normally!")
-	centerPrint(string.rep(" ", 43))
+	else
+		clearPage("crash", colors[theme["background"]])
+		print("")
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
+		centerPrint(string.rep(" ", 43))
+		centerWrite(string.rep(" ", 43))
+		centerPrint("The Website Has Crashed! D:")
+		centerPrint(string.rep(" ", 43))
+		print("")
+
+		term.setBackgroundColor(colors[theme["bottom-box"]])
+		centerPrint(string.rep(" ", 43))
+		centerWrite(string.rep(" ", 43))
+		centerPrint("It looks like the website has crashed!")
+		centerWrite(string.rep(" ", 43))
+		centerPrint("Report this error to the website owner:")
+		centerPrint(string.rep(" ", 43))
+		term.setBackgroundColor(colors[theme["background"]])
+		print("")
+		print("  " .. err)
+		print("")
+
+		term.setBackgroundColor(colors[theme["bottom-box"]])
+		centerPrint(string.rep(" ", 43))
+		centerWrite(string.rep(" ", 43))
+		centerPrint("You may now browse normally!")
+		centerPrint(string.rep(" ", 43))
+	end
 end
 
 errPages.checkForModem = function()
@@ -3271,19 +3313,19 @@ local function loadSite(site)
 		end
 
 		local returnTable = appendTable({}, os, "os", nil, true)
-		returnTable = appendTable(returnTable, os, "fs", nil, true)
-		returnTable = appendTable(returnTable, os, "io", nil, true)
-		returnTable = appendTable(returnTable, os, "shell", nil, true)
+		returnTable = appendTable(returnTable, fs, "fs", nil, true)
+		returnTable = appendTable(returnTable, io, "io", nil, true)
+		returnTable = appendTable(returnTable, shell, "shell", nil, true)
 		returnTable["loadfile"] = function() 
-				env.error("Firewolf Antivirus: Unauthorised Function") end
+				env.error("Firewolf Antivirus: Unauthorized Function") end
 		returnTable["loadstring"] = function() 
-				env.error("Firewolf Antivirus: Unauthorised Function") end
+				env.error("Firewolf Antivirus: Unauthorized Function") end
 		returnTable["dofile"] = function() 
-				env.error("Firewolf Antivirus: Unauthorised Function") end
+				env.error("Firewolf Antivirus: Unauthorized Function") end
 		returnTable["getfenv"] = function() 
-				env.error("Firewolf Antivirus: Unauthorised Function") end
+				env.error("Firewolf Antivirus: Unauthorized Function") end
 		returnTable["setfenv"] = function() 
-				env.error("Firewolf Antivirus: Unauthorised Function") end
+				env.error("Firewolf Antivirus: Unauthorized Function") end
 
 		returnTable = appendTable(returnTable, os, "os", "run")
 		for k, v in pairs(offences) do
@@ -3428,7 +3470,7 @@ local function loadSite(site)
 
 		if status == "safe" and site ~= "" then
 			if not antivirusProcessed then
-				antivirusEnv = allowFunctions("")
+				antivirusEnv = allowFunctions({""})
 			end
 			local f = io.open(cacheLoc, "w")
 			f:write(content)
