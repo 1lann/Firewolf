@@ -7,8 +7,6 @@ START-DOWNLOADS
 START-DEFINITIONS
 shell.| |Run Files
 shell.| |Modify Filesystem
-fs.| |Modify Files
-io.| |Modify Files
 os.run| |Run Files
 io[| |Modify Files
 fs[| |Modify Files
