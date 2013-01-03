@@ -74,6 +74,7 @@ local addressBarHistory = {}
 -- Events
 local event_loadWebsite = "firewolf_loadWebsiteEvent"
 local event_exitWebsite = "firewolf_exitWebsiteEvent"
+local event_openAddressBar = "firewolf_openAddressBarEvent"
 local event_exitApp = "firewolf_exitAppEvent"
 local event_redirect = "firewolf_redirectEvent"
 
@@ -3598,7 +3599,7 @@ local function loadSite(site)
 							redirect("server")
 							break
 						end
-					elseif e == event_loadWebsite then
+					elseif e == event_openAddressBar then
 						break
 					end
 				end
@@ -3774,6 +3775,7 @@ local function addressBarMain()
 				(e == "mouse_click" and y == 1) then
 			if openAddressBar then
 				-- Exit
+				os.queueEvent(event_openAddressBar)
 				os.queueEvent(event_exitWebsite)
 
 				-- Read
