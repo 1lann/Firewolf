@@ -2429,6 +2429,7 @@ local function loadSite(site)
 		local nenv = {}
 		if antivirusEnv then
 			for k, v in pairs(antivirusEnv) do
+				debugLog(k)
 				nenv[k] = v
 			end
 		end
@@ -2438,17 +2439,17 @@ local function loadSite(site)
 			"getfenv", "setfenv"}
 		for k, v in pairs(env) do 
 			safeFunc = true
-			debugLog("Testing", k)
+			--debugLog("Testing", k)
 			for ki, vi in pairs(unsafeFunc) do
-				if k == vi then safeFunc = false debugLog("Bad", vi) break end
+				if k == vi then safeFunc = false break end
 			end
 			if safeFunc then
-				debugLog("Allowed", k)
+				--debugLog("Allowed", k)
 				if type(v) ~= "table" then
 					nenv[k] = v
 				else
 					nenv[k] = {}
-					for i, d in pairs(v) do nenv[k][i] = d debugLog("Adding Table", k) end
+					for i, d in pairs(v) do nenv[k][i] = d end
 				end
 			elseif type(v) == "table" then
 				nenv[k] = {}
@@ -3288,16 +3289,20 @@ local function loadSite(site)
 		returnTable = appendTable(returnTable, os, "os", "run")
 		for k, v in pairs(offences) do
 			if v == "Modify Files" then
+				debugLog("MF")
 				returnTable = appendTable(returnTable, io, "io")
 				returnTable = appendTable(returnTable, fs, "fs")
 			elseif v == "Run Files" then 
+				debugLog("RF")
 				returnTable = appendTable(returnTable, os, "os")
 				returnTable = appendTable(returnTable, shell, "shell")
 				returnTable["loadfile"] = loadfile
 				returnTable["dofile"] = dofile
 			elseif v == "Execute Text" then
+				debugLog("ET")
 				returnTable["loadstring"] = loadstring
 			elseif v == "Modify Env" then
+				debugLog("ME")
 				returnTable["getfenv"] = getfenv
 				returnTable["setfenv"] = setfenv
 			end
