@@ -2438,14 +2438,15 @@ local function loadSite(site)
 			"getfenv", "setfenv"}
 		for k, v in pairs(env) do 
 			for ki, vi in pairs(unsafeFunc) do
-				if k == vi then safeFunc = false debugLog(vi) break end
+				if k == vi then safeFunc = false debugLog("Bad", vi) break end
 			end
 			if safeFunc then
+				debugLog("Allowed", k)
 				if type(v) ~= "table" then
 					nenv[k] = v
 				else
 					nenv[k] = {}
-					for i, d in pairs(v) do nenv[k][i] = d debugLog(i) end
+					for i, d in pairs(v) do nenv[k][i] = d debugLog("Adding Table", i) end
 				end
 			elseif type(v) == "table" then
 				nenv[k] = {}
