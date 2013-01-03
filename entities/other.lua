@@ -3575,6 +3575,7 @@ local function loadSite(site)
 				centerPrint("No Websites are Currently Online! D:")
 				centerWrite(string.rep(" ", 47))
 				centerPrint(string.rep(" ", 47))
+				centerWrite(string.rep(" ", 47))
 				centerPrint("Why not make one yourself?")
 				centerWrite(string.rep(" ", 47))
 				centerPrint("rdnt://server")
@@ -3582,14 +3583,14 @@ local function loadSite(site)
 				while true do
 					local e, p1, p2, p3 = os.pullEvent()
 					if e == "mouse_click" then
-						debugLog("CLICK!")
+						debugLog("CLICK!", p2, p3)
 						if p2 < 50 and p2 > 2 and p3 > 4 and p3 < 10 then
+							debugLog("Success!")
 							redirect("server")
+							break
+						elseif p3 == 1 then
+							break
 						end
-					elseif e == event_exitWebsite then
-						debugLog("Exit :(")
-						os.queueEvent(event_exitWebsite)
-						break
 					end
 				end
 			else
