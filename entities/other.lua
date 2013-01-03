@@ -9,13 +9,6 @@
 --  
 
 
---  Features:
---  - GitHub verification
---  - News
---  - Vastly improved Firewolf Rendering Engine
---  - Bug Fixes
-
-
 --  -------- Variables
 
 -- Version
@@ -98,6 +91,7 @@ local availableThemesLocation = rootFolder .. "/available_themes"
 local serverSoftwareLocation = rootFolder .. "/server_software"
 local settingsLocation = rootFolder .. "/settings"
 local historyLocation = rootFolder .. "/history"
+local debugLogLocation = "/firewolf-log"
 local firewolfLocation = "/" .. shell.getRunningProgram()
 
 local userBlacklist = rootFolder .. "/user_blacklist"
@@ -1526,19 +1520,19 @@ pages.server = function(site)
 				end
 			end
 			if #l < 1 then
-				term.setCursorPos(4,10)
+				term.setCursorPos(4, 10)
 				write("A website is literally")
-				term.setCursorPos(4,11)
-				write("just any lua script!")
-				term.setCursorPos(4,12)
+				term.setCursorPos(4, 11)
+				write("just a lua script!")
+				term.setCursorPos(4, 12)
 				write("Go ahead and make one!")
-				term.setCursorPos(4,14)
+				term.setCursorPos(4, 14)
 				write("Also, be sure to check")
-				term.setCursorPos(4,15)
+				term.setCursorPos(4, 15)
 				write("out Firewolf's APIs to")
-				term.setCursorPos(4,16)
+				term.setCursorPos(4, 16)
 				write("help you make your")
-				term.setCursorPos(4,17)
+				term.setCursorPos(4, 17)
 				write("site, at rdnt://help")
 			end
 
@@ -2303,19 +2297,13 @@ errPages.crash = function(err)
 		print("")
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		centerPrint(string.rep(" ", 43))
-		centerWrite(string.rep(" ", 43))
-		centerPrint("The website has attempted to use a")
-		centerWrite(string.rep(" ", 43))
-		centerPrint("potentially malicious function that you")
-		centerWrite(string.rep(" ", 43))
-		centerPrint("did not authorize! This could also")
-		centerWrite(string.rep(" ", 43))
-		centerPrint("be in mistake.")
-		centerWrite(string.rep(" ", 43))
-		centerPrint("Please ask 1lann or GravityScore if you")
-		centerWrite(string.rep(" ", 43))
-		centerPrint("have any questions about this")
-		centerWrite(string.rep(" ", 43))
+		centerPrint("  The website has attempted to use a       ")
+		centerPrint("  potentially malicious function that you  ")
+		centerPrint("  did not authorize! This might also be    ")
+		centerPrint("  a mistake.                               ")
+		centerPrint(string.rep(" ", 43))
+		centerPrint("  Please ask 1lann or GravityScore if you  ")
+		centerPrint("  have any questions about this.           ")
 		centerPrint(string.rep(" ", 43))
 		term.setBackgroundColor(colors[theme["background"]])
 		print("")
@@ -2339,10 +2327,8 @@ errPages.crash = function(err)
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		centerPrint(string.rep(" ", 43))
-		centerWrite(string.rep(" ", 43))
-		centerPrint("It looks like the website has crashed!")
-		centerWrite(string.rep(" ", 43))
-		centerPrint("Report this error to the website owner:")
+		centerPrint("  It looks like the website has crashed!   ")
+		centerPrint("  Report this error to the website owner:  ")
 		centerPrint(string.rep(" ", 43))
 		term.setBackgroundColor(colors[theme["background"]])
 		print("")
@@ -2382,12 +2368,9 @@ errPages.checkForModem = function()
 
 			term.setBackgroundColor(colors[theme["bottom-box"]])
 			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
-			centerPrint("No wireless modem was found on this")
-			centerWrite(string.rep(" ", 43))
-			centerPrint("computer, and Firewolf is not able to")
-			centerWrite(string.rep(" ", 43))
-			centerPrint("run without one!")
+			centerPrint("  No wireless modem was found on this      ")
+			centerPrint("  computer, and Firewolf is not able to    ")
+			centerPrint("  run without one!                         ")
 			centerPrint(string.rep(" ", 43))
 			centerWrite(string.rep(" ", 43))
 			centerPrint("Waiting for a modem to be attached...")
@@ -2482,28 +2465,23 @@ local function loadSite(site)
 		-- Setup environment
 		local cbc, ctc = colors.black, colors.white
 		local nenv = antivirusEnv
-		if nenv then
-			debugLog("exists")
-		end
 		local safeFunc = true
 		local unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
 			"getfenv", "setfenv"}
 		for k, v in pairs(env) do 
 			safeFunc = true
-			--debugLog("Testing", k)
 			for ki, vi in pairs(unsafeFunc) do
 				if k == vi then safeFunc = false break end
 			end
 			if safeFunc then
-				--debugLog("Allowed", k)
 				if type(v) ~= "table" then
 					nenv[k] = v
 				else
 					nenv[k] = {}
 					for i, d in pairs(v) do nenv[k][i] = d end
 				end
-			--elseif type(v) == "table" then
-				--nenv[k] = {}
+--			elseif type(v) == "table" then
+--				nenv[k] = {}
 			end
 		end
 		nenv.term = {}
@@ -3297,10 +3275,7 @@ local function loadSite(site)
 
 	local function allowFunctions(offences)
 		local function appendTable(tableData, addTable, tableName, ignore, overrideFunc)
-			debugLog("Appending", tableName)
-			if not(tableData[tableName]) then
-				tableData[tableName] = {}
-			end
+			if not(tableData[tableName]) then tableData[tableName] = {} end
 			for k, v in pairs(addTable) do
 				if ignore then
 					if ignore ~= k then
@@ -3308,8 +3283,7 @@ local function loadSite(site)
 							tableData[tableName][k] = function() 
 								env.error("Firewolf Antivirus: Unauthorized Function") end
 						else
-						debugLog("Allowing", k)
-						tableData[tableName][k] = v
+							tableData[tableName][k] = v
 						end
 					end
 				else
@@ -3317,8 +3291,7 @@ local function loadSite(site)
 						tableData[tableName][k] = function() 
 							env.error("Firewolf Antivirus: Unauthorized Function") end
 					else
-					debugLog("Allowing", k)
-					tableData[tableName][k] = v
+						tableData[tableName][k] = v
 					end
 				end
 			end
@@ -3343,25 +3316,21 @@ local function loadSite(site)
 		returnTable = appendTable(returnTable, os, "os", "run")
 		for k, v in pairs(offences) do
 			if v == "Modify Files" then
-				debugLog("MF")
 				returnTable = appendTable(returnTable, io, "io")
 				returnTable = appendTable(returnTable, fs, "fs")
-				debugLog(returnTable.fs.open)
 			elseif v == "Run Files" then 
-				debugLog("RF")
 				returnTable = appendTable(returnTable, os, "os")
 				returnTable = appendTable(returnTable, shell, "shell")
 				returnTable["loadfile"] = loadfile
 				returnTable["dofile"] = dofile
 			elseif v == "Execute Text" then
-				debugLog("ET")
 				returnTable["loadstring"] = loadstring
 			elseif v == "Modify Env" then
-				debugLog("ME")
 				returnTable["getfenv"] = getfenv
 				returnTable["setfenv"] = setfenv
 			end
 		end
+
 		return returnTable
 	end
 
@@ -3588,14 +3557,12 @@ local function loadSite(site)
 				centerWrite(string.rep(" ", 47))
 				centerPrint("Why not make one yourself?")
 				centerWrite(string.rep(" ", 47))
-				centerPrint("rdnt://server")
+				centerPrint("Visit rdnt://server!")
 				centerPrint(string.rep(" ", 47))
 				while true do
 					local e, p1, p2, p3 = os.pullEvent()
 					if e == "mouse_click" then
-						debugLog("CLICK!", p2, p3)
 						if p2 < 50 and p2 > 2 and p3 > 4 and p3 < 11 then
-							debugLog("Success!")
 							redirect("server")
 							break
 						end
@@ -3924,11 +3891,11 @@ local function startup()
 		term.setCursorPos(1, 2)
 		api.centerPrint("Advanced Comptuer Required!")
 		print("\n")
-		api.centerPrint("This version of Firewolf requires")
-		api.centerPrint("an Advanced Comptuer to run!")
+		api.centerPrint("  This version of Firewolf requires  ")
+		api.centerPrint("  an Advanced Comptuer to run!       ")
 		print("")
-		api.centerPrint("Turtles may not be used to run")
-		api.centerPrint("Firewolf! :(")
+		api.centerPrint("  Turtles may not be used to run     ")
+		api.centerPrint("  Firewolf! :(                       ")
 		print("")
 		api.centerPrint("Press any key to exit...")
 
@@ -3963,11 +3930,11 @@ local function startup()
 			api.centerPrint("  If this problem persists, try deleting       ")
 			api.centerPrint("  " .. rootFolder .. "                              ")
 		else
-			api.centerPrint("  Auto-updating is currently turned off!       ")
-			api.centerPrint("  This may be the cause of the problem, a      ")
-			api.centerPrint("  modified version of Firewolf!                ")
-			api.centerPrint("  If you didn't intend to turn Auto-updating   ")
-			api.centerPrint("  off, delete /.Firewolf_Data                  ")
+			api.centerPrint("  Automatic updating is off! A new version     ")
+			api.centerPrint("  may have have been released, which could     ")
+			api.centerPrint("  fix this problem!                            ")
+			api.centerPrint("  If you didn't intend to turn auto-updating   ")
+			api.centerPrint("  off, delete " .. rootFolder .. "                  ")
 		end
 		api.centerPrint(string.rep(" ", 47))
 		api.centerWrite(string.rep(" ", 47))
@@ -4005,8 +3972,8 @@ if #tArgs > 0 and tArgs[1] == "debug" then
 	api.centerPrint("Debug Mode Enabled...")
 	api.centerPrint(string.rep(" ", 43))
 
-	if fs.exists("/firewolf-log") then debugFile = io.open("/firewolf-log", "a")
-	else debugFile = io.open("/firewolf-log", "w") end
+	if fs.exists(debugLogLocation) then debugFile = io.open(debugLogLocation, "a")
+	else debugFile = io.open(debugLogLocation, "w") end
 	debugFile:write("\n-- [" .. textutils.formatTime(os.time()) .. "] New Log --")
 	sleep(1.3)
 end
