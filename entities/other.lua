@@ -2467,7 +2467,7 @@ local function loadSite(site)
 		local nenv = antivirusEnv
 		local safeFunc = true
 		local unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
-			"getfenv", "setfenv"}
+			"getfenv", "setfenv", "rawset"}
 		for k, v in pairs(env) do 
 			safeFunc = true
 			for ki, vi in pairs(unsafeFunc) do
@@ -3312,6 +3312,8 @@ local function loadSite(site)
 				env.error("Firewolf Antivirus: Unauthorized Function") end
 		returnTable["setfenv"] = function() 
 				env.error("Firewolf Antivirus: Unauthorized Function") end
+		returnTable["rawset"] = function()
+				env.error("Firewolf Antivirus: Unauthorized Function") end
 
 		returnTable = appendTable(returnTable, os, "os", "run")
 		for k, v in pairs(offences) do
@@ -3328,6 +3330,8 @@ local function loadSite(site)
 			elseif v == "Modify Env" then
 				returnTable["getfenv"] = getfenv
 				returnTable["setfenv"] = setfenv
+			elseif v == "Modify Anything" then
+				returnTable["rawset"] = rawset
 			end
 		end
 
