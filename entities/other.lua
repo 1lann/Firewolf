@@ -2566,6 +2566,10 @@ local function loadSite(site)
 			return env.term.write(text)
 		end
 
+		nenv.term.setCursorBlink = function(bool)
+			return nenv.term.setCursorBlink(bool)
+		end
+
 		nenv.write = function(text)
 			return env.write(text)
 		end
