@@ -3153,11 +3153,12 @@ local function loadSite(site)
 				res.close()
 			else
 				term.setCursorPos(1, 5)
+				centerPrint(string.rep(" ", 47))
 				centerWrite(string.rep(" ", 47))
 				centerPrint("Error: Download Failed!")
 				centerPrint(string.rep(" ", 47))
 				openAddressBar = false
-				sleep(2)
+				sleep(3)
 				openAddressBar = true
 
 				clearPage(website, colors.black)
