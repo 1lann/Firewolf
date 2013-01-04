@@ -1362,9 +1362,9 @@ pages.server = function(site)
 		print("")
 
 		local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
-			"eject", "exit", "help", "id", "mkdir", "monitor", "rename", "alias", "clear",
-			"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", 
-			"programs", "redset", "reboot", "hello", "label", "list", "ls", "easter"}
+		"eject", "exit", "help", "id", "mkdir", "monitor", "rename", "alias", "clear",
+		"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", "programs",
+		"redset", "reboot", "hello", "label", "list", "ls", "easter", "pastebin", "dir"}
 		
 		while true do
 			shell.setDir(serverFolder .. "/" .. server)
