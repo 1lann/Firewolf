@@ -3154,7 +3154,7 @@ local function loadSite(site)
 			else
 				term.setCursorPos(1, 5)
 				centerWrite(string.rep(" ", 47))
-				centerPrint("Download Failed!")
+				centerPrint("Error: Download Failed!")
 				centerPrint(string.rep(" ", 47))
 				openAddressBar = false
 				sleep(2)
