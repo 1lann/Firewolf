@@ -8,6 +8,13 @@
 --  RednetExplorer Made by ComputerCraftFan11
 --  
 
+--  
+--  Visit our website at:
+--  http://firewolf.webege.com/
+--  
+--  Yeah thats right 1lann, I wrote a website for Firewolf :P
+--  
+
 
 --  -------- Variables
 
