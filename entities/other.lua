@@ -3155,10 +3155,9 @@ local function loadSite(site)
 				term.setCursorPos(1, 5)
 				centerWrite(string.rep(" ", 47))
 				centerPrint("Download Failed!")
-				centerPrint("Please report this to the website owner!")
 				centerPrint(string.rep(" ", 47))
 				openAddressBar = false
-				sleep(1.1)
+				sleep(2)
 				openAddressBar = true
 
 				clearPage(website, colors.black)
