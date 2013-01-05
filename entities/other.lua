@@ -2407,7 +2407,8 @@ errPages.blacklistRedirectionBots = function()
 		for d = 1, math.random(6, 17) do
 			name = name .. alphabet[math.random(1, 27)]
 		end
-		rednet.broadcast(name:sub(1, math.floor(name:len()/2)) .. "." .. name:sub(math.floor(name:len()/2, -1)))
+		rednet.broadcast(name:sub(1, math.floor(name:len()/2)) .. "." .. 
+			name:sub(math.floor(name:len()/2, -1)))
 		sleep(timeout)
 	end
 
@@ -2418,7 +2419,8 @@ errPages.blacklistRedirectionBots = function()
 		end
 
 		local finishCheck = false
-		rednet.broadcast(name:sub(1, math.floor(name:len()/2)) .. "." .. name:sub(math.floor(name:len()/2, -1)))
+		rednet.broadcast(name:sub(1, math.floor(name:len()/2)) .. "." .. 
+			name:sub(math.floor(name:len()/2, -1)))
 		clock = os.clock()
 		for i = 1, 5 do
 			while os.clock() - clock < timeout do
