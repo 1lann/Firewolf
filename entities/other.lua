@@ -138,9 +138,9 @@ api.clearPage = function(site, color, redraw, tcolor)
 		term.setCursorPos(w - title:len() - 1, 1)
 		write(title)
 	end
-	term.setCursorPos(w, 1)
-	term.setBackgroundColor(colors[theme[top-box]])
-	write("<")
+	--term.setCursorPos(w, 1)
+	--term.setBackgroundColor(colors[theme["top-box"]])
+	--write("<")
 	term.setBackgroundColor(c)
 	if tcolor then term.setTextColor(tcolor)
 	else term.setTextColor(colors.white) end
