@@ -3769,6 +3769,8 @@ local function addressBarMain()
 					term.setCursorPos(i, 1)
 					write("<")
 					end
+					os.queueEvent("firewolf_trigger_coroutine_event")
+					coroutine.yield()
 					end
 					term.setCursorPos(1,1)
 					write(">")
