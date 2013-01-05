@@ -2409,7 +2409,7 @@ errPages.blacklistRedirectionBots = function()
 		for d = 1, math.random(6, 17) do
 			name = name .. alphabet[math.random(1, 27)]
 		end
-		rednet.broadcast(name)
+		rednet.broadcast(name:sub(1, math.floor(name:len()/2) .. "." .. name:sub(math.floor(name:len()/2, -1))
 		sleep(timeout)
 	end
 
@@ -2420,7 +2420,7 @@ errPages.blacklistRedirectionBots = function()
 		end
 
 		local finishCheck = false
-		rednet.broadcast(name)
+		rednet.broadcast(name:sub(1, math.floor(name:len()/2) .. "." .. name:sub(math.floor(name:len()/2, -1))
 		clock = os.clock()
 		for i = 1, 5 do
 			while os.clock() - clock < timeout do
@@ -3761,7 +3761,7 @@ local function addressBarMain()
 			if openAddressBar then
 				--[[if x == term.getSize() then
 					local list = "  [Exit] [Incorrect Website]                       "
-					term.setBackgroundColor(colors.blue)
+					term.setBackgroundColor(colors[theme["top-box"] ])
 					for i = term.getSize(), 0, -1 do
 					for b = 1, 700 do
 					term.setCursorPos(i+1, 1)
