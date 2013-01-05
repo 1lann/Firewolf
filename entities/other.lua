@@ -137,10 +137,12 @@ api.clearPage = function(site, color, redraw, tcolor)
 	if a:len() > w - 9 then a = a:sub(1, 39) .. "..." end
 	write("rdnt://" .. a)
 	if title ~= nil then
-		term.setCursorPos(w - title:len(), 1)
+		term.setCursorPos(w - title:len() - 1, 1)
 		write(title)
 	end
-
+	term.setCursorPos(w, 1)
+	term.setBackgroundColor(colors[theme[top-box]])
+	write("<")
 	term.setBackgroundColor(c)
 	if tcolor then term.setTextColor(tcolor)
 	else term.setTextColor(colors.white) end
@@ -3751,31 +3753,47 @@ local function addressBarRead()
 end
 
 local function addressBarMain()
+	local optionsMenu = false
 	while true do
 		local e, but, x, y = os.pullEvent()
 		if (e == "key" and (but == 29 or but == 157)) or 
 				(e == "mouse_click" and y == 1) then
 			if openAddressBar then
-				-- Exit
-				os.queueEvent(event_openAddressBar)
-				os.queueEvent(event_exitWebsite)
+				--[[if x == term.getSize() then
+					local list = "  [Exit] [Incorrect Website]                       "
+					term.setBackgroundColor(colors.blue)
+					for i = term.getSize(), 0, -1 do
+					for b = 1, 700 do
+					term.setCursorPos(i+1, 1)
+					write(list:sub(i+1, i+1))
+					term.setCursorPos(i, 1)
+					write("<")
+					end
+					end
+					term.setCursorPos(1,1)
+					write(">")
+				else]]
+					-- Exit
+					os.queueEvent(event_openAddressBar)
+					os.queueEvent(event_exitWebsite)
 
-				-- Read
-				term.setBackgroundColor(colors[theme["address-bar-background"]])
-				term.setTextColor(colors[theme["address-bar-text"]])
-				term.setCursorPos(2, 1)
-				term.clearLine()
-				write("rdnt://")
-				local oldWebsite = website
-				website = addressBarRead()
-				if website == nil then
-					website = oldWebsite
-				elseif website == "home" or website == "homepage" then
-					website = homepage
-				end
+					-- Read
+					term.setBackgroundColor(colors[theme["address-bar-background"]])
+					term.setTextColor(colors[theme["address-bar-text"]])
+					term.setCursorPos(2, 1)
+					term.clearLine()
+					write("rdnt://")
+					local oldWebsite = website
+					website = addressBarRead()
+					if website == nil then
+						website = oldWebsite
+					elseif website == "home" or website == "homepage" then
+						website = homepage
+					end
 
-				-- Load
-				os.queueEvent(event_loadWebsite)
+					-- Load
+					os.queueEvent(event_loadWebsite)
+				--end
 			end
 		elseif e == event_redirect then
 			if openAddressBar then

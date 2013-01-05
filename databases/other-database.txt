@@ -34,4 +34,6 @@ setfenv| |Modify Env
 rawset| |Modify Anything
 _g| |Modify Env
 _G| |Modify Env
+kernel.| |Modify NDF-OS
+kernal.| |Modify NDF-OS
 END-DATABASE
