@@ -4016,7 +4016,7 @@ local function main()
 	-- Update
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Checking For Updates...")
-	if autoupdate == "true" then if updateClient() then return true end end
+	if autoupdate == "true" then if updateClient() then return false end end
 
 	-- Modem
 	if not(errPages.checkForModem()) then return false end
