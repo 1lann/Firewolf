@@ -3764,7 +3764,7 @@ local function addressBarRead()
 end
 
 local function addressBarMain()
-	local optionsMenu = false
+	local isInternal = false
 	while true do
 		local e, but, x, y = os.pullEvent()
 		if (e == "key" and (but == 29 or but == 157)) or 
@@ -3772,7 +3772,18 @@ local function addressBarMain()
 			if openAddressBar then
 				if x == term.getSize() then
 					menuBarOpen = true
-					local list = "  [Exit Firewolf] [Incorrect Website]              "
+					local list = nil
+					local internalSites = {firewolf = "Firewolf Homepage", server = "Server Management", 
+						history = "Firewolf History", help = "Help Page", downloads = "Downloads Center", 
+						settings = "Firewolf Settings", credits = "Firewolf Credits", getinfo = "Website Information",
+						nomodem = "No Modem Attached!", crash = "Website Has Crashed!", overspeed = "Too Fast!", incorrect-website = "Incorrect Website!"}
+					if not(pages[website]) and not(internalSites[website]) then
+						isInternal = false
+						list = "  [Exit Firewolf] [Incorrect Website]              "
+					else
+						isInternal = true
+						list = "  [Exit Firewolf]                                  "
+					end
 					term.setBackgroundColor(colors[theme["top-box"] ])
 					term.setTextColor(colors[theme["text-color"]])
 					for i = term.getSize(), 0, -1 do
@@ -3811,7 +3822,12 @@ local function addressBarMain()
 					write("<")
 					term.setBackgroundColor(colors[theme["address-bar-background"]])
 					term.setTextColor(colors[theme["address-bar-text"]])
-				else
+				elseif x < 18 and x > 2 then
+					redirect("exit")
+				elseif x < 38 and x > 18 then
+					menuBarOpen = false
+					clearPage("incorrect-website")
+				elseif not menuBarOpen then
 					menuBarOpen = false
 					-- Exit
 					os.queueEvent(event_openAddressBar)
