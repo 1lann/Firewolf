@@ -3788,7 +3788,8 @@ local function addressBarMain()
 					term.setCursorPos(1,1)
 					write(">")
 				elseif menuBarOpen and x == 1 then
-					local list = (" rdnt://" .. website .. string.rep(" ", 51-(9+website:len())))
+					menuBarOpen = false
+					local list = (" rdnt://" .. website .. string.rep(" ", 51-(8+website:len())))
 					for i = 0, term.getSize(), 1 do
 					for b = 1, 500 do
 					term.setBackgroundColor(colors[theme["address-bar-background"]])
