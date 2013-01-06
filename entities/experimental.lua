@@ -3770,7 +3770,7 @@ local function addressBarMain()
 		if (e == "key" and (but == 29 or but == 157)) or 
 				(e == "mouse_click" and y == 1) then
 			if openAddressBar then
-				if e ~= "key" then x = 45 end
+				if e == "key" then x = 45 end
 				if x == term.getSize() then
 					menuBarOpen = true
 					local list = nil
