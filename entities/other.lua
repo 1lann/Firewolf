@@ -118,7 +118,8 @@ api.clearPage = function(site, color, redraw, tcolor)
 	local titles = {firewolf = "Firewolf Homepage", server = "Server Management", 
 		history = "Firewolf History", help = "Help Page", downloads = "Downloads Center", 
 		settings = "Firewolf Settings", credits = "Firewolf Credits", getinfo = "Website Information",
-		nomodem = "No Modem Attached!", crash = "Website Has Crashed!", overspeed = "Too Fast!", incorrect = "Incorrect Website!"}
+		nomodem = "No Modem Attached!", crash = "Website Has Crashed!", overspeed = "Too Fast!", 
+		incorrect = "Incorrect Website!"}
 	local title = titles[site]
 
 	-- Clear
@@ -128,7 +129,7 @@ api.clearPage = function(site, color, redraw, tcolor)
 	term.setTextColor(colors[theme["address-bar-text"]])
 	if redraw ~= true then term.clear() end
 
-	if not menuBarOpen then
+	if not(menuBarOpen) then
 		-- URL bar
 		term.setCursorPos(2, 1)
 		term.setBackgroundColor(colors[theme["address-bar-background"]])
@@ -150,14 +151,13 @@ api.clearPage = function(site, color, redraw, tcolor)
 		else term.setTextColor(colors.white) end
 		print("")
 	else
-		term.setCursorPos(1,1)
+		term.setCursorPos(1, 1)
 		term.setBackgroundColor(colors[theme["top-box"]])
 		term.setTextColor(colors[theme["text-color"]])
 		term.clearLine()
-		write("> [Exit Firewolf] [Incorrect Website]              ")
+		write("> [- Exit Firewolf -] [- Incorrect Website -]      ")
 		print("")
 	end
-
 end
 
 api.centerPrint = function(text)
@@ -631,7 +631,24 @@ local function download(url, path)
 end
 
 local function verifyGitHub()
-	if not(download("https://raw.github.com")) then
+	local ret = false
+	http.request("https://raw.github.com")
+	local a = os.startTimer(10)
+	while true do
+		local e, url, source = os.pullEvent()
+		if e == "http_success" then
+			ret = true
+			break
+		elseif e == "http_failure" then
+			ret = false
+			break
+		elseif e == "timer" and url == a then
+			ret = false
+			break
+		end
+	end
+
+	if not(ret) then
 		if isAdvanced() then
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["background"]])
@@ -964,7 +981,7 @@ protocols.rdnt.getSearchResults = function(input)
 				end
 
 				if not(x) and resultIDs[tostring(id)] <= 5 then
-					if not i:find("rdnt://") then i = ("rdnt://" .. i) end
+					if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
 					if input == "" then
 						table.insert(results, i)
 					elseif string.find(i, input) and i ~= input then
@@ -2859,7 +2876,7 @@ local function loadSite(site)
 
 		nenv.loadImageFromServer = function(image)
 			sleep(0.1)
-			local mid, msgImage = curProtocol.getWebsite(site.."/"..image)
+			local mid, msgImage = curProtocol.getWebsite(site .. "/" .. image)
 			if mid then
 				local f = env.io.open(rootFolder .. "/temp_file", "w")
 				f:write(msgImage)
@@ -2873,7 +2890,7 @@ local function loadSite(site)
 
 		nenv.ioReadFileFromServer = function(file)
 			sleep(0.1)
-			local mid, msgFile = curProtocol.getWebsite(site.."/"..file)
+			local mid, msgFile = curProtocol.getWebsite(site .. "/" .. file)
 			if mid then
 				local f = env.io.open(rootFolder .. "/temp_file", "w")
 				f:write(msgFile)
@@ -3526,7 +3543,7 @@ local function loadSite(site)
 		end
 
 		if status == "safe" and site ~= "" then
-			if not antivirusProcessed then
+			if not(antivirusProcessed) then
 				antivirusEnv = allowFunctions({""})
 			end
 			internalWebsite = false
@@ -3822,50 +3839,48 @@ local function addressBarMain()
 				if x == term.getSize() then
 					menuBarOpen = true
 					local list = nil
-					local internalSites = {firewolf = "Firewolf Homepage", server = "Server Management", 
-						history = "Firewolf History", help = "Help Page", downloads = "Downloads Center", 
-						settings = "Firewolf Settings", credits = "Firewolf Credits", getinfo = "Website Information",
-						nomodem = "No Modem Attached!", crash = "Website Has Crashed!", overspeed = "Too Fast!"}
-					if not internalWebsite then
-						list = "  [Exit Firewolf] [Incorrect Website]              "
+					if not(internalWebsite) then
+						list = "  [- Exit Firewolf -] [- Incorrect Website -]      "
 					else
-						list = "  [Exit Firewolf]                                  "
+						list = "  [- Exit Firewolf -]                              "
 					end
+
 					term.setBackgroundColor(colors[theme["top-box"] ])
 					term.setTextColor(colors[theme["text-color"]])
 					for i = term.getSize(), 0, -1 do
-					for b = 1, 500 do
-					term.setCursorPos(i+1, 1)
-					write(list:sub(i+1, i+1))
-					term.setCursorPos(i, 1)
-					write("<")
-					end
-					os.queueEvent("firewolf_trigger_coroutine_event")
-					coroutine.yield()
+						for b = 1, 500 do
+							term.setCursorPos(i + 1, 1)
+							write(list:sub(i + 1, i + 1))
+							term.setCursorPos(i, 1)
+							write("<")
+						end
+						os.queueEvent("firewolf_trigger_coroutine_event")
+						coroutine.yield()
 					end
 					term.setCursorPos(1,1)
 					write(">")
 				elseif menuBarOpen and x == 1 then
 					menuBarOpen = false
-					local list = (" rdnt://" .. website .. string.rep(" ", 51-(8+website:len())))
-					for i = 0, term.getSize()-1, 1 do
-					for b = 1, 500 do
-					term.setBackgroundColor(colors[theme["address-bar-background"]])
-					term.setTextColor(colors[theme["address-bar-text"]])
-					term.setCursorPos(i, 1)
-					write(list:sub(i, i))
-					term.setCursorPos(i+1, 1)
-					term.setBackgroundColor(colors[theme["top-box"] ])
-					term.setTextColor(colors[theme["text-color"]])
-					write(">")
+					local list = (" rdnt://" .. website .. string.rep(" ", 51 - (8 + website:len())))
+					for i = 0, term.getSize() - 1, 1 do
+						for b = 1, 500 do
+							term.setBackgroundColor(colors[theme["address-bar-background"]])
+							term.setTextColor(colors[theme["address-bar-text"]])
+							term.setCursorPos(i, 1)
+							write(list:sub(i, i))
+							term.setCursorPos(i+1, 1)
+							term.setBackgroundColor(colors[theme["top-box"] ])
+							term.setTextColor(colors[theme["text-color"]])
+							write(">")
+						end
+						os.queueEvent("firewolf_triggerCoroutineEvent")
+						coroutine.yield()
 					end
-					os.queueEvent("firewolf_trigger_coroutine_event")
-					coroutine.yield()
-					end
+
 					local xSize = term.getSize()
-					term.setBackgroundColor(colors[theme["top-box"] ])
+					term.setBackgroundColor(colors[theme["top-box"]])
 					term.setTextColor(colors[theme["text-color"]])
-					term.setCursorPos(xSize,1)
+					term.setCursorPos(xSize, 1)
 					write("<")
 					term.setBackgroundColor(colors[theme["address-bar-background"]])
 					term.setTextColor(colors[theme["address-bar-text"]])
@@ -3877,8 +3892,7 @@ local function addressBarMain()
 					sleep(0.01)
 					website = "exit"
 					os.queueEvent(event_loadWebsite)
-					debugLog("EXIT")
-				elseif x < 38 and x > 18 and not internalWebsite and menuBarOpen then
+				elseif x < 38 and x > 18 and not(internalWebsite) and menuBarOpen then
 					menuBarOpen = false
 					clearPage("incorrect", colors[theme["background"]])
 					print("")
@@ -3891,9 +3905,8 @@ local function addressBarMain()
 					centerPrint("Incorrect Website: ID Block")
 					term.setCursorPos(1, 7)
 					term.setBackgroundColor(colors[theme["bottom-box"]])
-					for i = 1, 12 do
-						centerPrint(string.rep(" ", 47))
-					end
+					for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
+
 					term.setCursorPos(1, 8)
 					centerPrint("This feature is used to block a server's ID")
 					centerPrint("if it's intercepting a website")
@@ -3910,14 +3923,15 @@ local function addressBarMain()
 						f:close()
 						centerPrint("")
 						centerPrint("Server Blocked!")
-						centerPrint("You may now browser normally")
+						centerPrint("You may now browse normally!")
 					else
 						centerPrint("")
-						centerPrint("Server not blocked!")
-						centerPrint("You may now browser normally")
+						centerPrint("Server Not Blocked!")
+						centerPrint("You may now browse normally!")
 					end
-				elseif not menuBarOpen then
+				elseif not(menuBarOpen) then
 					internalWebsite = true
+
 					-- Exit
 					os.queueEvent(event_openAddressBar)
 					os.queueEvent(event_exitWebsite)
