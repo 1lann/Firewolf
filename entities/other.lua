@@ -3986,9 +3986,9 @@ local function main()
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Downloading Required Files...")
 	centerWrite(string.rep(" ", 47))
-	--if not(verifyGitHub()) then return false end
-	--migrateFilesystem()
-	--resetFilesystem()
+	if not(verifyGitHub()) then return false end
+	migrateFilesystem()
+	resetFilesystem()
 
 	-- Download Databases
 	local x, y = term.getCursorPos()
@@ -4002,7 +4002,7 @@ local function main()
 	centerWrite("Loading Data...")
 	local f = io.open(settingsLocation, "r")
 	local a = textutils.unserialize(f:read("*l"))
-	autoupdate = "false"
+	autoupdate = a.auto
 	incognito = a.incog
 	homepage = a.home
 	curProtocol = protocols.rdnt
