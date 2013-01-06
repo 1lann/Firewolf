@@ -3825,6 +3825,7 @@ local function addressBarMain()
 					term.setTextColor(colors[theme["address-bar-text"]])
 				elseif x < 18 and x > 2 then
 					website = "exit"
+					menuBarOpen = false
 					os.queueEvent(event_loadWebsite)
 					debugLog("EXIT")
 				elseif x < 38 and x > 18 then
