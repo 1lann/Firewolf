@@ -1749,9 +1749,13 @@ pages.help = function(site)
 	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	for i = 1, 7 do centerPrint(string.rep(" ", 47)) end
+	for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 	local opt = prompt({{"Getting Started", 7, 9}, {"Making a Theme", 7, 11}, 
 		{"API Documentation", 7, 13}}, "vertical")
+	term.setCursorPos(7, 15)
+	write("View the full documentation here:")
+	term.setCursorPos(7, 16)
+	write("https://github.com/1lann/Firewolf/wiki")
 	local pages = {}
 	if opt == "Getting Started" then
 		pages[1] = {title = "Getting Started - Intoduction", content = {
@@ -1840,57 +1844,40 @@ pages.help = function(site)
 			"functions that aim to simplify your life when",
 			"designing and coding websites.",
 			"",
-			"The functions are documented on the next few",
-			"pages."
+			"For a full documentation on these functions,",
+			"visit the Firewolf Wiki Page here:",
+			"https://github.com/1lann/Firewolf/wiki"
 		}} pages[2] = {title = "API Documentation - 2", content = {
-			"centerPrint(text)        cPrint(text)",
-			"  - Prints text in the center of the screen",
+			"centerPrint(string text)",
+			"cPrint(string text)",
+			"centerWrite(string text)",
+			"cWrite(string text)",
 			"",
-			"centerWrite(text)        cWrite(text)",
-			"  - Writes text in the center of the screen",
-			"",
-			"leftPrint(text)          lPrint(text)",
-			"  - Prints text to the left of the screen"
+			"leftPrint(string text)",
+			"lPrint(string text)",
 		}} pages[3] = {title = "API Documentation - 3", content = {
-			"leftWrite(text)          lWrite(text)",
-			"  - Writes text to the left of the screen",
+			"leftWrite(string text)",
+			"lWrite(string text)",
 			"",
-			"rightPrint(text)         rPrint(text)",
-			"  - Prints text to the right of the screen",
-			"",
-			"rightWrite(text)         rWrite(text)",
-			"  - Writes text to the right of the screen"
+			"rightPrint(string text)",
+			"rPrint(string text)",
+			"rightWrite(string text)",
+			"rWrite(string text)"
 		}} pages[4] = {title = "API Documentation - 4", content = {
-			"prompt(list, direction)",
-			"  - Prompts the user to choose an option",
-			"    from a list formatted like:",
-			"    { { \"Option 1\", [x], [y] }, ... }",
-			"  - Returns the name of the selected option",
-			"  - Example:",
-			"    option = prompt({{\"Option 1\", 4, 2},",
-			"        {\"Option 2\", 4, 4}})"
-		}} pages[5] = {title = "API Documentation - 5", content = {
-			"scrollingPrompt(list, x, y, width, height)",
-			"  - Prompts the user to choose an option",
-			"    from a scrolling list of options",
-			"  - Returns the name of the selected option",
-			"  - Example:",
-			"    option = scrollingPrompt({\"1\", \"2\",",
-			"        \"3\", \"4\"}, 4, 2, 41, 12)"
-		}} pages[6] = {title = "API Documentation - 6", content = {
-			"redirect(site)",
-			"  - Redirects to site",
+			"prompt(table list, string direction)",
+			"scrollingPrompt(table list, integer x,",
+			"   integer y, integer length[,",
+			"   integer width])",
 			"",
-			"pastebinDownload(code)",
-			"  - Prompts user to download from Pastebin",
-			"  - Returns the path the user selected to",
-			"    download the file to"
-		}} pages[7] = {title = "API Documentation - 7", content = {
-			"urlDownload(url)",
-			"  - Prompts the user to download a raw file",
-			"    from a URL",
-			"  - Returns the path the user selected to",
-			"    download the file to"
+			"urlDownload(string url)",
+			"pastebinDownload(string code)",
+			"redirect(string site)",
+		}} pages[5] = {title = "API Documentation - 5", content = {
+			"loadImageFromServer(string imagePath)",
+			"ioReadFileFromServer(string filePath)",
+			"",
+			"Full documentation can be found here:",
+			"https://github.com/1lann/Firewolf/wiki"
 		}}
 	elseif opt == nil then
 		os.queueEvent(event_exitWebsite)

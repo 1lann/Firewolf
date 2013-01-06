@@ -17,13 +17,13 @@
 --  -------- Variables
 
 -- Version
-local version = "2.3.6"
+local version = "2.3.7"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
 
 -- Server Identification
-local serverID = "experimental"
+local serverID = "other"
 local serverList = {blackwolf = "BlackWolf", geevancraft = "GeevanCraft", 
 		experimental = "Experimental", other = "Other"}
 
@@ -61,6 +61,8 @@ local openAddressBar = true
 local loadingRate = 0
 local curSites = {}
 local menuBarOpen = false
+local internalWebsite = false
+local serverWebsiteID = nil
 
 -- Protocols
 local curProtocol = {}
@@ -108,8 +110,7 @@ local globalDatabase = rootFolder .. "/database"
 --  -------- Firewolf API
 
 local function isAdvanced()
-	if term.isColor then return term.isColor()
-	else return false end
+	return term.isColor and term.isColor()
 end
 
 api.clearPage = function(site, color, redraw, tcolor)
@@ -117,7 +118,8 @@ api.clearPage = function(site, color, redraw, tcolor)
 	local titles = {firewolf = "Firewolf Homepage", server = "Server Management", 
 		history = "Firewolf History", help = "Help Page", downloads = "Downloads Center", 
 		settings = "Firewolf Settings", credits = "Firewolf Credits", getinfo = "Website Information",
-		nomodem = "No Modem Attached!", crash = "Website Has Crashed!", overspeed = "Too Fast!"}
+		nomodem = "No Modem Attached!", crash = "Website Has Crashed!", overspeed = "Too Fast!", 
+		incorrect = "Incorrect Website!"}
 	local title = titles[site]
 
 	-- Clear
@@ -127,7 +129,7 @@ api.clearPage = function(site, color, redraw, tcolor)
 	term.setTextColor(colors[theme["address-bar-text"]])
 	if redraw ~= true then term.clear() end
 
-	if not menuBarOpen then
+	if not(menuBarOpen) then
 		-- URL bar
 		term.setCursorPos(2, 1)
 		term.setBackgroundColor(colors[theme["address-bar-background"]])
@@ -149,13 +151,13 @@ api.clearPage = function(site, color, redraw, tcolor)
 		else term.setTextColor(colors.white) end
 		print("")
 	else
-		term.setCursorPos(1,1)
+		term.setCursorPos(1, 1)
 		term.setBackgroundColor(colors[theme["top-box"]])
 		term.setTextColor(colors[theme["text-color"]])
 		term.clearLine()
-		write("> [Exit Firewolf] [Incorrect Website]              ")
+		write("> [- Exit Firewolf -] [- Incorrect Website -]      ")
+		print("")
 	end
-
 end
 
 api.centerPrint = function(text)
@@ -629,7 +631,24 @@ local function download(url, path)
 end
 
 local function verifyGitHub()
-	if not(download("https://raw.github.com")) then
+	local ret = false
+	http.request("https://raw.github.com")
+	local a = os.startTimer(10)
+	while true do
+		local e, url, source = os.pullEvent()
+		if e == "http_success" then
+			ret = true
+			break
+		elseif e == "http_failure" then
+			ret = false
+			break
+		elseif e == "timer" and url == a then
+			ret = false
+			break
+		end
+	end
+
+	if not(ret) then
 		if isAdvanced() then
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["background"]])
@@ -962,7 +981,7 @@ protocols.rdnt.getSearchResults = function(input)
 				end
 
 				if not(x) and resultIDs[tostring(id)] <= 5 then
-					if not i:find("rdnt://") then i = ("rdnt://" .. i) end
+					if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
 					if input == "" then
 						table.insert(results, i)
 					elseif string.find(i, input) and i ~= input then
@@ -1006,7 +1025,7 @@ protocols.rdnt.getWebsite = function(site)
 			end
 		end
 	end
-
+	serverWebsiteID = id
 	return id, content, status
 end
 
@@ -1025,6 +1044,7 @@ local pages = {}
 local errPages = {}
 
 pages.firewolf = function(site)
+	internalWebsite = true
 	clearPage(site, colors[theme["background"]])
 	print("")
 	term.setTextColor(colors[theme["text-color"]])
@@ -1729,9 +1749,13 @@ pages.help = function(site)
 	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	for i = 1, 7 do centerPrint(string.rep(" ", 47)) end
+	for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 	local opt = prompt({{"Getting Started", 7, 9}, {"Making a Theme", 7, 11}, 
 		{"API Documentation", 7, 13}}, "vertical")
+	term.setCursorPos(7, 15)
+	write("View the full documentation here:")
+	term.setCursorPos(7, 16)
+	write("https://github.com/1lann/Firewolf/wiki")
 	local pages = {}
 	if opt == "Getting Started" then
 		pages[1] = {title = "Getting Started - Intoduction", content = {
@@ -1820,57 +1844,40 @@ pages.help = function(site)
 			"functions that aim to simplify your life when",
 			"designing and coding websites.",
 			"",
-			"The functions are documented on the next few",
-			"pages."
+			"For a full documentation on these functions,",
+			"visit the Firewolf Wiki Page here:",
+			"https://github.com/1lann/Firewolf/wiki"
 		}} pages[2] = {title = "API Documentation - 2", content = {
-			"centerPrint(text)        cPrint(text)",
-			"  - Prints text in the center of the screen",
+			"centerPrint(string text)",
+			"cPrint(string text)",
+			"centerWrite(string text)",
+			"cWrite(string text)",
 			"",
-			"centerWrite(text)        cWrite(text)",
-			"  - Writes text in the center of the screen",
-			"",
-			"leftPrint(text)          lPrint(text)",
-			"  - Prints text to the left of the screen"
+			"leftPrint(string text)",
+			"lPrint(string text)",
 		}} pages[3] = {title = "API Documentation - 3", content = {
-			"leftWrite(text)          lWrite(text)",
-			"  - Writes text to the left of the screen",
+			"leftWrite(string text)",
+			"lWrite(string text)",
 			"",
-			"rightPrint(text)         rPrint(text)",
-			"  - Prints text to the right of the screen",
-			"",
-			"rightWrite(text)         rWrite(text)",
-			"  - Writes text to the right of the screen"
+			"rightPrint(string text)",
+			"rPrint(string text)",
+			"rightWrite(string text)",
+			"rWrite(string text)"
 		}} pages[4] = {title = "API Documentation - 4", content = {
-			"prompt(list, direction)",
-			"  - Prompts the user to choose an option",
-			"    from a list formatted like:",
-			"    { { \"Option 1\", [x], [y] }, ... }",
-			"  - Returns the name of the selected option",
-			"  - Example:",
-			"    option = prompt({{\"Option 1\", 4, 2},",
-			"        {\"Option 2\", 4, 4}})"
-		}} pages[5] = {title = "API Documentation - 5", content = {
-			"scrollingPrompt(list, x, y, width, height)",
-			"  - Prompts the user to choose an option",
-			"    from a scrolling list of options",
-			"  - Returns the name of the selected option",
-			"  - Example:",
-			"    option = scrollingPrompt({\"1\", \"2\",",
-			"        \"3\", \"4\"}, 4, 2, 41, 12)"
-		}} pages[6] = {title = "API Documentation - 6", content = {
-			"redirect(site)",
-			"  - Redirects to site",
+			"prompt(table list, string direction)",
+			"scrollingPrompt(table list, integer x,",
+			"   integer y, integer length[,",
+			"   integer width])",
 			"",
-			"pastebinDownload(code)",
-			"  - Prompts user to download from Pastebin",
-			"  - Returns the path the user selected to",
-			"    download the file to"
-		}} pages[7] = {title = "API Documentation - 7", content = {
-			"urlDownload(url)",
-			"  - Prompts the user to download a raw file",
-			"    from a URL",
-			"  - Returns the path the user selected to",
-			"    download the file to"
+			"urlDownload(string url)",
+			"pastebinDownload(string code)",
+			"redirect(string site)",
+		}} pages[5] = {title = "API Documentation - 5", content = {
+			"loadImageFromServer(string imagePath)",
+			"ioReadFileFromServer(string filePath)",
+			"",
+			"Full documentation can be found here:",
+			"https://github.com/1lann/Firewolf/wiki"
 		}}
 	elseif opt == nil then
 		os.queueEvent(event_exitWebsite)
@@ -1927,7 +1934,7 @@ end
 pages.settings = function(site)
 	while true do
 		clearPage(site, colors[theme["background"]])
-		print("\n")
+		print("")
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["top-box"]])
 		centerPrint(string.rep(" ", 43))
@@ -1946,9 +1953,9 @@ pages.settings = function(site)
 		local c = "Homepage - rdnt://" .. homepage
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
-		for i = 1, 9 do centerPrint(string.rep(" ", 43)) end
-		local opt = prompt({{a, 7, 10}, {b, 7, 12}, {c, 7, 14}, 
-			{"Reset Firewolf", 7, 16}}, "vertical")
+		for i = 1, 11 do centerPrint(string.rep(" ", 43)) end
+		local opt = prompt({{a, 7, 9}, {b, 7, 11}, {c, 7, 13}, 
+			 {"Reset Firewolf", 7, 17}}, "vertical")
 		if opt == a then
 			if autoupdate == "true" then autoupdate = "false"
 			elseif autoupdate == "false" then autoupdate = "true" end
@@ -2029,6 +2036,49 @@ pages.settings = function(site)
 			while true do
 				local e = os.pullEvent()
 				if e == "mouse_click" or e == "key" then return true end
+			end
+		elseif opt == "Manage Blocked Servers" then
+			openAddressBar = true
+			clearPage(site, colors[theme["background"]])
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
+			print("")
+			centerPrint(string.rep(" ", 43))
+			centerWrite(string.rep(" ", 43))
+			centerPrint("Manage Blocked Servers")
+			centerPrint(string.rep(" ", 43))
+			centerWrite(string.rep(" ", 43))
+			centerPrint("Click on ID to remove server")
+			centerPrint(string.rep(" ", 43))
+			print("")
+			for i = 1, 40 do
+				centerPrint(string.rep(" ", 43))
+			end
+			local rBlacklist = {}
+			local f = io.open(userBlacklist, "r")
+			for line in f:lines() do
+				if line ~= nil and line ~= "" and line ~= "\n" then
+				line = line:gsub("^%s*(.-)%s*$", "%1")
+				table.insert(rBlacklist, line)
+			end
+			end
+			f:close()
+			table.insert(rBlacklist, "Add Button Comming Soon!")
+			while true do
+				local opt = scrollingPrompt(rBlacklist, 7, 8, 10, 38)
+				if opt == "Add Button Comming Soon!" then
+				elseif opt == nil then
+					return
+				else
+					table.remove(rBlacklist, opt)
+					table.remove(blacklist, opt)
+					local data = ""
+					f = io.open(userBlacklist, "w")
+					for k,v in pairs(rBlacklist) do
+						data = ("\n" .. v)
+					end
+					f:write(data)
+				end
 			end
 		elseif opt == nil then
 			os.queueEvent(event_exitWebsite)
@@ -2813,7 +2863,7 @@ local function loadSite(site)
 
 		nenv.loadImageFromServer = function(image)
 			sleep(0.1)
-			local mid, msgImage = curProtocol.getWebsite(site.."/"..image)
+			local mid, msgImage = curProtocol.getWebsite(site .. "/" .. image)
 			if mid then
 				local f = env.io.open(rootFolder .. "/temp_file", "w")
 				f:write(msgImage)
@@ -2827,7 +2877,7 @@ local function loadSite(site)
 
 		nenv.ioReadFileFromServer = function(file)
 			sleep(0.1)
-			local mid, msgFile = curProtocol.getWebsite(site.."/"..file)
+			local mid, msgFile = curProtocol.getWebsite(site .. "/" .. file)
 			if mid then
 				local f = env.io.open(rootFolder .. "/temp_file", "w")
 				f:write(msgFile)
@@ -3369,6 +3419,7 @@ local function loadSite(site)
 	term.setBackgroundColor(colors[theme["background"]])
 	print("\n\n")
 	centerPrint("Connecting...")
+	internalWebsite = true
 
 	-- Redirection bots
 	errPages.blacklistRedirectionBots()
@@ -3479,9 +3530,10 @@ local function loadSite(site)
 		end
 
 		if status == "safe" and site ~= "" then
-			if not antivirusProcessed then
+			if not(antivirusProcessed) then
 				antivirusEnv = allowFunctions({""})
 			end
+			internalWebsite = false
 			local f = io.open(cacheLoc, "w")
 			f:write(content)
 			f:close()
@@ -3518,6 +3570,7 @@ local function loadSite(site)
 
 			local opt = prompt({{"Load Cache", 6, 17}, {"Cancel", w - 16, 17}}, "horizontal")
 			if opt == "Load Cache" then
+				internalWebsite = false
 				runSite(cacheLoc)
 				return
 			elseif opt == "Cancel" then
@@ -3764,7 +3817,6 @@ local function addressBarRead()
 end
 
 local function addressBarMain()
-	local isInternal = false
 	while true do
 		local e, but, x, y = os.pullEvent()
 		if (e == "key" and (but == 29 or but == 157)) or 
@@ -3774,56 +3826,52 @@ local function addressBarMain()
 				if x == term.getSize() then
 					menuBarOpen = true
 					local list = nil
-					local internalSites = {firewolf = "Firewolf Homepage", server = "Server Management", 
-						history = "Firewolf History", help = "Help Page", downloads = "Downloads Center", 
-						settings = "Firewolf Settings", credits = "Firewolf Credits", getinfo = "Website Information",
-						nomodem = "No Modem Attached!", crash = "Website Has Crashed!", overspeed = "Too Fast!"}
-					if not(pages[website]) and not(internalSites[website]) then
-						isInternal = false
-						list = "  [Exit Firewolf] [Incorrect Website]              "
+					if not(internalWebsite) then
+						list = "  [- Exit Firewolf -] [- Incorrect Website -]      "
 					else
-						isInternal = true
-						list = "  [Exit Firewolf]                                  "
+						list = "  [- Exit Firewolf -]                              "
 					end
+
 					term.setBackgroundColor(colors[theme["top-box"] ])
 					term.setTextColor(colors[theme["text-color"]])
 					for i = term.getSize(), 0, -1 do
-					for b = 1, 500 do
-					term.setCursorPos(i+1, 1)
-					write(list:sub(i+1, i+1))
-					term.setCursorPos(i, 1)
-					write("<")
-					end
-					os.queueEvent("firewolf_trigger_coroutine_event")
-					coroutine.yield()
+						for b = 1, 500 do
+							term.setCursorPos(i + 1, 1)
+							write(list:sub(i + 1, i + 1))
+							term.setCursorPos(i, 1)
+							write("<")
+						end
+						os.queueEvent("firewolf_trigger_coroutine_event")
+						coroutine.yield()
 					end
 					term.setCursorPos(1,1)
 					write(">")
 				elseif menuBarOpen and x == 1 then
 					menuBarOpen = false
-					local list = (" rdnt://" .. website .. string.rep(" ", 51-(8+website:len())))
-					for i = 0, term.getSize()-1, 1 do
-					for b = 1, 500 do
-					term.setBackgroundColor(colors[theme["address-bar-background"]])
-					term.setTextColor(colors[theme["address-bar-text"]])
-					term.setCursorPos(i, 1)
-					write(list:sub(i, i))
-					term.setCursorPos(i+1, 1)
-					term.setBackgroundColor(colors[theme["top-box"] ])
-					term.setTextColor(colors[theme["text-color"]])
-					write(">")
+					local list = (" rdnt://" .. website .. string.rep(" ", 51 - (8 + website:len())))
+					for i = 0, term.getSize() - 1, 1 do
+						for b = 1, 500 do
+							term.setBackgroundColor(colors[theme["address-bar-background"]])
+							term.setTextColor(colors[theme["address-bar-text"]])
+							term.setCursorPos(i, 1)
+							write(list:sub(i, i))
+							term.setCursorPos(i+1, 1)
+							term.setBackgroundColor(colors[theme["top-box"] ])
+							term.setTextColor(colors[theme["text-color"]])
+							write(">")
+						end
+						os.queueEvent("firewolf_triggerCoroutineEvent")
+						coroutine.yield()
 					end
-					os.queueEvent("firewolf_trigger_coroutine_event")
-					coroutine.yield()
-					end
+
 					local xSize = term.getSize()
-					term.setBackgroundColor(colors[theme["top-box"] ])
+					term.setBackgroundColor(colors[theme["top-box"]])
 					term.setTextColor(colors[theme["text-color"]])
-					term.setCursorPos(xSize,1)
+					term.setCursorPos(xSize, 1)
 					write("<")
 					term.setBackgroundColor(colors[theme["address-bar-background"]])
 					term.setTextColor(colors[theme["address-bar-text"]])
-				elseif x < 18 and x > 2 then
+				elseif x < 18 and x > 2 and menuBarOpen then
 					website = "exit"
 					menuBarOpen = false
 					os.queueEvent(event_openAddressBar)
@@ -3831,11 +3879,46 @@ local function addressBarMain()
 					sleep(0.01)
 					website = "exit"
 					os.queueEvent(event_loadWebsite)
-					debugLog("EXIT")
-				elseif x < 38 and x > 18 then
+				elseif x < 38 and x > 18 and not(internalWebsite) and menuBarOpen then
 					menuBarOpen = false
-					clearPage("incorrect-website")
-				elseif not menuBarOpen then
+					clearPage("incorrect", colors[theme["background"]])
+					print("")
+					term.setBackgroundColor(colors[theme["top-box"]])
+					term.setTextColor(colors[theme["text-color"]])
+					centerPrint(string.rep(" ", 47))
+					centerPrint(string.rep(" ", 47))
+					centerPrint(string.rep(" ", 47))
+					term.setCursorPos(1, 4)
+					centerPrint("Incorrect Website: ID Block")
+					term.setCursorPos(1, 7)
+					term.setBackgroundColor(colors[theme["bottom-box"]])
+					for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
+
+					term.setCursorPos(1, 8)
+					centerPrint("This feature is used to block a server's ID")
+					centerPrint("if it's intercepting a website")
+					centerPrint("Ex. You got onto a website you didn't expect")
+					centerPrint("Managing comming soon!")
+					--centerPrint("Manage blocked servers at rdnt://settings")
+					centerPrint("")
+					centerPrint("You are about to block the server ID: " .. tostring(serverWebsiteID))
+					local opt = prompt({{"Block", 8, 15}, {"Don't Block", 28, 15}})
+					if opt == "Block" then
+						table.insert(blacklist, tostring(serverWebsiteID))
+						local f = io.open(userBlacklist,"a")
+						f:write(tostring(serverWebsiteID))
+						f:close()
+						centerPrint("")
+						centerPrint("Server Blocked!")
+						centerPrint("You may now browse normally!")
+					else
+						centerPrint("")
+						centerPrint("Server Not Blocked!")
+						centerPrint("You may now browse normally!")
+					end
+				elseif not(menuBarOpen) then
+					internalWebsite = true
+
 					-- Exit
 					os.queueEvent(event_openAddressBar)
 					os.queueEvent(event_exitWebsite)
@@ -3912,7 +3995,7 @@ local function main()
 	term.setCursorPos(1, y - 1)
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Downloading Databases...")
-	loadDatabases()
+	--loadDatabases()
 
 	-- Load Settings
 	centerWrite(string.rep(" ", 47))
@@ -3933,7 +4016,7 @@ local function main()
 	-- Update
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Checking For Updates...")
-	if autoupdate == "true" then if updateClient() then return true end end
+	if autoupdate == "true" then if updateClient() then return false end end
 
 	-- Modem
 	if not(errPages.checkForModem()) then return false end
@@ -4118,7 +4201,7 @@ elseif not(skipExit) then
 	term.setCursorPos(1, 3)
 end
 
--- Close
+-- Closes
 for _, v in pairs(rs.getSides()) do rednet.close(v) end
 if debugFile then debugFile:close() end
 

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 - GravityScore:
 
 Hey chuie,
@@ -9,6 +10,17 @@ Literally anything that requires internet is not working on my computer. Skype r
 
 ty,
 - Nandos
+=======
+
+- GravityScore:
+
+Hey chuie,
+I noticed you released your menu thingy. I'll update the thread and pastebin links and stuffs. 
+I fixed your prompt style (its [- word -] not [word]) and the indenting in your for loops (derp).
+I also added a 10 second timeout for the GitHub verification. Not sure if this is enough?
+ty,
+- nandos
+>>>>>>> Updated experimental and rdnt://help
 
 
 - 1lann:
