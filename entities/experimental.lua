@@ -3826,13 +3826,16 @@ local function addressBarMain()
 				elseif x < 18 and x > 2 then
 					website = "exit"
 					menuBarOpen = false
+					os.queueEvent(event_openAddressBar)
+					os.queueEvent(event_exitWebsite)
+					sleep(0.01)
+					website = "exit"
 					os.queueEvent(event_loadWebsite)
 					debugLog("EXIT")
 				elseif x < 38 and x > 18 then
 					menuBarOpen = false
 					clearPage("incorrect-website")
 				elseif not menuBarOpen then
-					menuBarOpen = false
 					-- Exit
 					os.queueEvent(event_openAddressBar)
 					os.queueEvent(event_exitWebsite)
