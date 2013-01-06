@@ -3798,7 +3798,7 @@ local function addressBarMain()
 					term.setCursorPos(i+1, 1)
 					term.setBackgroundColor(colors[theme["top-box"] ])
 					term.setBackgroundColor(colors[theme["text-color"]])
-					write("<")
+					write(">")
 					end
 					os.queueEvent("firewolf_trigger_coroutine_event")
 					coroutine.yield()
