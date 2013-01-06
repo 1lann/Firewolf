@@ -3790,7 +3790,7 @@ local function addressBarMain()
 				elseif menuBarOpen and x == 1 then
 					menuBarOpen = false
 					local list = (" rdnt://" .. website .. string.rep(" ", 51-(8+website:len())))
-					for i = 0, term.getSize(), 1 do
+					for i = 0, term.getSize()-1, 1 do
 					for b = 1, 500 do
 					term.setBackgroundColor(colors[theme["address-bar-background"]])
 					term.setTextColor(colors[theme["address-bar-text"]])
@@ -3805,7 +3805,7 @@ local function addressBarMain()
 					coroutine.yield()
 					end
 					local xSize = term.getSize()
-					term.setCursorPos(1,xSize)
+					term.setCursorPos(1,xSize-1)
 					term.setBackgroundColor(colors[theme["top-box"] ])
 					term.setTextColor(colors[theme["text-color"]])
 					write("<")
