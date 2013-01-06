@@ -17,7 +17,7 @@
 --  -------- Variables
 
 -- Version
-local version = "2.3.6"
+local version = "2.3.7"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
