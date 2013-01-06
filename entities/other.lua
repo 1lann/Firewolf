@@ -110,8 +110,7 @@ local globalDatabase = rootFolder .. "/database"
 --  -------- Firewolf API
 
 local function isAdvanced()
-	if term.isColor then return term.isColor()
-	else return false end
+	return term.isColor and term.isColor()
 end
 
 api.clearPage = function(site, color, redraw, tcolor)
