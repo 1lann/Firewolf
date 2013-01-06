@@ -3776,7 +3776,7 @@ local function addressBarMain()
 					local internalSites = {firewolf = "Firewolf Homepage", server = "Server Management", 
 						history = "Firewolf History", help = "Help Page", downloads = "Downloads Center", 
 						settings = "Firewolf Settings", credits = "Firewolf Credits", getinfo = "Website Information",
-						nomodem = "No Modem Attached!", crash = "Website Has Crashed!", overspeed = "Too Fast!", incorrect-website = "Incorrect Website!"}}
+						nomodem = "No Modem Attached!", crash = "Website Has Crashed!", overspeed = "Too Fast!"}
 					if not(pages[website]) and not(internalSites[website]) then
 						isInternal = false
 						list = "  [Exit Firewolf] [Incorrect Website]              "
