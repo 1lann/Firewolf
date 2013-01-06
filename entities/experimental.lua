@@ -3774,6 +3774,7 @@ local function addressBarMain()
 					menuBarOpen = true
 					local list = "  [Exit Firewolf] [Incorrect Website]              "
 					term.setBackgroundColor(colors[theme["top-box"] ])
+					term.setBackgroundColor(colors[theme["text-color"]])
 					for i = term.getSize(), 0, -1 do
 					for b = 1, 500 do
 					term.setCursorPos(i+1, 1)
@@ -3788,20 +3789,27 @@ local function addressBarMain()
 					write(">")
 				elseif menuBarOpen and x == 1 then
 					local list = ("  rdnt://" .. website .. string.rep(" ", 51-(9+website:len())))
-					term.setBackgroundColor(colors[theme["top-box"] ])
+					term.setBackgroundColor(colors[theme["address-bar-background"]])
+					term.setTextColor(colors[theme["address-bar-text"]])
 					for i = 0, term.getSize(), 1 do
 					for b = 1, 500 do
 					term.setCursorPos(i, 1)
 					write(list:sub(i, i))
 					term.setCursorPos(i+1, 1)
+					term.setBackgroundColor(colors[theme["top-box"] ])
+					term.setBackgroundColor(colors[theme["text-color"]])
 					write("<")
 					end
 					os.queueEvent("firewolf_trigger_coroutine_event")
 					coroutine.yield()
 					end
-					term.setCursorPos(1,term.getSize())
+					local xSize = term.getSize()
+					term.setCursorPos(1,xSize)
+					term.setBackgroundColor(colors[theme["top-box"] ])
+					term.setBackgroundColor(colors[theme["text-color"]])
 					write("<")
-
+					term.setBackgroundColor(colors[theme["address-bar-background"]])
+					term.setTextColor(colors[theme["address-bar-text"]])
 				else
 					menuBarOpen = false
 					-- Exit
