@@ -4201,7 +4201,7 @@ elseif not(skipExit) then
 	term.setCursorPos(1, 3)
 end
 
--- Close
+-- Closes
 for _, v in pairs(rs.getSides()) do rednet.close(v) end
 if debugFile then debugFile:close() end
 
