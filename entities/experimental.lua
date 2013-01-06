@@ -3824,7 +3824,8 @@ local function addressBarMain()
 					term.setBackgroundColor(colors[theme["address-bar-background"]])
 					term.setTextColor(colors[theme["address-bar-text"]])
 				elseif x < 18 and x > 2 then
-					redirect("exit")
+					os.queueEvent(event_exitApp)
+					return
 				elseif x < 38 and x > 18 then
 					menuBarOpen = false
 					clearPage("incorrect-website")
