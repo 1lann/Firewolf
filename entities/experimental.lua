@@ -23,7 +23,7 @@ browserAgent = browserAgentTemplate
 local tArgs = {...}
 
 -- Server Identification
-local serverID = "other"
+local serverID = "experimental"
 local serverList = {blackwolf = "BlackWolf", geevancraft = "GeevanCraft", 
 		experimental = "Experimental", other = "Other"}
 
@@ -60,6 +60,7 @@ local timeout = 0.08
 local openAddressBar = true
 local loadingRate = 0
 local curSites = {}
+local menuBarOpen = false
 
 -- Protocols
 local curProtocol = {}
@@ -126,25 +127,35 @@ api.clearPage = function(site, color, redraw, tcolor)
 	term.setTextColor(colors[theme["address-bar-text"]])
 	if redraw ~= true then term.clear() end
 
-	-- URL bar
-	term.setCursorPos(2, 1)
-	term.setBackgroundColor(colors[theme["address-bar-background"]])
-	term.clearLine()
-	term.setCursorPos(2, 1)
-	local a = site
-	if a:len() > w - 9 then a = a:sub(1, 39) .. "..." end
-	write("rdnt://" .. a)
-	if title ~= nil then
-		term.setCursorPos(w - title:len() - 1, 1)
-		write(title)
+	if not menuBarOpen then
+		-- URL bar
+		term.setCursorPos(2, 1)
+		term.setBackgroundColor(colors[theme["address-bar-background"]])
+		term.clearLine()
+		term.setCursorPos(2, 1)
+		local a = site
+		if a:len() > w - 9 then a = a:sub(1, 39) .. "..." end
+		write("rdnt://" .. a)
+		if title ~= nil then
+			term.setCursorPos(w - title:len() - 1, 1)
+			write(title)
+		end
+		term.setCursorPos(w, 1)
+		term.setBackgroundColor(colors[theme["top-box"]])
+		term.setTextColor(colors[theme["text-color"]])
+		write("<")
+		term.setBackgroundColor(c)
+		if tcolor then term.setTextColor(tcolor)
+		else term.setTextColor(colors.white) end
+		print("")
+	else
+		term.setCursorPos(1,1)
+		term.setBackgroundColor(colors[theme["top-box"]])
+		term.setTextColor(colors[theme["text-color"]])
+		term.clearLine()
+		write("> [Exit Firewolf] [Incorrect Website]              ")
 	end
-	--term.setCursorPos(w, 1)
-	--term.setBackgroundColor(colors[theme["top-box"]])
-	--write("<")
-	term.setBackgroundColor(c)
-	if tcolor then term.setTextColor(tcolor)
-	else term.setTextColor(colors.white) end
-	print("")
+
 end
 
 api.centerPrint = function(text)
@@ -3759,11 +3770,12 @@ local function addressBarMain()
 		if (e == "key" and (but == 29 or but == 157)) or 
 				(e == "mouse_click" and y == 1) then
 			if openAddressBar then
-				--[[if x == term.getSize() then
-					local list = "  [Exit] [Incorrect Website]                       "
+				if x == term.getSize() then
+					menuBarOpen = true
+					local list = "  [Exit Firewolf] [Incorrect Website]              "
 					term.setBackgroundColor(colors[theme["top-box"] ])
 					for i = term.getSize(), 0, -1 do
-					for b = 1, 700 do
+					for b = 1, 500 do
 					term.setCursorPos(i+1, 1)
 					write(list:sub(i+1, i+1))
 					term.setCursorPos(i, 1)
@@ -3774,7 +3786,7 @@ local function addressBarMain()
 					end
 					term.setCursorPos(1,1)
 					write(">")
-				else]]
+				else
 					-- Exit
 					os.queueEvent(event_openAddressBar)
 					os.queueEvent(event_exitWebsite)
@@ -3795,7 +3807,7 @@ local function addressBarMain()
 
 					-- Load
 					os.queueEvent(event_loadWebsite)
-				--end
+				end
 			end
 		elseif e == event_redirect then
 			if openAddressBar then
