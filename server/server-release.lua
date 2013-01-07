@@ -53,7 +53,7 @@ local pages = {}
 local totalRecordLines = {}
 local recordLines = {}
 local serverPassword = nil
-local serverLocked = true
+local serverLocked = false
 
 -- Locations
 local rootFolder = "/.Firewolf_Data"
