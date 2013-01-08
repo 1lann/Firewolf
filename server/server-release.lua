@@ -513,11 +513,6 @@ local function loadPages(loc)
 	local a = fs.list(loc)
 	local p = {}
 	for i = 1, #a do
-		if a[i]:lower() ~= a[i] then
-			fs.delete(loc .. "/" .. a[i]:lower())
-			fs.move(loc .. "/" .. a[i], loc .. "/" .. a[i]:lower())
-			a[i] = a[i]:lower()
-		end
 		if not(fs.isDir(loc .. "/" .. a[i])) then
 			local f = io.open(loc .. "/" .. a[i])
 			local cont = f:read("*a")
@@ -525,8 +520,7 @@ local function loadPages(loc)
 
 			p[loc .. "/" .. a[i]] = cont
 		else
-			local b = {}
-			loadPages(loc .. "/" .. a[i], b)
+			local b = loadPages(loc .. "/" .. a[i])
 			for x = 1, #b do
 				table.insert(p, b[x])
 			end
