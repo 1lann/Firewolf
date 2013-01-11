@@ -3860,6 +3860,7 @@ local function addressBarMain()
 					write(">")
 				elseif menuBarOpen and x == 1 then
 					menuBarOpen = false
+					local oldX, oldY = term.getCursorPos()
 					local list = (" rdnt://" .. website .. string.rep(" ", 51 - (8 + website:len())))
 					for i = 0, term.getSize() - 1, 1 do
 						for b = 1, 300 do
