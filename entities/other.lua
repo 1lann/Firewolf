@@ -3338,11 +3338,11 @@ local function loadSite(site)
 		end
 
 		-- Run
-		local fn, err = loadfile(cacheLoc)
+		local fn, err = env.loadfile(cacheLoc)
 		if fn and not(err) then
-			setfenv(fn, nenv)
-			_, err = pcall(fn)
-			setfenv(1, backupEnv)
+			env.setfenv(fn, nenv)
+			_, err = env.pcall(fn)
+			env.setfenv(1, backupEnv)
 		end
 
 		-- Catch website error
