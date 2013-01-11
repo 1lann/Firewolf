@@ -3842,15 +3842,19 @@ local function addressBarMain()
 
 					term.setBackgroundColor(colors[theme["top-box"] ])
 					term.setTextColor(colors[theme["text-color"]])
+					local oldX, oldY = term.getCursorPos()
 					for i = term.getSize(), 0, -1 do
 						for b = 1, 300 do
 							term.setCursorPos(i + 1, 1)
 							write(list:sub(i + 1, i + 1))
 							term.setCursorPos(i, 1)
 							write("<")
+							term.setCursorPos(oldX, oldY)
 						end
+						term.setCursorPos(oldX, oldY)
 						os.queueEvent("firewolf_trigger_coroutine_event")
 						coroutine.yield()
+						term.setCursorPos(oldX, oldY)
 					end
 					term.setCursorPos(1,1)
 					write(">")
@@ -3858,7 +3862,7 @@ local function addressBarMain()
 					menuBarOpen = false
 					local list = (" rdnt://" .. website .. string.rep(" ", 51 - (8 + website:len())))
 					for i = 0, term.getSize() - 1, 1 do
-						for b = 1, 500 do
+						for b = 1, 300 do
 							term.setBackgroundColor(colors[theme["address-bar-background"]])
 							term.setTextColor(colors[theme["address-bar-text"]])
 							term.setCursorPos(i, 1)
@@ -3867,9 +3871,12 @@ local function addressBarMain()
 							term.setBackgroundColor(colors[theme["top-box"] ])
 							term.setTextColor(colors[theme["text-color"]])
 							write(">")
+							term.setCursorPos(oldX, oldY)
 						end
+						term.setCursorPos(oldX, oldY)
 						os.queueEvent("firewolf_triggerCoroutineEvent")
 						coroutine.yield()
+						term.setCursorPos(oldX, oldY)
 					end
 
 					local xSize = term.getSize()
