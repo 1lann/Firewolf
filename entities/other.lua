@@ -859,6 +859,7 @@ local function loadDatabases()
 		l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
 		if l ~= "" and l ~= "\n" and l ~= nil and l ~= "END-DATABASE" then
 			local a, b = l:find("| |")
+			debugLog("add object!")
 			table.insert(definitions, {l:sub(1, a - 1), l:sub(b + 1, -1)})
 		end
 	end
@@ -931,6 +932,7 @@ local function verify(database, ...)
 		-- content
 		local c = args[1]:gsub(" ", ""):gsub("\n", ""):gsub("\t", "")
 		local a = {}
+		debugLog("start def")
 		for _, v in pairs(definitions) do
 			debugLog(definitions)
 			local b = false
