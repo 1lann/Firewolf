@@ -2380,7 +2380,7 @@ errPages.crash = function(err)
 		centerPrint(string.rep(" ", 43))
 		centerWrite(string.rep(" ", 43))
 		centerPrint("You may now browse normally!")
-		centerPrint(string.rep(" ", 43))
+		centerWrite(string.rep(" ", 43))
 
 	else
 		clearPage("crash", colors[theme["background"]])
