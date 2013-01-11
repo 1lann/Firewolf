@@ -23,7 +23,7 @@ browserAgent = browserAgentTemplate
 local tArgs = {...}
 
 -- Server Identification
-local serverID = "other"
+local serverID = "experimental"
 local serverList = {blackwolf = "BlackWolf", geevancraft = "GeevanCraft", 
 		experimental = "Experimental", other = "Other"}
 
@@ -39,7 +39,7 @@ local graphics = {}
 local debugFile = nil
 
 -- Environment
-local oldEnv = {}
+local unmodifiedEnv = {}
 local env = {}
 local backupEnv = {}
 local api = {}
@@ -161,14 +161,12 @@ api.clearPage = function(site, color, redraw, tcolor)
 end
 
 api.centerPrint = function(text)
-	local w, h = term.getSize()
 	local x, y = term.getCursorPos()
 	term.setCursorPos(math.ceil((w + 1)/2 - text:len()/2), y)
 	print(text)
 end
 
 api.centerWrite = function(text)
-	local w, h = term.getSize()
 	local x, y = term.getCursorPos()
 	term.setCursorPos(math.ceil((w + 1)/2 - text:len()/2), y)
 	write(text)
@@ -188,14 +186,12 @@ end
 
 api.rightPrint = function(text)
 	local x, y = term.getCursorPos()
-	local w, h = term.getSize()
 	term.setCursorPos(w - text:len() - 1, y)
 	print(text)
 end
 
 api.rightWrite = function(text)
 	local x, y = term.getCursorPos()
-	local w, h = term.getSize()
 	term.setCursorPos(w - text:len() - 1, y)
 	write(text)
 end
@@ -303,29 +299,24 @@ api.scrollingPrompt = function(list, x, y, len, width)
 		end
 
 		local loc = 1
-		local disList = updateDisplayList(list, loc, len)
-		draw(disList)
+		draw(updateDisplayList(list, loc, len))
 		
 		while true do
 			local e, but, clx, cly = os.pullEvent()
 			if e == "key" and but == 200 and loc > 1 then
 				loc = loc - 1
-				disList = updateDisplayList(list, loc, len)
-				draw(disList)
+				draw(updateDisplayList(list, loc, len))
 			elseif e == "key" and but == 208 and loc + len - 1 < #list then
 				loc = loc + 1
-				disList = updateDisplayList(list, loc, len)
-				draw(disList)
+				draw(updateDisplayList(list, loc, len))
 			elseif e == "mouse_scroll" and but > 0 and loc + len - 1 < #list then
 				loc = loc + but
-				disList = updateDisplayList(list, loc, len)
-				draw(disList)
+				draw(updateDisplayList(list, loc, len))
 			elseif e == "mouse_scroll" and but < 0 and loc > 1 then
 				loc = loc + but
-				disList = updateDisplayList(list, loc, len)
-				draw(disList)
+				draw(updateDisplayList(list, loc, len))
 			elseif e == "mouse_click" then
-				for i, v in ipairs(disList) do
+				for i, v in ipairs(updateDisplayList(list, loc, len)) do
 					if clx >= x and clx <= x + wid and cly == i + y - 1 then
 						return v
 					end
@@ -337,8 +328,8 @@ api.scrollingPrompt = function(list, x, y, len, width)
 	else
 		local function draw(a)
 			for i, v in ipairs(a) do
-				term.setCursorPos(1, y + i - 1)
-				api.centerWrite(string.rep(" ", wid + 2))
+				term.setCursorPos(x, y + i - 1)
+				write(string.rep(" ", wid))
 				term.setCursorPos(x, y + i - 1)
 				write("[ ] " .. v:sub(1, wid - 5))
 			end
@@ -346,8 +337,7 @@ api.scrollingPrompt = function(list, x, y, len, width)
 
 		local loc = 1
 		local curSel = 1
-		local disList = updateDisplayList(list, loc, len)
-		draw(disList)
+		draw(updateDisplayList(list, loc, len))
 		term.setCursorPos(x + 1, y + curSel - 1)
 		write("x")
 
@@ -360,16 +350,14 @@ api.scrollingPrompt = function(list, x, y, len, width)
 					curSel = curSel - 1
 				elseif loc > 1 then
 					loc = loc - 1
-					disList = updateDisplayList(list, loc, len)
-					draw(disList)
+					draw(updateDisplayList(list, loc, len))
 				end
 			elseif e == "key" and key == 208 then
 				if curSel < #disList then
 					curSel = curSel + 1
 				elseif loc + len - 1 < #list then
 					loc = loc + 1
-					disList = updateDisplayList(list, loc, len)
-					draw(disList)
+					draw(updateDisplayList(list, loc, len))
 				end
 			elseif e == "key" and key == 28 then
 				return list[curSel + loc - 1]
@@ -390,11 +378,10 @@ api.lWrite = function(text) api.leftWrite(text) end
 api.rPrint = function(text) api.rightPrint(text) end
 api.rWrite = function(text) api.rightWrite(text) end
 
-
 -- Set Environment
 for k, v in pairs(getfenv(0)) do env[k] = v end
 for k, v in pairs(getfenv(1)) do env[k] = v end
-for k, v in pairs(env) do oldEnv[k] = v end
+for k, v in pairs(env) do unmodifiedEnv[k] = v end
 for k, v in pairs(api) do env[k] = v end
 for k, v in pairs(env) do backupEnv[k] = v end
 setfenv(1, env)
@@ -615,11 +602,11 @@ end
 local function download(url, path)
 	for i = 1, 3 do
 		local response = http.get(url)
-		if response then
+		if response and path then
 			local data = response.readAll()
 			response.close()
-			if path then
-				local f = io.open(path, "w")
+			local f = io.open(path, "w")
+			if f then
 				f:write(data)
 				f:close()
 			end
@@ -709,7 +696,6 @@ local function verifyGitHub()
 end
 
 local function migrateFilesystem()
-	-- Migrate from old version
 	if fs.exists("/.Firefox_Data") then
 		fs.move("/.Firefox_Data", rootFolder)
 		fs.delete(serverSoftwareLocation)
@@ -1423,8 +1409,6 @@ pages.server = function(site)
 			local com = words[1]
 			if com == "exit" then
 				break
-			elseif com == "firewolf" or (com == "easter" and words[2] == "egg") then
-				-- Easter egg
 			elseif com then
 				local a = false
 				for _, v in pairs(allowed) do
@@ -1640,7 +1624,7 @@ pages.server = function(site)
 					term.setBackgroundColor(colors.black)
 					term.setTextColor(colors.white)
 					openAddressBar = false
-					setfenv(1, oldEnv)
+					setfenv(1, unmodifiedEnv)
 					shell.run(serverSoftwareLocation, disList[sel], serverFolder .. "/" .. 
 						disList[sel])
 					setfenv(1, env)
@@ -1702,7 +1686,7 @@ pages.server = function(site)
 				term.setBackgroundColor(colors.black)
 				term.setTextColor(colors.white)
 				openAddressBar = false
-				setfenv(1, oldEnv)
+				setfenv(1, unmodifiedEnv)
 				shell.run(serverSoftwareLocation, server, serverFolder .. "/" .. server)
 				setfenv(1, env)
 				openAddressBar = true
@@ -4206,4 +4190,4 @@ for _, v in pairs(rs.getSides()) do rednet.close(v) end
 if debugFile then debugFile:close() end
 
 -- Reset Environment
-setfenv(1, oldEnv)
+setfenv(1, unmodifiedEnv)
