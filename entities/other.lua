@@ -2526,6 +2526,7 @@ end
 
 local skipExitWebsiteEvent = false
 local function loadSite(site)
+	local shellAllowed = false
 	local function runSite(cacheLoc, antivirusEnv)
 		-- Clear
 		clearPage(site, colors.black)
@@ -2945,6 +2946,7 @@ local function loadSite(site)
 			env.error()
 		end
 
+		if shellAllowed then
 		nenv.shell.run = function(file, ...)
 			if file == "clear" then
 				api.clearPage(website, cbc)
@@ -2952,6 +2954,7 @@ local function loadSite(site)
 			else
 				env.shell.run(file, ...)
 			end
+		end
 		end
 
 		local queueWebsiteExit = false
@@ -3376,6 +3379,7 @@ local function loadSite(site)
 		returnTable = appendTable(returnTable, fs, "fs", nil, true)
 		returnTable = appendTable(returnTable, io, "io", nil, true)
 		returnTable = appendTable(returnTable, shell, "shell", nil, true)
+		shellAllowed = false
 		returnTable["loadfile"] = function() 
 				env.error("Firewolf Antivirus: Unauthorized Function") end
 		returnTable["loadstring"] = function() 
@@ -3397,6 +3401,7 @@ local function loadSite(site)
 			elseif v == "Run Files" then 
 				returnTable = appendTable(returnTable, os, "os")
 				returnTable = appendTable(returnTable, shell, "shell")
+				shellAllowed = true
 				returnTable["loadfile"] = loadfile
 				returnTable["dofile"] = dofile
 			elseif v == "Execute Text" then
