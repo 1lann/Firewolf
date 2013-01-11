@@ -821,7 +821,7 @@ end
 local function loadDatabases()
 	-- Get
 	fs.delete(globalDatabase)
-	download(databaseURL, globalDatabase)
+	debugLog(download(databaseURL, globalDatabase))
 	local f = io.open(globalDatabase, "r")
 	local l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
 
