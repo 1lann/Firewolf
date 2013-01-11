@@ -932,6 +932,7 @@ local function verify(database, ...)
 		local c = args[1]:gsub(" ", ""):gsub("\n", ""):gsub("\t", "")
 		local a = {}
 		for _, v in pairs(definitions) do
+			debugLog(definitions)
 			local b = false
 			for _, c in pairs(a) do
 				if c == v[2] then b = true end
