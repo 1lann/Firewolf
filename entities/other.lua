@@ -3749,7 +3749,7 @@ local function websiteMain()
 		end
 
 		-- Wait
-		if not(skipExitWebsiteEvent) then os.pullEvent(event_exitWebsite) end
+		--if not(skipExitWebsiteEvent) then os.pullEvent(event_exitWebsite) end
 		os.pullEvent(event_loadWebsite)
 	end
 end
@@ -3843,7 +3843,7 @@ local function addressBarMain()
 					term.setBackgroundColor(colors[theme["top-box"] ])
 					term.setTextColor(colors[theme["text-color"]])
 					for i = term.getSize(), 0, -1 do
-						for b = 1, 500 do
+						for b = 1, 300 do
 							term.setCursorPos(i + 1, 1)
 							write(list:sub(i + 1, i + 1))
 							term.setCursorPos(i, 1)
