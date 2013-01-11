@@ -4003,7 +4003,7 @@ local function main()
 	term.setCursorPos(1, y - 1)
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Downloading Databases...")
-	--loadDatabases()
+	loadDatabases()
 
 	-- Load Settings
 	centerWrite(string.rep(" ", 47))
