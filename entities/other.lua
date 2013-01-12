@@ -3430,15 +3430,17 @@ local function loadSite(site)
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["background"]])
 	print("\n\n")
-	centerPrint("Connecting...")
+	centerWrite("Checking for interceptors...")
 	internalWebsite = true
 
 	-- Redirection bots
 	errPages.blacklistRedirectionBots()
 	loadingRate = loadingRate + 1
+	centerWrite("      Getting Website...      ")
 
 	-- Get website
 	local id, content, status = curProtocol.getWebsite(site)
+	centerWrite("Processing Website...")
 
 	-- Display website
 	local cacheLoc = cacheFolder .. "/" .. site:gsub("/", "$slazh$")
@@ -3549,6 +3551,7 @@ local function loadSite(site)
 			local f = io.open(cacheLoc, "w")
 			f:write(content)
 			f:close()
+			centerWrite("    Running Website...    ")
 			runSite(cacheLoc, antivirusEnv)
 			return
 		end
