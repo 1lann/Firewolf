@@ -1011,6 +1011,7 @@ protocols.rdnt.getWebsite = function(site)
 	local clock = os.clock()
 	local websiteID = nil
 	for k,v in pairs(dnsDatabase[1]) do
+		debugLog("Database:",v)
 		if v == site:gsub("rdnt://", "") then
 			websiteID = dnsDatabase[2][k]
 			break
