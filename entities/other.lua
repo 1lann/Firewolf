@@ -2487,7 +2487,7 @@ errPages.blacklistRedirectionBots = function()
 		rednet.broadcast(name:sub(1, math.floor(name:len()/2)) .. "." .. 
 			name:sub(math.floor(name:len()/2, -1)))
 		clock = os.clock()
-		for i = 1, 5 do
+		for d = 1, 5 do
 			while os.clock() - clock < timeout do
 				local id = rednet.receive(timeout)
 				debugLog("Blacklist Received:", id)
@@ -2510,7 +2510,7 @@ errPages.blacklistRedirectionBots = function()
 						table.insert(suspected, {id, 1})
 						break
 					end
-				elseif id == nil then 
+				elseif id == nil and d == 1 then 
 					finishCheck = true
 					break
 				end
