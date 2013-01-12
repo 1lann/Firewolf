@@ -2510,9 +2510,6 @@ errPages.blacklistRedirectionBots = function()
 						table.insert(suspected, {id, 1})
 						break
 					end
-				elseif id == nil and d == 1 then 
-					finishCheck = true
-					break
 				end
 			end
 			if finishCheck then break end
