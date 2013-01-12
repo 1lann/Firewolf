@@ -2590,6 +2590,7 @@ local function loadSite(site)
 		end
 
 		nenv.term.setCursorPos = function(x, y)
+			if not (y > 0) then y = 1 end
 			return env.term.setCursorPos(x, y + 1)
 		end
 
