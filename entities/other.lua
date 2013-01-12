@@ -1119,7 +1119,7 @@ pages.sites = function(site)
 	centerPrint("  rdnt://exit                        Exit  ")
 	centerPrint(string.rep(" ", 43))
 
-	local a = {"firewolf", "history" "downloads", "server", "help", "settings", "sites", 
+	local a = {"firewolf", "history", "downloads", "server", "help", "settings", "sites", 
 		"credits", "exit"}
 	while true do
 		local e, but, x, y = os.pullEvent()
