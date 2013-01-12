@@ -52,6 +52,9 @@ local blacklist = {}
 local whitelist = {}
 local definitions = {}
 local verifiedDownloads = {}
+local dnsDatabase = {}
+dnsDatabase[1] = {}
+dnsDatabase[2] = {}
 
 -- Website loading
 local website = ""
@@ -960,35 +963,39 @@ protocols.rdnt = {}
 
 protocols.rdnt.getSearchResults = function(input)
 	input = input:lower()
-	local results = {}
 	local resultIDs = {}
 
-	rednet.broadcast("rednet.api.ping.searchengine")
+	rednet.broadcast("firewolf.broadcast.dns.list")
 	local startClock = os.clock()
 	while os.clock() - startClock < timeout do
 		local id, i = rednet.receive(timeout)
 		if id then
-			local bl, wl = verify("blacklist", id), verify("whitelist", id, i)
-			if not(i:find(" ")) and i:len() < 40 and (not(bl) or (bl and wl)) then
-				if not(resultIDs[tostring(id)]) then
-					resultIDs[tostring(id)] = 1
-				else
-					resultIDs[tostring(id)] = resultIDs[tostring(id)] + 1
-				end
-
-				local x = false
-				for y = 1, #results do
-					if results[y]:lower() == i:lower() then
-						x = true
+			if i:sub(1, 14) == "firewolf-site:" then
+				i = i:sub(15, i:len())
+				local bl, wl = verify("blacklist", id), verify("whitelist", id, i)
+				if not(i:find(" ")) and i:len() < 40 and (not(bl) or (bl and wl)) then
+					if not(resultIDs[tostring(id)]) then
+						resultIDs[tostring(id)] = 1
+					else
+						resultIDs[tostring(id)] = resultIDs[tostring(id)] + 1
 					end
-				end
 
-				if not(x) and resultIDs[tostring(id)] <= 5 then
-					if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
-					if input == "" then
-						table.insert(results, i)
-					elseif string.find(i, input) and i ~= input then
-						table.insert(results, i)
+					local x = false
+					for y = 1, #dnsDatabase[1] do
+						if dnsDatabase[1][y]:lower() == i:lower() then
+							x = true
+						end
+					end
+
+					if not(x) and resultIDs[tostring(id)] <= 5 then
+						if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
+						if input == "" then
+							table.insert(dnsDatabase[1], i)
+							table.insert(dnsDatabase[2], id)
+						elseif string.find(i, input) and i ~= input then
+							table.insert(dnsDatabase[1], i)
+							table.insert(dnsDatabase[2], id)
+						end
 					end
 				end
 			end
@@ -996,35 +1003,38 @@ protocols.rdnt.getSearchResults = function(input)
 			break
 		end
 	end
-
-	table.sort(results)
-	table.sort(results, function(a, b)
-		local _, ac = a:gsub("rdnt://", ""):gsub(input:lower(), "")
-		local _, bc = b:gsub("rdnt://", ""):gsub(input:lower(), "")
-		return ac > bc
-	end)
-	return results
+	return dnsDatabase[1]
 end
 
 protocols.rdnt.getWebsite = function(site)
 	local id, content, status = nil, nil, nil
 	local clock = os.clock()
-	rednet.broadcast(site)
+	local websiteID = nil
+	for k,v in pairs(dnsDatabase[1]) do
+		if v == site:gsub("rdnt://", "") then
+			websiteID = dnsDatabase[2][k]
+			break
+		end
+		return nil, nil, nil
+	end
+	rednet.send(websiteID, site)
 	while os.clock() - clock < timeout do
 		id, content = rednet.receive(timeout)
 		if id then
-			local bl = verify("blacklist", id)
-			local av = verify("antivirus", content)
-			local wl = verify("whitelist", id, site)
-			status = nil
-			if (bl and not(wl)) or site == "" or site == "." or site == ".." then
-				-- Ignore
-			elseif av and not(wl) then
-				status = "antivirus"
-				break
-			else
-				status = "safe"
-				break
+			if id == websiteID then
+				local bl = verify("blacklist", id)
+				local av = verify("antivirus", content)
+				local wl = verify("whitelist", id, site)
+				status = nil
+				if (bl and not(wl)) or site == "" or site == "." or site == ".." then
+					-- Ignore
+				elseif av and not(wl) then
+					status = "antivirus"
+					break
+				else
+					status = "safe"
+					break
+				end
 			end
 		end
 	end
@@ -2461,7 +2471,7 @@ errPages.checkForModem = function()
 	end
 end
 
-errPages.blacklistRedirectionBots = function()
+--[[errPages.blacklistRedirectionBots = function()
 	debugLog("Starting Tests")
 	local suspected = {}
 	local alphabet = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", 
@@ -2526,7 +2536,7 @@ errPages.blacklistRedirectionBots = function()
 			table.insert(blacklist, tostring(suspected[i][1]))
 		end
 	end
-end
+end]]
 
 local skipExitWebsiteEvent = false
 local function loadSite(site)
@@ -3428,11 +3438,12 @@ local function loadSite(site)
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["background"]])
 	print("\n\n")
-	centerWrite("Checking for interceptors...")
+	centerWrite("Getting DNS Listing...")
 	internalWebsite = true
 
 	-- Redirection bots
-	errPages.blacklistRedirectionBots()
+	--errPages.blacklistRedirectionBots()
+	local res = curProtocol.getSearchResults(site)
 	loadingRate = loadingRate + 1
 	centerWrite("      Getting Website...      ")
 
@@ -3613,8 +3624,6 @@ local function loadSite(site)
 				return
 			end
 		else
-			local res = curProtocol.getSearchResults(site)
-
 			openAddressBar = true
 			if #res > 0 then
 				clearPage(site, colors[theme["background"]])

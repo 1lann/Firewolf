@@ -662,10 +662,10 @@ local function respondToEvents()
 						if uponFailedRequest ~= nil then uponFailedRequest(b, id) end
 					end
 				end
-			elseif mes == "rednet.api.ping.searchengine" and enableSearch == true then
+			elseif mes == "firewolf.broadcast.dns.list" then
 				if suspected[tostring(id)] then suspected[tostring(id)] = suspected[tostring(id)] + 1
 				else suspected[tostring(id)] = 1 end
-				rednet.send(id, website)
+				rednet.send(id, "firewolf-site:" .. website)
 				record("Search Request : " .. id)
 				searches = searches + 1
 			else
