@@ -964,6 +964,9 @@ protocols.rdnt = {}
 protocols.rdnt.getSearchResults = function(input)
 	input = input:lower()
 	local resultIDs = {}
+	dnsDatabase = {}
+	dnsDatabase[1] = {}
+	dnsDatabase[2] = {}
 
 	rednet.broadcast("firewolf.broadcast.dns.list")
 	local startClock = os.clock()
@@ -981,8 +984,8 @@ protocols.rdnt.getSearchResults = function(input)
 					end
 
 					local x = false
-					for y = 1, #dnsDatabase[1] do
-						if dnsDatabase[1][y]:lower() == i:lower() then
+					for m,n in pairs(dnsDatabase[1]) do
+						if n:lower() == i:lower() then
 							x = true
 						end
 					end
@@ -1014,6 +1017,7 @@ protocols.rdnt.getWebsite = function(site)
 		debugLog("Database:",v)
 		if v == site:gsub("rdnt://", "") then
 			websiteID = dnsDatabase[2][k]
+			debugLog("Website ID:", websiteID)
 			break
 		end
 		return nil, nil, nil
