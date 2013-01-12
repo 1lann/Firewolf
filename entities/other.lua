@@ -859,7 +859,7 @@ local function loadDatabases()
 		l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
 		if l ~= "" and l ~= "\n" and l ~= nil and l ~= "END-DATABASE" then
 			local a, b = l:find("| |")
-			debugLog("add object!")
+			--debugLog("add object!")
 			table.insert(definitions, {l:sub(1, a - 1), l:sub(b + 1, -1)})
 		end
 	end
@@ -2462,6 +2462,7 @@ errPages.checkForModem = function()
 end
 
 errPages.blacklistRedirectionBots = function()
+	debugLog("Starting Tests")
 	local suspected = {}
 	local alphabet = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", 
 				      "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "."}
