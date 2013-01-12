@@ -12,7 +12,7 @@
 --  -------- Variables
 
 -- Version
-local version = "2.3.6"
+local version = "2.3.8"
 local serverID = "release"
 
 -- Prevent Control-T
