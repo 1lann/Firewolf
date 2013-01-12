@@ -2489,7 +2489,9 @@ errPages.blacklistRedirectionBots = function()
 		for i = 1, 5 do
 			while os.clock() - clock < timeout do
 				local id = rednet.receive(timeout)
+				debugLog("Blacklist Received:", id)
 				if id ~= nil and not(verify("blacklist", id)) then
+					debugLog("Not in blacklist!")
 					name = ""
 					for d = 1, math.random(6, 17) do
 						name = name .. alphabet[math.random(1, 27)]
@@ -2522,6 +2524,7 @@ errPages.blacklistRedirectionBots = function()
 			local f = io.open(userBlacklist, "a")
 			f:write(tostring(suspected[i][1]) .. "\n")
 			f:close()
+			debugLog("Added to blacklist:", suspected[i][1])
 			table.insert(blacklist, tostring(suspected[i][1]))
 		end
 	end
