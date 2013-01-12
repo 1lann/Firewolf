@@ -3448,7 +3448,7 @@ local function loadSite(site)
 
 	-- Redirection bots
 	--errPages.blacklistRedirectionBots()
-	local res = curProtocol.getSearchResults(site)
+	local res = dnsDatabase[1]
 	loadingRate = loadingRate + 1
 	centerWrite("      Getting Website...      ")
 
