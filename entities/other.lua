@@ -955,9 +955,9 @@ end
 --  -------- Protocols
 
 protocols.http = {}
-protocols.fw = {}
+protocols.rdnt = {}
 
-protocols.fw.getSearchResults = function(input)
+protocols.rdnt.getSearchResults = function(input)
 	input = input:lower()
 	local resultIDs = {}
 	dnsDatabase = {[1] = {}, [2] = {}}
@@ -1000,7 +1000,7 @@ protocols.fw.getSearchResults = function(input)
 	return dnsDatabase[1]
 end
 
-protocols.fw.getWebsite = function(site)
+protocols.rdnt.getWebsite = function(site)
 	local id, content, status = nil, nil, nil
 	local clock = os.clock()
 	local websiteID = nil
