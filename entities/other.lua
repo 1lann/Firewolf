@@ -17,7 +17,7 @@
 --  -------- Variables
 
 -- Version
-local version = "2.3.7"
+local version = "2.3.8"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -52,9 +52,7 @@ local blacklist = {}
 local whitelist = {}
 local definitions = {}
 local verifiedDownloads = {}
-local dnsDatabase = {}
-dnsDatabase[1] = {}
-dnsDatabase[2] = {}
+local dnsDatabase = {[1] = {}, [2] = {}}
 
 -- Website loading
 local website = ""
@@ -393,7 +391,6 @@ api.lWrite = function(text) api.leftWrite(text) end
 api.rPrint = function(text) api.rightPrint(text) end
 api.rWrite = function(text) api.rightWrite(text) end
 
-
 -- Set Environment
 for k, v in pairs(getfenv(0)) do env[k] = v end
 for k, v in pairs(getfenv(1)) do env[k] = v end
@@ -712,7 +709,6 @@ local function verifyGitHub()
 end
 
 local function migrateFilesystem()
-	-- Migrate from old version
 	if fs.exists("/.Firefox_Data") then
 		fs.move("/.Firefox_Data", rootFolder)
 		fs.delete(serverSoftwareLocation)
@@ -959,14 +955,12 @@ end
 --  -------- Protocols
 
 protocols.http = {}
-protocols.rdnt = {}
+protocols.fw = {}
 
-protocols.rdnt.getSearchResults = function(input)
+protocols.fw.getSearchResults = function(input)
 	input = input:lower()
 	local resultIDs = {}
-	dnsDatabase = {}
-	dnsDatabase[1] = {}
-	dnsDatabase[2] = {}
+	dnsDatabase = {[1] = {}, [2] = {}}
 
 	rednet.broadcast("firewolf.broadcast.dns.list")
 	local startClock = os.clock()
@@ -974,20 +968,16 @@ protocols.rdnt.getSearchResults = function(input)
 		local id, i = rednet.receive(timeout)
 		if id then
 			if i:sub(1, 14) == "firewolf-site:" then
-				i = i:sub(15, i:len())
+				i = i:sub(15, -1)
 				local bl, wl = verify("blacklist", id), verify("whitelist", id, i)
 				if not(i:find(" ")) and i:len() < 40 and (not(bl) or (bl and wl)) then
-					if not(resultIDs[tostring(id)]) then
-						resultIDs[tostring(id)] = 1
-					else
-						resultIDs[tostring(id)] = resultIDs[tostring(id)] + 1
+					if not(resultIDs[tostring(id)]) then resultIDs[tostring(id)] = 1
+					else resultIDs[tostring(id)] = resultIDs[tostring(id)] + 1
 					end
 
 					local x = false
 					for m,n in pairs(dnsDatabase[1]) do
-						if n:lower() == i:lower() then
-							x = true
-						end
+						if n:lower() == i:lower() then x = true end
 					end
 
 					if not(x) and resultIDs[tostring(id)] <= 3 then
@@ -1006,22 +996,22 @@ protocols.rdnt.getSearchResults = function(input)
 			break
 		end
 	end
+
 	return dnsDatabase[1]
 end
 
-protocols.rdnt.getWebsite = function(site)
+protocols.fw.getWebsite = function(site)
 	local id, content, status = nil, nil, nil
 	local clock = os.clock()
 	local websiteID = nil
-	for k,v in pairs(dnsDatabase[1]) do
-		debugLog("Database:",v)
+	for k, v in pairs(dnsDatabase[1]) do
 		if v:gsub("rdnt://", "") == site:gsub("rdnt://", "") then
 			websiteID = dnsDatabase[2][k]
-			debugLog("Website ID:", websiteID)
 			break
 		end
 		return nil, nil, nil
 	end
+
 	rednet.send(websiteID, site)
 	while os.clock() - clock < timeout do
 		id, content = rednet.receive(timeout)
@@ -1043,6 +1033,7 @@ protocols.rdnt.getWebsite = function(site)
 			end
 		end
 	end
+
 	serverWebsiteID = id
 	return id, content, status
 end
@@ -1079,11 +1070,11 @@ pages.firewolf = function(site)
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerPrint("  News:                       [- Sites -]  ")
-	centerPrint("  - Version 2.3.6 has just been released!  ")
-	centerPrint("    Check it out on the forums! It fixes   ")
-	centerPrint("    all known bugs in Firewolf!            ")
-	centerPrint("  - Merry Christmas! From everyone in the  ")
-	centerPrint("    Firewolf team!                         ")
+	centerPrint("  - Version 2.3.8 has just been released!  ")
+	centerPrint("    Check it out on the forums! It has     ")
+	centerPrint("    a massive overhaul of all the systems  ")
+	centerPrint("  - Version 2.3.7 has been released! It    ")
+	centerPrint("    includes a new mini menu and help!     ")
 	centerPrint(string.rep(" ", 43))
 
 	while true do
@@ -1128,18 +1119,16 @@ pages.sites = function(site)
 	centerPrint("  rdnt://exit                        Exit  ")
 	centerPrint(string.rep(" ", 43))
 
+	local a = {"firewolf", "history" "downloads", "server", "help", "settings", "sites", 
+		"credits", "exit"}
 	while true do
 		local e, but, x, y = os.pullEvent()
 		if e == "mouse_click" and x >= 7 and x <= 45 then
-			if y == sx then redirect("firewolf") return
-			elseif y == sx + 1 then redirect("history") return
-			elseif y == sx + 2 then redirect("downloads") return
-			elseif y == sx + 3 then redirect("server") return
-			elseif y == sx + 4 then redirect("help") return
-			elseif y == sx + 5 then redirect("settings") return
-			elseif y == sx + 6 then redirect("sites") return
-			elseif y == sx + 7 then redirect("credits") return
-			elseif y == sx + 8 then redirect("exit") return
+			for i, v in ipairs(a) do
+				if y == sx + i - 1 then 
+					redirect(v)
+					return
+				end
 			end
 		elseif e == event_exitWebsite then
 			os.queueEvent(event_exitWebsite)
@@ -1164,9 +1153,7 @@ pages.history = function(site)
 		for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 
 		local a = {"Clear History"}
-		for i, v in ipairs(history) do
-			table.insert(a, "rdnt://" .. v)
-		end
+		for i, v in ipairs(history) do table.insert(a, "rdnt://" .. v) end
 		local opt = scrollingPrompt(a, 6, 8, 10, 40)
 		if opt == "Clear History" then
 			history = {}
@@ -1190,10 +1177,10 @@ pages.history = function(site)
 			centerPrint("Cleared history.")
 			centerPrint(string.rep(" ", 47))
 			openAddressBar = false
-			sleep(1.1)
+			sleep(1.3)
 
-			redirect("history")
 			openAddressBar = true
+			redirect("history")
 			return
 		elseif opt then
 			redirect(opt:gsub("rdnt://", ""))
@@ -1402,7 +1389,6 @@ end
 
 pages.server = function(site)
 	local function editPages(server)
-		-- Edit
 		openAddressBar = false
 		local oldLoc = shell.dir()
 		local commandHis = {}
@@ -1414,7 +1400,7 @@ pages.server = function(site)
 		print("")
 		print(" Server Shell Editing")
 		print(" Type 'exit' to return to Firewolf.")
-		print(" Note: The 'home' file is the index of your site")
+		print(" Note: The 'home' file is the index of your site.")
 		print("")
 
 		local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
@@ -1441,8 +1427,6 @@ pages.server = function(site)
 			local com = words[1]
 			if com == "exit" then
 				break
-			elseif com == "firewolf" or (com == "easter" and words[2] == "egg") then
-				-- Easter egg
 			elseif com then
 				local a = false
 				for _, v in pairs(allowed) do
@@ -1460,12 +1444,10 @@ pages.server = function(site)
 			end
 		end
 		shell.setDir(oldLoc)
-
 		openAddressBar = true
 	end
 
 	local function newServer()
-		-- New server
 		term.setBackgroundColor(colors[theme["background"]])
 		for i = 1, 12 do
 			term.setCursorPos(3, i + 6)
@@ -1493,7 +1475,7 @@ pages.server = function(site)
 		end
 		url = url:gsub(" ", "")
 
-		local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
+		local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", "rdnt://" 
 			"[", "]", "{", "}", "\\", "\"", "'", ":", ";", "?", "<", ">", ",", "`", "-"}
 		local b = false
 		for k, v in pairs(a) do
@@ -1669,6 +1651,7 @@ pages.server = function(site)
 					return
 				elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
 					editPages(disList[sel])
+					openAddressBar = true
 					redirect("server")
 					return
 				elseif x >= 30 and x <= 46 and y == 14 and #servers > 0 then
@@ -1689,7 +1672,6 @@ pages.server = function(site)
 					term.setCursorPos(32, 15)
 					write(string.rep(" ", 18))
 				elseif x >= 30 and x <= 41 and y == 16 and #servers > 0 then
-					-- Delete
 					fs.delete(serverFolder .. "/" .. disList[sel])
 					redirect("server")
 					return
@@ -1727,6 +1709,7 @@ pages.server = function(site)
 				errPages.checkForModem()
 			elseif opt == "Edit" then
 				editPages(server)
+				openAddressBar = true
 			elseif opt == "Run on Boot" then
 				fs.delete("/old-startup")
 				if fs.exists("/startup") then fs.move("/startup", "/old-startup") end
@@ -2140,7 +2123,7 @@ pages.update = function(site)
 		if term.isColor() then centerPrint("Click to exit...")
 		else centerPrint("Press any key to exit...") end
 		centerPrint(string.rep(" ", 43))
-		sleep(1.1)
+		sleep(1.3)
 		fs.delete(firewolfLocation)
 		fs.move(updateLocation, firewolfLocation)
 		shell.run(firewolfLocation)
@@ -2476,74 +2459,6 @@ errPages.checkForModem = function()
 	end
 end
 
---[[errPages.blacklistRedirectionBots = function()
-	debugLog("Starting Tests")
-	local suspected = {}
-	local alphabet = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", 
-				      "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "."}
-	local name = ""
-	for i = 1, math.random(1, 3) do
-		name = ""
-		for d = 1, math.random(6, 17) do
-			name = name .. alphabet[math.random(1, 27)]
-		end
-		rednet.broadcast(name:sub(1, math.floor(name:len()/2)) .. "." .. 
-			name:sub(math.floor(name:len()/2, -1)))
-		sleep(timeout)
-	end
-
-	for i = 1, 4 do
-		name = ""
-		for d = 1, math.random(6, 17) do
-			name = name .. alphabet[math.random(1, 27)]
-		end
-
-		local finishCheck = false
-		rednet.broadcast(name:sub(1, math.floor(name:len()/2)) .. "." .. 
-			name:sub(math.floor(name:len()/2, -1)))
-		clock = os.clock()
-		for d = 1, 5 do
-			while os.clock() - clock < timeout do
-				local id = rednet.receive(timeout)
-				debugLog("Blacklist Received:", id)
-				if id ~= nil and not(verify("blacklist", id)) then
-					debugLog("Not in blacklist!")
-					name = ""
-					for d = 1, math.random(6, 17) do
-						name = name .. alphabet[math.random(1, 27)]
-					end
-
-					local inSuspected = false
-					for b = 1, #suspected do
-						if suspected[b][1] == id then
-							suspected[b][2] = suspected[b][2] + 1
-							inSuspected = true
-						end
-					end
-
-					if not(inSuspected) then
-						table.insert(suspected, {id, 1})
-						break
-					end
-				end
-			end
-			if finishCheck then break end
-		end
-		if finishCheck then break end
-	end
-
-	for i = 1, #suspected do
-		if suspected[i][2] > 2 then
-			local f = io.open(userBlacklist, "a")
-			f:write(tostring(suspected[i][1]) .. "\n")
-			f:close()
-			debugLog("Added to blacklist:", suspected[i][1])
-			table.insert(blacklist, tostring(suspected[i][1]))
-		end
-	end
-end]]
-
-local skipExitWebsiteEvent = false
 local function loadSite(site)
 	local shellAllowed = false
 	local function runSite(cacheLoc, antivirusEnv)
@@ -2564,14 +2479,11 @@ local function loadSite(site)
 				if k == vi then safeFunc = false break end
 			end
 			if safeFunc then
-				if type(v) ~= "table" then
-					nenv[k] = v
+				if type(v) ~= "table" then nenv[k] = v
 				else
 					nenv[k] = {}
 					for i, d in pairs(v) do nenv[k][i] = d end
 				end
---			elseif type(v) == "table" then
---				nenv[k] = {}
 			end
 		end
 		nenv.term = {}
@@ -2602,7 +2514,7 @@ local function loadSite(site)
 		end
 
 		nenv.term.setCursorPos = function(x, y)
-			if not (y > 0) then y = 1 end
+			if not(y > 0) then y = 1 end
 			return env.term.setCursorPos(x, y + 1)
 		end
 
@@ -2768,13 +2680,10 @@ local function loadSite(site)
 				table.insert(a, {v[1], v[2], v[3] + 1, bg = b, tc = t})
 			end
 
-			skipExitWebsiteEvent = true
 			return fixPrompt(a, dir)
 		end
 
 		nenv.scrollingPrompt = function(list, x, y, len, width)
-			skipExitWebsiteEvent = true
-
 			local y = y + 1
 			local wid = width
 			if wid == nil then wid = w - 3 end
@@ -2967,14 +2876,14 @@ local function loadSite(site)
 		end
 
 		if shellAllowed then
-		nenv.shell.run = function(file, ...)
-			if file == "clear" then
-				api.clearPage(website, cbc)
-				env.term.setCursorPos(1, 2)
-			else
-				env.shell.run(file, ...)
+			nenv.shell.run = function(file, ...)
+				if file == "clear" then
+					api.clearPage(website, cbc)
+					env.term.setCursorPos(1, 2)
+				else
+					env.shell.run(file, ...)
+				end
 			end
-		end
 		end
 
 		local queueWebsiteExit = false
@@ -3447,13 +3356,14 @@ local function loadSite(site)
 	internalWebsite = true
 
 	-- Redirection bots
-	--errPages.blacklistRedirectionBots()
 	local res = dnsDatabase[1]
 	loadingRate = loadingRate + 1
-	centerWrite("      Getting Website...      ")
+	term.clearLine()
+	centerWrite("Getting Website...")
 
 	-- Get website
 	local id, content, status = curProtocol.getWebsite(site)
+	term.clearLine()
 	centerWrite("Processing Website...")
 
 	-- Display website
@@ -3565,7 +3475,8 @@ local function loadSite(site)
 			local f = io.open(cacheLoc, "w")
 			f:write(content)
 			f:close()
-			centerWrite("    Running Website...    ")
+			term.clearLine()
+			centerWrite("Running Website...")
 			runSite(cacheLoc, antivirusEnv)
 			return
 		end
@@ -3768,7 +3679,6 @@ local function websiteMain()
 		end
 
 		-- Wait
-		--if not(skipExitWebsiteEvent) then os.pullEvent(event_exitWebsite) end
 		os.pullEvent(event_loadWebsite)
 	end
 end
