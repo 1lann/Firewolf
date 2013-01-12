@@ -3764,56 +3764,24 @@ local function addressBarMain()
 					menuBarOpen = true
 					local list = nil
 					if not(internalWebsite) then
-						list = "  [- Exit Firewolf -] [- Incorrect Website -]      "
+						list = "> [- Exit Firewolf -] [- Incorrect Website -]      "
 					else
-						list = "  [- Exit Firewolf -]                              "
+						list = "> [- Exit Firewolf -]                              "
 					end
 
-					term.setBackgroundColor(colors[theme["top-box"] ])
-					term.setTextColor(colors[theme["text-color"]])
-					local oldX, oldY = term.getCursorPos()
-					for i = term.getSize(), 0, -1 do
-						term.setCursorPos(i + 1, 1)
-						write(list:sub(i + 1, i + 1))
-						term.setCursorPos(i, 1)
-						write("<")
-						term.setCursorPos(oldX, oldY)
-						os.queueEvent("firewolf_trigger_coroutine_event")
-						coroutine.yield()
-					end
-					term.setCursorPos(1,1)
-					write(">")
-				elseif menuBarOpen and x == 1 then
-					menuBarOpen = false
-					local oldX, oldY = term.getCursorPos()
-					local list = (" rdnt://" .. website .. string.rep(" ", 51 - (8 + website:len())))
-					for i = 0, term.getSize() - 1, 1 do
-						term.setBackgroundColor(colors[theme["address-bar-background"]])
-						term.setTextColor(colors[theme["address-bar-text"]])
-						term.setCursorPos(i, 1)
-						write(list:sub(i, i))
-						term.setCursorPos(i+1, 1)
-						term.setBackgroundColor(colors[theme["top-box"] ])
-						term.setTextColor(colors[theme["text-color"]])
-						write(">")
-						term.setCursorPos(oldX, oldY)
-						os.queueEvent("firewolf_triggerCoroutineEvent")
-						coroutine.yield()
-					end
-
-					local xSize = term.getSize()
 					term.setBackgroundColor(colors[theme["top-box"]])
 					term.setTextColor(colors[theme["text-color"]])
-					term.setCursorPos(xSize, 1)
-					write("<")
-					term.setBackgroundColor(colors[theme["address-bar-background"]])
-					term.setTextColor(colors[theme["address-bar-text"]])
+					term.setCursorPos(1, 1)
+					write(list)
+				elseif menuBarOpen and x == 1 then
+					menuBarOpen = false
+					clearPage(website, nil, true)
 				elseif x < 18 and x > 2 and menuBarOpen then
 					website = "exit"
 					menuBarOpen = false
 					os.queueEvent(event_openAddressBar)
 					os.queueEvent(event_exitWebsite)
-					sleep(0.01)
+					sleep(0.0001)
 					website = "exit"
 					os.queueEvent(event_loadWebsite)
 				elseif x < 38 and x > 18 and not(internalWebsite) and menuBarOpen then
