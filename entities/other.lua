@@ -2374,15 +2374,9 @@ errPages.crash = function(err)
 		centerPrint("  Please ask 1lann or GravityScore if you  ")
 		centerPrint("  have any questions about this.           ")
 		centerPrint(string.rep(" ", 43))
-		term.setBackgroundColor(colors[theme["background"]])
-		print("")
-
-		term.setBackgroundColor(colors[theme["bottom-box"]])
-		centerPrint(string.rep(" ", 43))
 		centerWrite(string.rep(" ", 43))
 		centerPrint("You may now browse normally!")
 		centerWrite(string.rep(" ", 43))
-
 	else
 		clearPage("crash", colors[theme["background"]])
 		print("")
