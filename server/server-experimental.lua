@@ -12,7 +12,7 @@
 --  -------- Variables
 
 -- Version
-local version = "2.3.6"
+local version = "2.3.8"
 local serverID = "release"
 
 -- Prevent Control-T
@@ -53,7 +53,7 @@ local pages = {}
 local totalRecordLines = {}
 local recordLines = {}
 local serverPassword = nil
-local serverLocked = true
+local serverLocked = false
 
 -- Locations
 local rootFolder = "/.Firewolf_Data"
@@ -513,11 +513,6 @@ local function loadPages(loc)
 	local a = fs.list(loc)
 	local p = {}
 	for i = 1, #a do
-		if a[i]:lower() ~= a[i] then
-			fs.delete(loc .. "/" .. a[i]:lower())
-			fs.move(loc .. "/" .. a[i], loc .. "/" .. a[i]:lower())
-			a[i] = a[i]:lower()
-		end
 		if not(fs.isDir(loc .. "/" .. a[i])) then
 			local f = io.open(loc .. "/" .. a[i])
 			local cont = f:read("*a")
@@ -525,8 +520,7 @@ local function loadPages(loc)
 
 			p[loc .. "/" .. a[i]] = cont
 		else
-			local b = {}
-			loadPages(loc .. "/" .. a[i], b)
+			local b = loadPages(loc .. "/" .. a[i])
 			for x = 1, #b do
 				table.insert(p, b[x])
 			end
@@ -668,10 +662,10 @@ local function respondToEvents()
 						if uponFailedRequest ~= nil then uponFailedRequest(b, id) end
 					end
 				end
-			elseif mes == "rednet.api.ping.searchengine" and enableSearch == true then
+			elseif mes == "firewolf.broadcast.dns.list" then
 				if suspected[tostring(id)] then suspected[tostring(id)] = suspected[tostring(id)] + 1
 				else suspected[tostring(id)] = 1 end
-				rednet.send(id, website)
+				rednet.send(id, "firewolf-site:" .. website)
 				record("Search Request : " .. id)
 				searches = searches + 1
 			else
@@ -709,6 +703,7 @@ local function edit()
 	print("")
 	print(" Server Shell Editing")
 	print(" Type 'exit' to return to Firewolf.")
+	print(" Note: The 'home' file is the index of your site")
 	print("")
 
 	local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 

@@ -24,8 +24,7 @@ local tArgs = {...}
 
 -- Server Identification
 local serverID = "other"
-local serverList = {blackwolf = "BlackWolf", geevancraft = "GeevanCraft", 
-		experimental = "Experimental", other = "Other"}
+local serverList = {experimental = "Experimental", other = "Other"}
 
 -- Updating
 local autoupdate = "true"

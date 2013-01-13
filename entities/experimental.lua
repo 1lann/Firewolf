@@ -17,15 +17,14 @@
 --  -------- Variables
 
 -- Version
-local version = "2.3.7"
+local version = "2.3.8"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
 
 -- Server Identification
 local serverID = "experimental"
-local serverList = {blackwolf = "BlackWolf", geevancraft = "GeevanCraft", 
-		experimental = "Experimental", other = "Other"}
+local serverList = {experimental = "Experimental", other = "Other"}
 
 -- Updating
 local autoupdate = "true"
@@ -39,7 +38,7 @@ local graphics = {}
 local debugFile = nil
 
 -- Environment
-local unmodifiedEnv = {}
+local oldEnv = {}
 local env = {}
 local backupEnv = {}
 local api = {}
@@ -52,6 +51,7 @@ local blacklist = {}
 local whitelist = {}
 local definitions = {}
 local verifiedDownloads = {}
+local dnsDatabase = {[1] = {}, [2] = {}}
 
 -- Website loading
 local website = ""
@@ -161,12 +161,14 @@ api.clearPage = function(site, color, redraw, tcolor)
 end
 
 api.centerPrint = function(text)
+	local w, h = term.getSize()
 	local x, y = term.getCursorPos()
 	term.setCursorPos(math.ceil((w + 1)/2 - text:len()/2), y)
 	print(text)
 end
 
 api.centerWrite = function(text)
+	local w, h = term.getSize()
 	local x, y = term.getCursorPos()
 	term.setCursorPos(math.ceil((w + 1)/2 - text:len()/2), y)
 	write(text)
@@ -186,12 +188,14 @@ end
 
 api.rightPrint = function(text)
 	local x, y = term.getCursorPos()
+	local w, h = term.getSize()
 	term.setCursorPos(w - text:len() - 1, y)
 	print(text)
 end
 
 api.rightWrite = function(text)
 	local x, y = term.getCursorPos()
+	local w, h = term.getSize()
 	term.setCursorPos(w - text:len() - 1, y)
 	write(text)
 end
@@ -299,24 +303,29 @@ api.scrollingPrompt = function(list, x, y, len, width)
 		end
 
 		local loc = 1
-		draw(updateDisplayList(list, loc, len))
+		local disList = updateDisplayList(list, loc, len)
+		draw(disList)
 		
 		while true do
 			local e, but, clx, cly = os.pullEvent()
 			if e == "key" and but == 200 and loc > 1 then
 				loc = loc - 1
-				draw(updateDisplayList(list, loc, len))
+				disList = updateDisplayList(list, loc, len)
+				draw(disList)
 			elseif e == "key" and but == 208 and loc + len - 1 < #list then
 				loc = loc + 1
-				draw(updateDisplayList(list, loc, len))
+				disList = updateDisplayList(list, loc, len)
+				draw(disList)
 			elseif e == "mouse_scroll" and but > 0 and loc + len - 1 < #list then
 				loc = loc + but
-				draw(updateDisplayList(list, loc, len))
+				disList = updateDisplayList(list, loc, len)
+				draw(disList)
 			elseif e == "mouse_scroll" and but < 0 and loc > 1 then
 				loc = loc + but
-				draw(updateDisplayList(list, loc, len))
+				disList = updateDisplayList(list, loc, len)
+				draw(disList)
 			elseif e == "mouse_click" then
-				for i, v in ipairs(updateDisplayList(list, loc, len)) do
+				for i, v in ipairs(disList) do
 					if clx >= x and clx <= x + wid and cly == i + y - 1 then
 						return v
 					end
@@ -328,8 +337,8 @@ api.scrollingPrompt = function(list, x, y, len, width)
 	else
 		local function draw(a)
 			for i, v in ipairs(a) do
-				term.setCursorPos(x, y + i - 1)
-				write(string.rep(" ", wid))
+				term.setCursorPos(1, y + i - 1)
+				api.centerWrite(string.rep(" ", wid + 2))
 				term.setCursorPos(x, y + i - 1)
 				write("[ ] " .. v:sub(1, wid - 5))
 			end
@@ -337,7 +346,8 @@ api.scrollingPrompt = function(list, x, y, len, width)
 
 		local loc = 1
 		local curSel = 1
-		draw(updateDisplayList(list, loc, len))
+		local disList = updateDisplayList(list, loc, len)
+		draw(disList)
 		term.setCursorPos(x + 1, y + curSel - 1)
 		write("x")
 
@@ -350,14 +360,16 @@ api.scrollingPrompt = function(list, x, y, len, width)
 					curSel = curSel - 1
 				elseif loc > 1 then
 					loc = loc - 1
-					draw(updateDisplayList(list, loc, len))
+					disList = updateDisplayList(list, loc, len)
+					draw(disList)
 				end
 			elseif e == "key" and key == 208 then
 				if curSel < #disList then
 					curSel = curSel + 1
 				elseif loc + len - 1 < #list then
 					loc = loc + 1
-					draw(updateDisplayList(list, loc, len))
+					disList = updateDisplayList(list, loc, len)
+					draw(disList)
 				end
 			elseif e == "key" and key == 28 then
 				return list[curSel + loc - 1]
@@ -381,7 +393,7 @@ api.rWrite = function(text) api.rightWrite(text) end
 -- Set Environment
 for k, v in pairs(getfenv(0)) do env[k] = v end
 for k, v in pairs(getfenv(1)) do env[k] = v end
-for k, v in pairs(env) do unmodifiedEnv[k] = v end
+for k, v in pairs(env) do oldEnv[k] = v end
 for k, v in pairs(api) do env[k] = v end
 for k, v in pairs(env) do backupEnv[k] = v end
 setfenv(1, env)
@@ -602,11 +614,11 @@ end
 local function download(url, path)
 	for i = 1, 3 do
 		local response = http.get(url)
-		if response and path then
+		if response then
 			local data = response.readAll()
 			response.close()
-			local f = io.open(path, "w")
-			if f then
+			if path then
+				local f = io.open(path, "w")
 				f:write(data)
 				f:close()
 			end
@@ -807,7 +819,7 @@ end
 local function loadDatabases()
 	-- Get
 	fs.delete(globalDatabase)
-	download(databaseURL, globalDatabase)
+	debugLog(download(databaseURL, globalDatabase))
 	local f = io.open(globalDatabase, "r")
 	local l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
 
@@ -845,6 +857,7 @@ local function loadDatabases()
 		l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
 		if l ~= "" and l ~= "\n" and l ~= nil and l ~= "END-DATABASE" then
 			local a, b = l:find("| |")
+			--debugLog("add object!")
 			table.insert(definitions, {l:sub(1, a - 1), l:sub(b + 1, -1)})
 		end
 	end
@@ -917,7 +930,9 @@ local function verify(database, ...)
 		-- content
 		local c = args[1]:gsub(" ", ""):gsub("\n", ""):gsub("\t", "")
 		local a = {}
+		debugLog("start def")
 		for _, v in pairs(definitions) do
+			debugLog(definitions)
 			local b = false
 			for _, c in pairs(a) do
 				if c == v[2] then b = true end
@@ -943,35 +958,36 @@ protocols.rdnt = {}
 
 protocols.rdnt.getSearchResults = function(input)
 	input = input:lower()
-	local results = {}
 	local resultIDs = {}
+	dnsDatabase = {[1] = {}, [2] = {}}
 
-	rednet.broadcast("rednet.api.ping.searchengine")
+	rednet.broadcast("firewolf.broadcast.dns.list")
 	local startClock = os.clock()
 	while os.clock() - startClock < timeout do
 		local id, i = rednet.receive(timeout)
 		if id then
-			local bl, wl = verify("blacklist", id), verify("whitelist", id, i)
-			if not(i:find(" ")) and i:len() < 40 and (not(bl) or (bl and wl)) then
-				if not(resultIDs[tostring(id)]) then
-					resultIDs[tostring(id)] = 1
-				else
-					resultIDs[tostring(id)] = resultIDs[tostring(id)] + 1
-				end
-
-				local x = false
-				for y = 1, #results do
-					if results[y]:lower() == i:lower() then
-						x = true
+			if i:sub(1, 14) == "firewolf-site:" then
+				i = i:sub(15, -1)
+				local bl, wl = verify("blacklist", id), verify("whitelist", id, i)
+				if not(i:find(" ")) and i:len() < 40 and (not(bl) or (bl and wl)) then
+					if not(resultIDs[tostring(id)]) then resultIDs[tostring(id)] = 1
+					else resultIDs[tostring(id)] = resultIDs[tostring(id)] + 1
 					end
-				end
 
-				if not(x) and resultIDs[tostring(id)] <= 5 then
-					if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
-					if input == "" then
-						table.insert(results, i)
-					elseif string.find(i, input) and i ~= input then
-						table.insert(results, i)
+					local x = false
+					for m,n in pairs(dnsDatabase[1]) do
+						if n:lower() == i:lower() then x = true end
+					end
+
+					if not(x) and resultIDs[tostring(id)] <= 3 then
+						if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
+						if input == "" then
+							table.insert(dnsDatabase[1], i)
+							table.insert(dnsDatabase[2], id)
+						elseif string.find(i, input) and i ~= input then
+							table.insert(dnsDatabase[1], i)
+							table.insert(dnsDatabase[2], id)
+						end
 					end
 				end
 			end
@@ -980,37 +996,43 @@ protocols.rdnt.getSearchResults = function(input)
 		end
 	end
 
-	table.sort(results)
-	table.sort(results, function(a, b)
-		local _, ac = a:gsub("rdnt://", ""):gsub(input:lower(), "")
-		local _, bc = b:gsub("rdnt://", ""):gsub(input:lower(), "")
-		return ac > bc
-	end)
-	return results
+	return dnsDatabase[1]
 end
 
 protocols.rdnt.getWebsite = function(site)
 	local id, content, status = nil, nil, nil
 	local clock = os.clock()
-	rednet.broadcast(site)
+	local websiteID = nil
+	for k, v in pairs(dnsDatabase[1]) do
+		if v:gsub("rdnt://", "") == site:gsub("rdnt://", "") then
+			websiteID = dnsDatabase[2][k]
+			break
+		end
+		return nil, nil, nil
+	end
+
+	rednet.send(websiteID, site)
 	while os.clock() - clock < timeout do
 		id, content = rednet.receive(timeout)
 		if id then
-			local bl = verify("blacklist", id)
-			local av = verify("antivirus", content)
-			local wl = verify("whitelist", id, site)
-			status = nil
-			if (bl and not(wl)) or site == "" or site == "." or site == ".." then
-				-- Ignore
-			elseif av and not(wl) then
-				status = "antivirus"
-				break
-			else
-				status = "safe"
-				break
+			if id == websiteID then
+				local bl = verify("blacklist", id)
+				local av = verify("antivirus", content)
+				local wl = verify("whitelist", id, site)
+				status = nil
+				if (bl and not(wl)) or site == "" or site == "." or site == ".." then
+					-- Ignore
+				elseif av and not(wl) then
+					status = "antivirus"
+					break
+				else
+					status = "safe"
+					break
+				end
 			end
 		end
 	end
+
 	serverWebsiteID = id
 	return id, content, status
 end
@@ -1047,11 +1069,11 @@ pages.firewolf = function(site)
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
 	centerPrint("  News:                       [- Sites -]  ")
-	centerPrint("  - Version 2.3.6 has just been released!  ")
-	centerPrint("    Check it out on the forums! It fixes   ")
-	centerPrint("    all known bugs in Firewolf!            ")
-	centerPrint("  - Merry Christmas! From everyone in the  ")
-	centerPrint("    Firewolf team!                         ")
+	centerPrint("  - Version 2.3.8 has just been released!  ")
+	centerPrint("    Check it out on the forums! It has     ")
+	centerPrint("    a massive overhaul of all the systems  ")
+	centerPrint("  - Version 2.3.7 has been released! It    ")
+	centerPrint("    includes a new mini menu and help!     ")
 	centerPrint(string.rep(" ", 43))
 
 	while true do
@@ -1096,18 +1118,16 @@ pages.sites = function(site)
 	centerPrint("  rdnt://exit                        Exit  ")
 	centerPrint(string.rep(" ", 43))
 
+	local a = {"firewolf", "history", "downloads", "server", "help", "settings", "sites", 
+		"credits", "exit"}
 	while true do
 		local e, but, x, y = os.pullEvent()
 		if e == "mouse_click" and x >= 7 and x <= 45 then
-			if y == sx then redirect("firewolf") return
-			elseif y == sx + 1 then redirect("history") return
-			elseif y == sx + 2 then redirect("downloads") return
-			elseif y == sx + 3 then redirect("server") return
-			elseif y == sx + 4 then redirect("help") return
-			elseif y == sx + 5 then redirect("settings") return
-			elseif y == sx + 6 then redirect("sites") return
-			elseif y == sx + 7 then redirect("credits") return
-			elseif y == sx + 8 then redirect("exit") return
+			for i, v in ipairs(a) do
+				if y == sx + i - 1 then 
+					redirect(v)
+					return
+				end
 			end
 		elseif e == event_exitWebsite then
 			os.queueEvent(event_exitWebsite)
@@ -1132,9 +1152,7 @@ pages.history = function(site)
 		for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 
 		local a = {"Clear History"}
-		for i, v in ipairs(history) do
-			table.insert(a, "rdnt://" .. v)
-		end
+		for i, v in ipairs(history) do table.insert(a, "rdnt://" .. v) end
 		local opt = scrollingPrompt(a, 6, 8, 10, 40)
 		if opt == "Clear History" then
 			history = {}
@@ -1158,10 +1176,10 @@ pages.history = function(site)
 			centerPrint("Cleared history.")
 			centerPrint(string.rep(" ", 47))
 			openAddressBar = false
-			sleep(1.1)
+			sleep(1.3)
 
-			redirect("history")
 			openAddressBar = true
+			redirect("history")
 			return
 		elseif opt then
 			redirect(opt:gsub("rdnt://", ""))
@@ -1370,7 +1388,6 @@ end
 
 pages.server = function(site)
 	local function editPages(server)
-		-- Edit
 		openAddressBar = false
 		local oldLoc = shell.dir()
 		local commandHis = {}
@@ -1382,7 +1399,7 @@ pages.server = function(site)
 		print("")
 		print(" Server Shell Editing")
 		print(" Type 'exit' to return to Firewolf.")
-		print(" Note: The 'home' file is the index of your site")
+		print(" Note: The 'home' file is the index of your site.")
 		print("")
 
 		local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
@@ -1426,12 +1443,10 @@ pages.server = function(site)
 			end
 		end
 		shell.setDir(oldLoc)
-
 		openAddressBar = true
 	end
 
 	local function newServer()
-		-- New server
 		term.setBackgroundColor(colors[theme["background"]])
 		for i = 1, 12 do
 			term.setCursorPos(3, i + 6)
@@ -1459,7 +1474,7 @@ pages.server = function(site)
 		end
 		url = url:gsub(" ", "")
 
-		local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", 
+		local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", "rdnt://",
 			"[", "]", "{", "}", "\\", "\"", "'", ":", ";", "?", "<", ">", ",", "`", "-"}
 		local b = false
 		for k, v in pairs(a) do
@@ -1624,7 +1639,7 @@ pages.server = function(site)
 					term.setBackgroundColor(colors.black)
 					term.setTextColor(colors.white)
 					openAddressBar = false
-					setfenv(1, unmodifiedEnv)
+					setfenv(1, oldEnv)
 					shell.run(serverSoftwareLocation, disList[sel], serverFolder .. "/" .. 
 						disList[sel])
 					setfenv(1, env)
@@ -1635,6 +1650,7 @@ pages.server = function(site)
 					return
 				elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
 					editPages(disList[sel])
+					openAddressBar = true
 					redirect("server")
 					return
 				elseif x >= 30 and x <= 46 and y == 14 and #servers > 0 then
@@ -1655,7 +1671,6 @@ pages.server = function(site)
 					term.setCursorPos(32, 15)
 					write(string.rep(" ", 18))
 				elseif x >= 30 and x <= 41 and y == 16 and #servers > 0 then
-					-- Delete
 					fs.delete(serverFolder .. "/" .. disList[sel])
 					redirect("server")
 					return
@@ -1686,13 +1701,14 @@ pages.server = function(site)
 				term.setBackgroundColor(colors.black)
 				term.setTextColor(colors.white)
 				openAddressBar = false
-				setfenv(1, unmodifiedEnv)
+				setfenv(1, oldEnv)
 				shell.run(serverSoftwareLocation, server, serverFolder .. "/" .. server)
 				setfenv(1, env)
 				openAddressBar = true
 				errPages.checkForModem()
 			elseif opt == "Edit" then
 				editPages(server)
+				openAddressBar = true
 			elseif opt == "Run on Boot" then
 				fs.delete("/old-startup")
 				if fs.exists("/startup") then fs.move("/startup", "/old-startup") end
@@ -2106,7 +2122,7 @@ pages.update = function(site)
 		if term.isColor() then centerPrint("Click to exit...")
 		else centerPrint("Press any key to exit...") end
 		centerPrint(string.rep(" ", 43))
-		sleep(1.1)
+		sleep(1.3)
 		fs.delete(firewolfLocation)
 		fs.move(updateLocation, firewolfLocation)
 		shell.run(firewolfLocation)
@@ -2357,15 +2373,9 @@ errPages.crash = function(err)
 		centerPrint("  Please ask 1lann or GravityScore if you  ")
 		centerPrint("  have any questions about this.           ")
 		centerPrint(string.rep(" ", 43))
-		term.setBackgroundColor(colors[theme["background"]])
-		print("")
-
-		term.setBackgroundColor(colors[theme["bottom-box"]])
-		centerPrint(string.rep(" ", 43))
 		centerWrite(string.rep(" ", 43))
 		centerPrint("You may now browse normally!")
-		centerPrint(string.rep(" ", 43))
-
+		centerWrite(string.rep(" ", 43))
 	else
 		clearPage("crash", colors[theme["background"]])
 		print("")
@@ -2442,74 +2452,8 @@ errPages.checkForModem = function()
 	end
 end
 
-errPages.blacklistRedirectionBots = function()
-	local suspected = {}
-	local alphabet = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", 
-				      "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "."}
-	local name = ""
-	for i = 1, math.random(1, 3) do
-		name = ""
-		for d = 1, math.random(6, 17) do
-			name = name .. alphabet[math.random(1, 27)]
-		end
-		rednet.broadcast(name:sub(1, math.floor(name:len()/2)) .. "." .. 
-			name:sub(math.floor(name:len()/2, -1)))
-		sleep(timeout)
-	end
-
-	for i = 1, 4 do
-		name = ""
-		for d = 1, math.random(6, 17) do
-			name = name .. alphabet[math.random(1, 27)]
-		end
-
-		local finishCheck = false
-		rednet.broadcast(name:sub(1, math.floor(name:len()/2)) .. "." .. 
-			name:sub(math.floor(name:len()/2, -1)))
-		clock = os.clock()
-		for i = 1, 5 do
-			while os.clock() - clock < timeout do
-				local id = rednet.receive(timeout)
-				if id ~= nil and not(verify("blacklist", id)) then
-					name = ""
-					for d = 1, math.random(6, 17) do
-						name = name .. alphabet[math.random(1, 27)]
-					end
-
-					local inSuspected = false
-					for b = 1, #suspected do
-						if suspected[b][1] == id then
-							suspected[b][2] = suspected[b][2] + 1
-							inSuspected = true
-						end
-					end
-
-					if not(inSuspected) then
-						table.insert(suspected, {id, 1})
-						break
-					end
-				elseif id == nil then 
-					finishCheck = true
-					break
-				end
-			end
-			if finishCheck then break end
-		end
-		if finishCheck then break end
-	end
-
-	for i = 1, #suspected do
-		if suspected[i][2] > 2 then
-			local f = io.open(userBlacklist, "a")
-			f:write(tostring(suspected[i][1]) .. "\n")
-			f:close()
-			table.insert(blacklist, tostring(suspected[i][1]))
-		end
-	end
-end
-
-local skipExitWebsiteEvent = false
 local function loadSite(site)
+	local shellAllowed = false
 	local function runSite(cacheLoc, antivirusEnv)
 		-- Clear
 		clearPage(site, colors.black)
@@ -2528,14 +2472,11 @@ local function loadSite(site)
 				if k == vi then safeFunc = false break end
 			end
 			if safeFunc then
-				if type(v) ~= "table" then
-					nenv[k] = v
+				if type(v) ~= "table" then nenv[k] = v
 				else
 					nenv[k] = {}
 					for i, d in pairs(v) do nenv[k][i] = d end
 				end
---			elseif type(v) == "table" then
---				nenv[k] = {}
 			end
 		end
 		nenv.term = {}
@@ -2566,6 +2507,7 @@ local function loadSite(site)
 		end
 
 		nenv.term.setCursorPos = function(x, y)
+			if not(y > 0) then y = 1 end
 			return env.term.setCursorPos(x, y + 1)
 		end
 
@@ -2731,13 +2673,10 @@ local function loadSite(site)
 				table.insert(a, {v[1], v[2], v[3] + 1, bg = b, tc = t})
 			end
 
-			skipExitWebsiteEvent = true
 			return fixPrompt(a, dir)
 		end
 
 		nenv.scrollingPrompt = function(list, x, y, len, width)
-			skipExitWebsiteEvent = true
-
 			local y = y + 1
 			local wid = width
 			if wid == nil then wid = w - 3 end
@@ -2929,12 +2868,14 @@ local function loadSite(site)
 			env.error()
 		end
 
-		nenv.shell.run = function(file, ...)
-			if file == "clear" then
-				api.clearPage(website, cbc)
-				env.term.setCursorPos(1, 2)
-			else
-				env.shell.run(file, ...)
+		if shellAllowed then
+			nenv.shell.run = function(file, ...)
+				if file == "clear" then
+					api.clearPage(website, cbc)
+					env.term.setCursorPos(1, 2)
+				else
+					env.shell.run(file, ...)
+				end
 			end
 		end
 
@@ -3319,11 +3260,11 @@ local function loadSite(site)
 		end
 
 		-- Run
-		local fn, err = loadfile(cacheLoc)
+		local fn, err = env.loadfile(cacheLoc)
 		if fn and not(err) then
-			setfenv(fn, nenv)
-			_, err = pcall(fn)
-			setfenv(1, backupEnv)
+			env.setfenv(fn, nenv)
+			_, err = env.pcall(fn)
+			env.setfenv(1, backupEnv)
 		end
 
 		-- Catch website error
@@ -3360,6 +3301,7 @@ local function loadSite(site)
 		returnTable = appendTable(returnTable, fs, "fs", nil, true)
 		returnTable = appendTable(returnTable, io, "io", nil, true)
 		returnTable = appendTable(returnTable, shell, "shell", nil, true)
+		shellAllowed = false
 		returnTable["loadfile"] = function() 
 				env.error("Firewolf Antivirus: Unauthorized Function") end
 		returnTable["loadstring"] = function() 
@@ -3381,6 +3323,7 @@ local function loadSite(site)
 			elseif v == "Run Files" then 
 				returnTable = appendTable(returnTable, os, "os")
 				returnTable = appendTable(returnTable, shell, "shell")
+				shellAllowed = true
 				returnTable["loadfile"] = loadfile
 				returnTable["dofile"] = dofile
 			elseif v == "Execute Text" then
@@ -3402,15 +3345,19 @@ local function loadSite(site)
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["background"]])
 	print("\n\n")
-	centerPrint("Connecting...")
+	centerWrite("Getting DNS Listing...")
 	internalWebsite = true
 
 	-- Redirection bots
-	errPages.blacklistRedirectionBots()
+	local res = dnsDatabase[1]
 	loadingRate = loadingRate + 1
+	term.clearLine()
+	centerWrite("Getting Website...")
 
 	-- Get website
 	local id, content, status = curProtocol.getWebsite(site)
+	term.clearLine()
+	centerWrite("Processing Website...")
 
 	-- Display website
 	local cacheLoc = cacheFolder .. "/" .. site:gsub("/", "$slazh$")
@@ -3521,6 +3468,8 @@ local function loadSite(site)
 			local f = io.open(cacheLoc, "w")
 			f:write(content)
 			f:close()
+			term.clearLine()
+			centerWrite("Running Website...")
 			runSite(cacheLoc, antivirusEnv)
 			return
 		end
@@ -3584,8 +3533,6 @@ local function loadSite(site)
 				return
 			end
 		else
-			local res = curProtocol.getSearchResults(site)
-
 			openAddressBar = true
 			if #res > 0 then
 				clearPage(site, colors[theme["background"]])
@@ -3725,7 +3672,6 @@ local function websiteMain()
 		end
 
 		-- Wait
-		if not(skipExitWebsiteEvent) then os.pullEvent(event_exitWebsite) end
 		os.pullEvent(event_loadWebsite)
 	end
 end
@@ -3811,56 +3757,24 @@ local function addressBarMain()
 					menuBarOpen = true
 					local list = nil
 					if not(internalWebsite) then
-						list = "  [- Exit Firewolf -] [- Incorrect Website -]      "
+						list = "> [- Exit Firewolf -] [- Incorrect Website -]      "
 					else
-						list = "  [- Exit Firewolf -]                              "
+						list = "> [- Exit Firewolf -]                              "
 					end
 
-					term.setBackgroundColor(colors[theme["top-box"] ])
-					term.setTextColor(colors[theme["text-color"]])
-					for i = term.getSize(), 0, -1 do
-						for b = 1, 500 do
-							term.setCursorPos(i + 1, 1)
-							write(list:sub(i + 1, i + 1))
-							term.setCursorPos(i, 1)
-							write("<")
-						end
-						os.queueEvent("firewolf_trigger_coroutine_event")
-						coroutine.yield()
-					end
-					term.setCursorPos(1,1)
-					write(">")
-				elseif menuBarOpen and x == 1 then
-					menuBarOpen = false
-					local list = (" rdnt://" .. website .. string.rep(" ", 51 - (8 + website:len())))
-					for i = 0, term.getSize() - 1, 1 do
-						for b = 1, 500 do
-							term.setBackgroundColor(colors[theme["address-bar-background"]])
-							term.setTextColor(colors[theme["address-bar-text"]])
-							term.setCursorPos(i, 1)
-							write(list:sub(i, i))
-							term.setCursorPos(i+1, 1)
-							term.setBackgroundColor(colors[theme["top-box"] ])
-							term.setTextColor(colors[theme["text-color"]])
-							write(">")
-						end
-						os.queueEvent("firewolf_triggerCoroutineEvent")
-						coroutine.yield()
-					end
-
-					local xSize = term.getSize()
 					term.setBackgroundColor(colors[theme["top-box"]])
 					term.setTextColor(colors[theme["text-color"]])
-					term.setCursorPos(xSize, 1)
-					write("<")
-					term.setBackgroundColor(colors[theme["address-bar-background"]])
-					term.setTextColor(colors[theme["address-bar-text"]])
+					term.setCursorPos(1, 1)
+					write(list)
+				elseif menuBarOpen and x == 1 then
+					menuBarOpen = false
+					clearPage(website, nil, true)
 				elseif x < 18 and x > 2 and menuBarOpen then
 					website = "exit"
 					menuBarOpen = false
 					os.queueEvent(event_openAddressBar)
 					os.queueEvent(event_exitWebsite)
-					sleep(0.01)
+					sleep(0.0001)
 					website = "exit"
 					os.queueEvent(event_loadWebsite)
 				elseif x < 38 and x > 18 and not(internalWebsite) and menuBarOpen then
@@ -3979,7 +3893,7 @@ local function main()
 	term.setCursorPos(1, y - 1)
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Downloading Databases...")
-	--loadDatabases()
+	loadDatabases()
 
 	-- Load Settings
 	centerWrite(string.rep(" ", 47))
@@ -4190,4 +4104,4 @@ for _, v in pairs(rs.getSides()) do rednet.close(v) end
 if debugFile then debugFile:close() end
 
 -- Reset Environment
-setfenv(1, unmodifiedEnv)
+setfenv(1, oldEnv)
