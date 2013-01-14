@@ -666,7 +666,7 @@ local function respondToEvents()
 				if suspected[tostring(id)] then suspected[tostring(id)] = suspected[tostring(id)] + 1
 				else suspected[tostring(id)] = 1 end
 				rednet.send(id, "firewolf-site:" .. website)
-				record("Search Request : " .. id)
+				--record("Search Request : " .. id)
 				searches = searches + 1
 			else
 				if uponAnyOtherMessage ~= nil then uponAnyOtherMessage(mes, id) end
