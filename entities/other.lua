@@ -3541,12 +3541,8 @@ local function loadSite(site)
 				end
 			else
 				for k,v in pairs(dnsDatabase[1]) do
-					res[k] = v
+					table.insert(res, v)
 				end
-			end
-			res = table.sort(res)
-			if not res then
-				res = {}
 			end
 
 			if #res > 0 then
