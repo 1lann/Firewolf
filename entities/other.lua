@@ -980,7 +980,7 @@ protocols.rdnt.getSearchResults = function(input)
 						if n:lower() == i:lower() then x = true end
 					end
 
-					if not(x) and resultIDs[tostring(id)] <= 3 then
+					if x == false and resultIDs[tostring(id)] <= 3 then
 						if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
 						table.insert(dnsDatabase[1], i)
 						table.insert(dnsDatabase[2], id)
