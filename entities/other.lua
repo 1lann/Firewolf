@@ -960,6 +960,7 @@ protocols.rdnt.getSearchResults = function(input)
 	input = input:lower()
 	local resultIDs = {}
 	dnsDatabase = {[1] = {}, [2] = {}}
+	returnResults = {}
 
 	rednet.broadcast("firewolf.broadcast.dns.list")
 	local startClock = os.clock()
@@ -981,12 +982,12 @@ protocols.rdnt.getSearchResults = function(input)
 
 					if not(x) and resultIDs[tostring(id)] <= 3 then
 						if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
+						table.insert(dnsDatabase[1], i)
+						table.insert(dnsDatabase[2], id)
 						if input == "" then
-							table.insert(dnsDatabase[1], i)
-							table.insert(dnsDatabase[2], id)
-						elseif string.find(i, input) and i ~= input then
-							table.insert(dnsDatabase[1], i)
-							table.insert(dnsDatabase[2], id)
+							table.insert(returnResults, i)
+						elseif string.find(i, input) then
+							table.insert(returnResults, i)
 						end
 					end
 				end
@@ -995,7 +996,6 @@ protocols.rdnt.getSearchResults = function(input)
 			break
 		end
 	end
-
 	return dnsDatabase[1]
 end
 
