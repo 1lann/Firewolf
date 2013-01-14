@@ -2305,7 +2305,7 @@ pages.kitteh = function(site)
 	centerPrint([[                '"'--.....--'"'                ]])
 	print("")
 	centerPrint("Firewolf Kitteh is Not Amused...")
-	sleep(6)
+	sleep(4)
 	os.shutdown()
 end
 
