@@ -3532,6 +3532,7 @@ local function loadSite(site)
 		else
 			openAddressBar = true
 			local res = {}
+			debugLog("Before",type(res))
 			if site ~= "" then
 				for k, v in pairs(dnsDatabase[1]) do
 					if v:find(site:lower()) then
@@ -3544,6 +3545,7 @@ local function loadSite(site)
 				end
 			end
 			res = table.sort(res)
+			debugLog("After",type(res))
 
 			if #res > 0 then
 				clearPage(site, colors[theme["background"]])
