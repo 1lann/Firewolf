@@ -996,7 +996,7 @@ protocols.rdnt.getSearchResults = function(input)
 			break
 		end
 	end
-	return dnsDatabase[1]
+	return returnResults
 end
 
 protocols.rdnt.getWebsite = function(site)
