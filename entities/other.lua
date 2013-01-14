@@ -3545,7 +3545,9 @@ local function loadSite(site)
 				end
 			end
 			res = table.sort(res)
-			debugLog("After",type(res))
+			if not res then
+				res = {}
+			end
 
 			if #res > 0 then
 				clearPage(site, colors[theme["background"]])
