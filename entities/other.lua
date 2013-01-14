@@ -956,11 +956,9 @@ end
 protocols.http = {}
 protocols.rdnt = {}
 
-protocols.rdnt.getSearchResults = function(input)
-	input = input:lower()
+protocols.rdnt.getSearchResults = function()
 	local resultIDs = {}
 	dnsDatabase = {[1] = {}, [2] = {}}
-	returnResults = {}
 
 	rednet.broadcast("firewolf.broadcast.dns.list")
 	local startClock = os.clock()
@@ -980,14 +978,10 @@ protocols.rdnt.getSearchResults = function(input)
 						if n:lower() == i:lower() then x = true end
 					end
 
-					if x == false and resultIDs[tostring(id)] <= 3 then
+					if not(x) and resultIDs[tostring(id)] <= 3 then
 						if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
-						table.insert(dnsDatabase[1], i)
-						table.insert(dnsDatabase[2], id)
-						if input == "" then
-							table.insert(returnResults, i)
-						elseif string.find(i, input) then
-							table.insert(returnResults, i)
+							table.insert(dnsDatabase[1], i)
+							table.insert(dnsDatabase[2], id)
 						end
 					end
 				end
@@ -996,7 +990,8 @@ protocols.rdnt.getSearchResults = function(input)
 			break
 		end
 	end
-	return returnResults
+
+	return dnsDatabase[1]
 end
 
 protocols.rdnt.getWebsite = function(site)
@@ -3353,7 +3348,6 @@ local function loadSite(site)
 	internalWebsite = true
 
 	-- Redirection bots
-	local res = dnsDatabase[1]
 	loadingRate = loadingRate + 1
 	term.clearLine()
 	centerWrite("Getting Website...")
@@ -3538,6 +3532,20 @@ local function loadSite(site)
 			end
 		else
 			openAddressBar = true
+			local res = {}
+			if site ~= "" then
+				for k, v in pairs(dnsDatabase[1]) do
+					if v:find(site:lower()) then
+						table.insert(res, v)
+					end
+				end
+			else
+				for k,v in pairs(dnsDatabase[1]) do
+					res[k] = v
+				end
+			end
+			res = table.sort(res)
+
 			if #res > 0 then
 				clearPage(site, colors[theme["background"]])
 				print("")
@@ -3684,11 +3692,11 @@ end
 --  -------- Address Bar
 
 local function retrieveSearchResults()
-	curSites = curProtocol.getSearchResults("")
+	curSites = curProtocol.getSearchResults()
 	while true do
 		local e = os.pullEvent()
 		if website ~= "exit" and e == event_loadWebsite then
-			curSites = curProtocol.getSearchResults("")
+			curSites = curProtocol.getSearchResults()
 		elseif e == event_exitApp then
 			os.queueEvent(event_exitApp)
 			return
