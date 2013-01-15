@@ -1010,6 +1010,7 @@ protocols.rdnt.getWebsite = function(site)
 	end
 
 	rednet.send(websiteID, site)
+	sleep(0.2)
 	while os.clock() - clock < timeout do
 		id, content = rednet.receive(timeout)
 		if id then
