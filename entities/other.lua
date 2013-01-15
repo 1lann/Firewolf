@@ -56,7 +56,7 @@ local dnsDatabase = {[1] = {}, [2] = {}}
 -- Website loading
 local website = ""
 local homepage = ""
-local timeout = 0.08
+local timeout = 0.15
 local openAddressBar = true
 local loadingRate = 0
 local curSites = {}
@@ -1009,6 +1009,7 @@ protocols.rdnt.getWebsite = function(site)
 		return nil, nil, nil
 	end
 	sleep(0.1)
+	debugLog("Connect", site, websiteID)
 	rednet.send(websiteID, site)
 	while os.clock() - clock < timeout do
 		id, content = rednet.receive(timeout)
