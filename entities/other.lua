@@ -56,7 +56,7 @@ local dnsDatabase = {[1] = {}, [2] = {}}
 -- Website loading
 local website = ""
 local homepage = ""
-local timeout = 0.15
+local timeout = 0.1
 local openAddressBar = true
 local loadingRate = 0
 local curSites = {}
