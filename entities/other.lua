@@ -1013,6 +1013,7 @@ protocols.rdnt.getWebsite = function(site)
 	rednet.send(websiteID, site)
 	while os.clock() - clock < timeout do
 		id, content = rednet.receive(timeout)
+		debugLog("received",id)
 		if id then
 			if id == websiteID then
 				local bl = verify("blacklist", id)
