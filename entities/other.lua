@@ -998,11 +998,11 @@ protocols.rdnt.getWebsite = function(site)
 	local clock = os.clock()
 	local websiteID = nil
 	for k, v in pairs(dnsDatabase[1]) do
-		local web = v:gsub("rdnt://", "")
+		local web = site:gsub("rdnt://", "")
 		if web:find("/") then
 			web = web:sub(1, web:find("/") - 1)
 		end
-		if web == site:gsub("rdnt://", "") then
+		if web == v:gsub("rdnt://", "") then
 			websiteID = dnsDatabase[2][k]
 			break
 		end
