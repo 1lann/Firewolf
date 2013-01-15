@@ -1008,9 +1008,8 @@ protocols.rdnt.getWebsite = function(site)
 		end
 		return nil, nil, nil
 	end
-
+	sleep(0.1)
 	rednet.send(websiteID, site)
-	sleep(0.2)
 	while os.clock() - clock < timeout do
 		id, content = rednet.receive(timeout)
 		if id then
