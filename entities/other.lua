@@ -2456,6 +2456,10 @@ end
 local function loadSite(site)
 	local shellAllowed = false
 	local function runSite(cacheLoc, antivirusEnv)
+		if not antivirusEnv then
+			antivirusEnv = {}
+			nenv = {}
+		end
 		-- Clear
 		clearPage(site, colors.black)
 		term.setBackgroundColor(colors.black)
