@@ -2469,8 +2469,11 @@ local function loadSite(site)
 		local cbc, ctc = colors.black, colors.white
 		local nenv = antivirusEnv
 		local safeFunc = true
-		local unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
+		local unsafeFunc = {}
+		if not antivirusEnv[1] == "firewolf-override" then
+		unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
 			"getfenv", "setfenv", "rawset"}
+		end
 		for k, v in pairs(env) do 
 			safeFunc = true
 			for ki, vi in pairs(unsafeFunc) do
@@ -3512,7 +3515,7 @@ local function loadSite(site)
 			local opt = prompt({{"Load Cache", 6, 17}, {"Cancel", w - 16, 17}}, "horizontal")
 			if opt == "Load Cache" then
 				internalWebsite = false
-				runSite(cacheLoc)
+				runSite(cacheLoc, {"firewolf-override"})
 				return
 			elseif opt == "Cancel" then
 				clearPage(site, colors[theme["background"]])
