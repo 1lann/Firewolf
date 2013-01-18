@@ -3148,8 +3148,8 @@ local function loadSite(site)
 
 			clearPage(website, colors[theme["background"]])
 			print("\n\n")
-			term.setTextColor(colors[theme["text-color"]])
-			term.setBackgroundColor(colors[theme["top-box"]])
+			nenv.term.setTextColor(colors[theme["text-color"]])
+			nenv.term.setBackgroundColor(colors[theme["top-box"]])
 			centerPrint(string.rep(" ", 47))
 			centerWrite(string.rep(" ", 47))
 			centerPrint("Processing Download Request...")
@@ -3179,7 +3179,7 @@ local function loadSite(site)
 
 			clearPage(website, colors[theme["background"]])
 			print("")
-			term.setBackgroundColor(colors[theme["top-box"]])
+			nenv.term.setBackgroundColor(colors[theme["top-box"]])
 			centerPrint(string.rep(" ", 47))
 			centerWrite(string.rep(" ", 47))
 			centerPrint("Download Files")
@@ -3189,7 +3189,7 @@ local function loadSite(site)
 			local a = website
 			if a:find("/") then a = a:sub(1, a:find("/") - 1) end
 
-			term.setBackgroundColor(colors[theme["bottom-box"]])
+			nenv.term.setBackgroundColor(colors[theme["bottom-box"]])
 			for i = 1, 10 do centerPrint(string.rep(" ", 47)) end
 			term.setCursorPos(1, 8)
 			centerPrint("  The website:                                 ")
@@ -3201,8 +3201,8 @@ local function loadSite(site)
 			if opt == "Download" then
 				clearPage(website, colors[theme["background"]])
 				print("")
-				term.setTextColor(colors[theme["text-color"]])
-				term.setBackgroundColor(colors[theme["top-box"]])
+				nenv.term.setTextColor(colors[theme["text-color"]])
+				nenv.term.setBackgroundColor(colors[theme["top-box"]])
 				centerPrint(string.rep(" ", 47))
 				centerWrite(string.rep(" ", 47))
 				centerPrint("Download Files")
@@ -3253,7 +3253,7 @@ local function loadSite(site)
 				end
 			elseif opt == "Cancel" then
 				term.setCursorPos(1, 15)
-				centerWrite("Download Canceled!")
+				centerWrite("             Download Canceled!             ")
 				openAddressBar = false
 				sleep(1.1)
 				openAddressBar = true
