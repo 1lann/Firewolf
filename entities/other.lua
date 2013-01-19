@@ -1006,6 +1006,8 @@ protocols.rdnt.getWebsite = function(site)
 			websiteID = dnsDatabase[2][k]
 			break
 		end
+	end
+	if not websiteID then
 		return nil, nil, nil
 	end
 	sleep(timeout)
