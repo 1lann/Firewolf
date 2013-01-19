@@ -4131,4 +4131,4 @@ for _, v in pairs(rs.getSides()) do rednet.close(v) end
 if debugFile then debugFile:close() end
 
 -- Reset Environment
-setfenv(1, oldEnv)
+setfenv(1, backupEnv)
