@@ -2807,10 +2807,8 @@ local function loadSite(site)
 				f:close()
 				local rImage = env.paintutils.loadImage(rootFolder .. "/temp_file")
 				fs.delete(rootFolder .. "/temp_file")
-				sleep(0.05)
 				return rImage
 			end
-			sleep(0.05)
 			return nil
 		end
 
@@ -2822,10 +2820,8 @@ local function loadSite(site)
 				f:write(msgFile)
 				f:close()
 				local rFile = env.io.open(rootFolder .. "/temp_file", "r")
-				sleep(0.05)
 				return rFile
 			end
-			sleep(0.05)
 			return nil
 		end
 
