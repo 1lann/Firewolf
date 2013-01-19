@@ -2799,7 +2799,7 @@ local function loadSite(site)
 		end
 
 		nenv.loadImageFromServer = function(image)
-			sleep(0.1)
+			sleep(0.05)
 			local mid, msgImage = curProtocol.getWebsite(site .. "/" .. image)
 			if mid then
 				local f = env.io.open(rootFolder .. "/temp_file", "w")
@@ -2807,21 +2807,25 @@ local function loadSite(site)
 				f:close()
 				local rImage = env.paintutils.loadImage(rootFolder .. "/temp_file")
 				fs.delete(rootFolder .. "/temp_file")
+				sleep(0.05)
 				return rImage
 			end
+			sleep(0.05)
 			return nil
 		end
 
 		nenv.ioReadFileFromServer = function(file)
-			sleep(0.1)
+			sleep(0.05)
 			local mid, msgFile = curProtocol.getWebsite(site .. "/" .. file)
 			if mid then
 				local f = env.io.open(rootFolder .. "/temp_file", "w")
 				f:write(msgFile)
 				f:close()
 				local rFile = env.io.open(rootFolder .. "/temp_file", "r")
-				return rFile
+				sleep(0.05)
+				return rFile=
 			end
+			sleep(0.05)
 			return nil
 		end
 
