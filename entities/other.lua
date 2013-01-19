@@ -2679,13 +2679,13 @@ local function loadSite(site)
 				end
 			end
 
-			local a = {}
+			--[[local a = {}
 			for k, v in pairs(list) do
 				local b, t = v.b, v.t
 				if b == nil then b = cbg end
 				if t == nil then t = ctc end
 				table.insert(a, {v[1], v[2], v[3] + 1, bg = b, tc = t})
-			end
+			end]]
 
 			return fixPrompt(list, dir)
 		end
