@@ -2687,7 +2687,7 @@ local function loadSite(site)
 				table.insert(a, {v[1], v[2], v[3] + 1, bg = b, tc = t})
 			end
 
-			return fixPrompt(a, dir)
+			return fixPrompt(list, dir)
 		end
 
 		nenv.scrollingPrompt = function(list, x, y, len, width)
