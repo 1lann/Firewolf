@@ -2823,7 +2823,7 @@ local function loadSite(site)
 				f:close()
 				local rFile = env.io.open(rootFolder .. "/temp_file", "r")
 				sleep(0.05)
-				return rFile=
+				return rFile
 			end
 			sleep(0.05)
 			return nil
