@@ -1,3 +1,4 @@
+-- Update!
 
 --  
 --  Firewolf Website Browser
@@ -635,8 +636,9 @@ local function updateClient()
 	http.request(firewolfURL)
 	local a = os.startTimer(15)
 	while true do
-		local e, url, source = os.pullEvent()
+		local e, url, handle = os.pullEvent()
 		if e == "http_success" then
+			source = handle
 			ret = true
 			break
 		elseif e == "http_failure" then
@@ -704,28 +706,20 @@ local function updateClient()
 		end
 		return false, true
 	elseif source then
-		fs.delete(updateLocation)
-		local updateLocation = "/.firewolf-update"
-
-		local f = io.open(updateLocation, "w")
-		f:write(source.readAll())
-		f:close()
-		source.close()
-
-		local a = io.open(updateLocation, "r")
 		local b = io.open(firewolfLocation, "r")
-		local new = a:read("*a")
+		local new = source.readAll()
 		local cur = b:read("*a")
-		a:close()
+		source.close()
 		b:close()
 
 		if cur ~= new then
 			fs.delete(firewolfLocation)
-			fs.move(updateLocation, firewolfLocation)
+			local f = io.open(firewolfLocation, "w")
+			f:write(new)
+			f:close()
 			shell.run(firewolfLocation)
 			return true, false
 		else
-			fs.delete(updateLocation)
 			return false, false
 		end
 	end
