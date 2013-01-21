@@ -629,9 +629,10 @@ local function download(url, path)
 	return false
 end
 
-local function verifyGitHub()
+local function updateClient()
 	local ret = false
-	http.request("https://raw.github.com")
+	local source = nil
+	http.request(firewolfURL)
 	local a = os.startTimer(15)
 	while true do
 		local e, url, source = os.pullEvent()
@@ -684,7 +685,6 @@ local function verifyGitHub()
 			term.setCursorPos(19, 15)
 			write(string.rep(" ", 32))
 			os.pullEvent("mouse_click")
-			return false
 		else
 			term.clear()
 			term.setCursorPos(1, 1)
@@ -700,11 +700,34 @@ local function verifyGitHub()
 			print("")
 			centerPrint("Press any key to exit...")
 			os.pullEvent("key")
-			return false
+		end
+		return false, true
+	elseif source then
+		fs.delete(updateLocation)
+		local updateLocation = "/.firewolf-update"
+
+		local f = io.open(updateLocation, "w")
+		f:write(source.readAll())
+		f:close()
+		source.close()
+
+		local a = io.open(updateLocation, "r")
+		local b = io.open(firewolfLocation, "r")
+		local new = a:read("*a")
+		local cur = b:read("*a")
+		a:close()
+		b:close()
+
+		if cur ~= new then
+			fs.delete(firewolfLocation)
+			fs.move(updateLocation, firewolfLocation)
+			shell.run(firewolfLocation)
+			return true, false
+		else
+			fs.delete(updateLocation)
+			return false, false
 		end
 	end
-
-	return true
 end
 
 local function migrateFilesystem()
@@ -774,8 +797,8 @@ local function resetFilesystem()
 	return nil
 end
 
-local function updateClient()
-	local updateLocation = rootFolder .. "/update"
+--[[local function updateClient()
+	local updateLocation = "/.firewolf-update"
 	fs.delete(updateLocation)
 
 	-- Update
@@ -796,7 +819,7 @@ local function updateClient()
 		fs.delete(updateLocation)
 		return false
 	end
-end
+end]]
 
 local function appendToHistory(site)
 	if incognito == "false" then
@@ -3906,12 +3929,22 @@ local function main()
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 
-	-- Download Files
+	-- Update
 	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
-	centerPrint("Downloading Required Files...")
+	centerPrint("Checking for Updates...")
 	centerWrite(string.rep(" ", 47))
-	if not(verifyGitHub()) then return false end
+	if autoupdate == "true" then
+		local up, con = updateClient()
+		if up then return true end
+		if con then return false end 
+	end
+
+	-- Download Files
+	local x, y = term.getCursorPos()
+	term.setCursorPos(1, y - 1)
+	centerWrite(string.rep(" ", 47))
+	centerWrite("Downloading Required Files...")
 	migrateFilesystem()
 	resetFilesystem()
 
@@ -3937,11 +3970,6 @@ local function main()
 	local b = io.open(historyLocation, "r")
 	history = textutils.unserialize(b:read("*l"))
 	b:close()
-
-	-- Update
-	centerWrite(string.rep(" ", 47))
-	centerWrite("Checking For Updates...")
-	if autoupdate == "true" then if updateClient() then return false end end
 
 	-- Modem
 	if not(errPages.checkForModem()) then return false end
