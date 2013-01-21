@@ -703,8 +703,9 @@ local function updateClient()
 			centerPrint("Press any key to exit...")
 			os.pullEvent("key")
 		end
-		return false, true
-	elseif source then
+
+		return true
+	elseif source and autoupdate == "true" then
 		local b = io.open(firewolfLocation, "r")
 		local new = source.readAll()
 		local cur = b:read("*a")
@@ -717,9 +718,9 @@ local function updateClient()
 			f:write(new)
 			f:close()
 			shell.run(firewolfLocation)
-			return true, false
+			return true
 		else
-			return false, false
+			return false
 		end
 	end
 end
@@ -790,30 +791,6 @@ local function resetFilesystem()
 
 	return nil
 end
-
---[[local function updateClient()
-	local updateLocation = "/.firewolf-update"
-	fs.delete(updateLocation)
-
-	-- Update
-	download(firewolfURL, updateLocation)
-	local a = io.open(updateLocation, "r")
-	local b = io.open(firewolfLocation, "r")
-	local new = a:read("*a")
-	local cur = b:read("*a")
-	a:close()
-	b:close()
-
-	if cur ~= new then
-		fs.delete(firewolfLocation)
-		fs.move(updateLocation, firewolfLocation)
-		shell.run(firewolfLocation)
-		return true
-	else
-		fs.delete(updateLocation)
-		return false
-	end
-end]]
 
 local function appendToHistory(site)
 	if incognito == "false" then
@@ -3923,16 +3900,29 @@ local function main()
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 
+	-- Load settings data
+	if fs.exists(settingsLocation) then
+		local f = io.open(settingsLocation, "r")
+		local a = textutils.unserialize(f:read("*l"))
+		if a then
+			autoupdate = a.auto
+			incognito = a.incog
+			homepage = a.home
+		end
+		f:close()
+	else
+		autoupdate = "true"
+		incognito = "false"
+		homepage = "firewolf"
+	end
+	curProtocol = protocols.rdnt
+
 	-- Update
 	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Checking for Updates...")
 	centerWrite(string.rep(" ", 47))
-	if autoupdate == "true" then
-		local up, con = updateClient()
-		if up then return true end
-		if con then return false end 
-	end
+	if updateClient() then return end
 
 	-- Download Files
 	local x, y = term.getCursorPos()
@@ -3947,24 +3937,13 @@ local function main()
 	centerWrite("Downloading Databases...")
 	loadDatabases()
 
-	-- Load Settings
-	centerWrite(string.rep(" ", 47))
-	centerWrite("Loading Data...")
-	local f = io.open(settingsLocation, "r")
-	local a = textutils.unserialize(f:read("*l"))
-	autoupdate = a.auto
-	incognito = a.incog
-	homepage = a.home
-	curProtocol = protocols.rdnt
-	f:close()
-
 	-- Load history
 	local b = io.open(historyLocation, "r")
 	history = textutils.unserialize(b:read("*l"))
 	b:close()
 
 	-- Modem
-	if not(errPages.checkForModem()) then return false end
+	if not(errPages.checkForModem()) then return end
 	website = homepage
 
 	-- Run
@@ -3973,7 +3952,6 @@ local function main()
 	return false
 end
 
-local skipExit = false
 local function startup()
 	-- HTTP API
 	if not(http) then
@@ -4028,7 +4006,7 @@ local function startup()
 	end
 
 	-- Run
-	local _, err = pcall(function() skipExit = main() end)
+	local _, err = pcall(function() main() end)
 	if err ~= nil then
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["background"]])
@@ -4114,7 +4092,7 @@ term.setCursorBlink(false)
 term.clear()
 term.setCursorPos(1, 1)
 
-if fs.exists("/.bustedOs") and not(skipExit) then
+if fs.exists("/.bustedOs") then
 	term.setBackgroundColor(colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
 	term.clear()
@@ -4140,7 +4118,7 @@ if fs.exists("/.bustedOs") and not(skipExit) then
 	term.setBackgroundColor(colors.black)
 	term.clear()
 	term.setCursorPos(1, 1)
-elseif not(skipExit) then
+else
 	api.centerPrint("Thank You for Using Firewolf " .. version)
 	api.centerPrint("Made by 1lann and GravityScore")
 	term.setCursorPos(1, 3)
