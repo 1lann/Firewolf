@@ -649,6 +649,7 @@ local function updateClient()
 	end
 
 	if not(ret) then
+		sleep(0.5)
 		if isAdvanced() then
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["background"]])
@@ -3949,8 +3950,6 @@ local function main()
 	resetFilesystem()
 
 	-- Download Databases
-	local x, y = term.getCursorPos()
-	term.setCursorPos(1, y - 1)
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Downloading Databases...")
 	loadDatabases()
