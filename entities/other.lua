@@ -632,7 +632,7 @@ end
 local function verifyGitHub()
 	local ret = false
 	http.request("https://raw.github.com")
-	local a = os.startTimer(10)
+	local a = os.startTimer(15)
 	while true do
 		local e, url, source = os.pullEvent()
 		if e == "http_success" then
@@ -656,7 +656,7 @@ local function verifyGitHub()
 			f:write(graphics.githubImage)
 			f:close()
 			local a = paintutils.loadImage(rootFolder .. "/temp_file")
-			paintutils.drawImage(a, 1, 3)
+			paintutils.drawImage(a, 5, 5)
 			fs.delete(rootFolder .. "/temp_file")
 
 			term.setCursorPos(19, 4)
