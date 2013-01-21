@@ -1,4 +1,3 @@
--- Update!
 
 --  
 --  Firewolf Website Browser
@@ -3811,7 +3810,7 @@ local function addressBarMain()
 					term.setTextColor(colors[theme["text-color"]])
 					term.setCursorPos(1, 1)
 					write(list)
-				elseif menuBarOpen and x == 1 then
+				elseif menuBarOpen and (x == 1 or (but == 29 or but == 157)) then
 					menuBarOpen = false
 					clearPage(website, nil, true)
 				elseif x < 18 and x > 2 and menuBarOpen then
