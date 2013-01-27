@@ -2468,6 +2468,7 @@ local function loadSite(site)
 		local safeFunc = true
 		local unsafeFunc = {}
 		if not antivirusEnv[1] == "firewolf-override" then
+			debugLog("applying sandbox")
 		unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
 			"getfenv", "setfenv", "rawset"}
 		end
