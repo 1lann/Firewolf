@@ -2453,6 +2453,7 @@ local function loadSite(site)
 	local shellAllowed = false
 	local function runSite(cacheLoc, antivirusEnv)
 		if not antivirusEnv then
+			debugLog("antivirus env not present")
 			antivirusEnv = {}
 			nenv = {}
 		end
@@ -3469,6 +3470,7 @@ local function loadSite(site)
 
 		if status == "safe" and site ~= "" then
 			if not(antivirusProcessed) then
+				debugLog("Not processed")
 				antivirusEnv = allowFunctions({""})
 			end
 			internalWebsite = false
