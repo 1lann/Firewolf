@@ -2477,6 +2477,7 @@ local function loadSite(site)
 				if k == vi then safeFunc = false break end
 			end
 			if safeFunc then
+				debugLog("safe", k)
 				if type(v) ~= "table" then nenv[k] = v
 				else
 					nenv[k] = {}
@@ -3472,6 +3473,9 @@ local function loadSite(site)
 			if not(antivirusProcessed) then
 				debugLog("Not processed")
 				antivirusEnv = allowFunctions({""})
+			end
+			for k,v in pairs(antivirusEnv) do
+				debugLog("avEntry", k)
 			end
 			internalWebsite = false
 			local f = io.open(cacheLoc, "w")
