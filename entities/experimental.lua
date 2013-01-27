@@ -17,13 +17,17 @@
 -- Improved Server Management in preparation for HTTP Support
 -- Improved updating system
 -- Starting sequence sped up
--- Run Firewolf with no internet connection
+-- HTTP Support
+
+-- Destroyed:
+--  rdnt://getinfo
+--  
 
 
 --  -------- Variables
 
 -- Version
-local version = "2.3.9"
+local version = "3.0.0"
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -35,6 +39,7 @@ local serverList = {experimental = "Experimental", other = "Other"}
 -- Updating
 local autoupdate = "true"
 local incognito = "false"
+local noInternet = false
 
 -- Geometry
 local w, h = term.getSize()
@@ -341,7 +346,9 @@ api.clearPage = function(site, color, redraw, tcolor)
 		term.setCursorPos(2, 1)
 		local a = site
 		if a:len() > w - 9 then a = a:sub(1, 39) .. "..." end
-		write("rdnt://" .. a)
+		if curProtocol == protocols.rdnt then write("rdnt://" .. a)
+		elseif curProtocol == protocols.http then write("http://" .. a)
+		end
 		if title ~= nil then
 			term.setCursorPos(w - title:len() - 1, 1)
 			write(title)
@@ -405,7 +412,7 @@ api.rightWrite = function(text)
 end
 
 api.redirect = function(url)
-	os.queueEvent(event_redirect, url:gsub("rdnt://", ""))
+	os.queueEvent(event_redirect, url:gsub("rdnt://", ""):gsub("http://", ""))
 end
 
 api.prompt = function(list, dir)
@@ -999,9 +1006,11 @@ end
 local function appendToHistory(site)
 	if incognito == "false" then
 		if site == "home" or site == "homepage" then 
-			site = homepage 
+			site = homepage
 		end if site ~= "exit" and site ~= "" and site ~= "history" and site ~= history[1] then
-			table.insert(history, 1, site)
+			local a = "rdnt://" .. site
+			if curProtocol == protocols.http then a = "http://" .. site end
+			table.insert(history, 1, a)
 			local f = io.open(historyLocation, "w")
 			f:write(textutils.serialize(history))
 			f:close()
@@ -1017,7 +1026,7 @@ end
 local function loadDatabases()
 	-- Get
 	fs.delete(globalDatabase)
-	debugLog(download(databaseURL, globalDatabase))
+	download(databaseURL, globalDatabase)
 	local f = io.open(globalDatabase, "r")
 	local l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
 
@@ -1055,7 +1064,6 @@ local function loadDatabases()
 		l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
 		if l ~= "" and l ~= "\n" and l ~= nil and l ~= "END-DATABASE" then
 			local a, b = l:find("| |")
-			--debugLog("add object!")
 			table.insert(definitions, {l:sub(1, a - 1), l:sub(b + 1, -1)})
 		end
 	end
@@ -1128,9 +1136,7 @@ local function verify(database, ...)
 		-- content
 		local c = args[1]:gsub(" ", ""):gsub("\n", ""):gsub("\t", "")
 		local a = {}
-		debugLog("start def")
 		for _, v in pairs(definitions) do
-			debugLog(definitions)
 			local b = false
 			for _, c in pairs(a) do
 				if c == v[2] then b = true end
@@ -1177,7 +1183,8 @@ protocols.rdnt.getSearchResults = function()
 					end
 
 					if not(x) and resultIDs[tostring(id)] <= 3 then
-						if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
+						if not(i:find("rdnt://")) then i = "rdnt://" .. i end
+
 						table.insert(dnsDatabase[1], i)
 						table.insert(dnsDatabase[2], id)
 					end
@@ -1209,12 +1216,10 @@ protocols.rdnt.getWebsite = function(site)
 		return nil, nil, nil
 	end
 	sleep(timeout)
-	debugLog("Connect", site, websiteID)
 	rednet.send(websiteID, site)
 	clock = os.clock()
 	while os.clock() - clock < timeout do
 		id, content = rednet.receive(timeout)
-		debugLog("received",id)
 		if id then
 			if id == websiteID then
 				local bl = verify("blacklist", id)
@@ -1357,7 +1362,7 @@ pages.history = function(site)
 		for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 
 		local a = {"Clear History"}
-		for i, v in ipairs(history) do table.insert(a, "rdnt://" .. v) end
+		for i, v in ipairs(history) do table.insert(a, v) end
 		local opt = scrollingPrompt(a, 6, 8, 10, 40)
 		if opt == "Clear History" then
 			history = {}
@@ -1387,7 +1392,11 @@ pages.history = function(site)
 			redirect("history")
 			return
 		elseif opt then
-			redirect(opt:gsub("rdnt://", ""))
+			if opt:find("http://") then curProtocol = protocols.http
+			else curProtocol = protocols.rdnt
+			end
+
+			redirect(opt:gsub("rdnt://", ""):gsub("http://", ""))
 			return
 		elseif opt == nil then
 			os.queueEvent(event_exitWebsite)
@@ -2037,7 +2046,7 @@ pages["server/rdnt"] = function(site)
 		url = url:gsub(" ", "")
 
 		local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", "rdnt://",
-			"[", "]", "{", "}", "\\", "\"", "'", ":", ";", "?", "<", ">", ",", "`", "-"}
+			"[", "]", "{", "}", "\\", "\"", "'", ":", ";", "?", "<", ">", ",", "`", "-", "http://"}
 		local b = false
 		for k, v in pairs(a) do
 			if url:find(v, 1, true) then
@@ -2537,137 +2546,137 @@ pages.credits = function(site)
 	centerPrint(string.rep(" ", 43))
 end
 
-pages.getinfo = function(site)
-	local res = curSites
-	table.insert(res, 1, "Type Website Address...")
-	if #res > 0 then
-		clearPage(site, colors[theme["background"]])
-		print("")
-		term.setTextColor(colors[theme["text-color"]])
-		term.setBackgroundColor(colors[theme["top-box"]])
-		centerPrint(string.rep(" ", 47))
-		centerWrite(string.rep(" ", 47))
-		centerPrint("Retrieve Website Information")
-		centerPrint(string.rep(" ", 47))
-		print("")
-
-		term.setBackgroundColor(colors[theme["bottom-box"]])
-		for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
-		local opt = scrollingPrompt(res, 4, 8, 10, 43)
-		if opt == "Type Website Address..." then
-			clearPage(site, colors[theme["background"]])
-			print("")
-			term.setTextColor(colors[theme["text-color"]])
-			term.setBackgroundColor(colors[theme["top-box"]])
-			centerPrint(string.rep(" ", 47))
-			centerWrite(string.rep(" ", 47))
-			centerPrint("Retrieve Website Information")
-			centerPrint(string.rep(" ", 47))
-			print("")
-
-			term.setBackgroundColor(colors[theme["bottom-box"]])
-			for i = 1, 3 do centerPrint(string.rep(" ", 47)) end
-			term.setCursorPos(4, 8)
-			write("rdnt://")
-			opt = "rdnt://" .. modRead(nil, nil, 37)
-		end if opt ~= nil then
-			term.setTextColor(colors[theme["text-color"]])
-			clearPage(site, colors[theme["background"]])
-			print("\n\n")
-			centerPrint("Connecting...")
-
-			local id, content, status = curProtocol.getWebsite(opt:gsub("rdnt://", ""))
-
-			if id ~= nil and status ~= nil then
-				clearPage(site, colors[theme["background"]])
-				print("")
-				term.setTextColor(colors[theme["text-color"]])
-				term.setBackgroundColor(colors[theme["top-box"]])
-				centerPrint(string.rep(" ", 47))
-				centerWrite(string.rep(" ", 47))
-				centerPrint("Retrieve Website Information")
-				centerWrite(string.rep(" ", 47))
-				centerPrint(opt)
-				centerPrint(string.rep(" ", 47))
-				print("")
-
-				term.setBackgroundColor(colors[theme["bottom-box"]])
-				for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
-				local b = false
-				if verify("blacklist", id) then
-					term.setCursorPos(4, 9)
-					write("Website Triggers Blacklist")
-					b = true
-				end if verify("whitelist", id, site) then
-					term.setCursorPos(4, 10)
-					write("Website Triggers Whitelist")
-					b = true
-				end if verify("antivirus", content) then
-					term.setCursorPos(4, 11)
-					write("Website Triggers Antivirus")
-					b = true
-				end if not(b) then
-					term.setCursorPos(4, 10)
-					write("Website Did Not Trigger Anything!")
-				end
-
-				local c = prompt({{"Save Source", 4, 13}, {"Visit Site", 4, 15}}, "vertical")
-				if c == "Save Source" then
-					term.setCursorPos(7, 14)
-					write("Save As: /")
-					local a = "/" .. modRead(nil, nil, 32)
-
-					term.setCursorPos(1, 14)
-					centerWrite(string.rep(" ", 47))
-					term.setCursorPos(7, 14)
-					if fs.exists(a) then
-						write("File already exists!")
-					elseif fs.isReadOnly(a) then
-						write("Location is read only!")
-					else
-						write("Saved Successfully!")
-						local f = io.open(a, "w")
-						f:write(content)
-						f:close()
-					end
-
-					openAddressBar = false
-					sleep(1.3)
-					openAddressBar = true
-					redirect("getinfo")
-					return
-				elseif c == "Visit Site" then
-					redirect(opt:gsub("rdnt://", ""))
-					return
-				elseif c == nil then
-					os.queueEvent(event_exitWebsite)
-					return
-				end
-			else
-				clearPage(site, colors[theme["background"]])
-				print("\n\n")
-				term.setTextColor(colors[theme["text-color"]])
-				term.setBackgroundColor(colors[theme["top-box"]])
-				centerPrint(string.rep(" ", 47))
-				centerWrite(string.rep(" ", 47))
-				centerPrint("Site Does Not Exist!")
-				centerPrint(string.rep(" ", 47))
-			end
-		elseif opt == nil then
-			os.queueEvent(event_exitWebsite)
-			return
-		end
-	else
-		clearPage(site, colors[theme["background"]])
-		print("\n\n")
-		term.setTextColor(colors[theme["text-color"]])
-		term.setBackgroundColor(colors[theme["top-box"]])
-		centerPrint(string.rep(" ", 47))
-		centerWrite(string.rep(" ", 47))
-		centerPrint("No Websites are Currently Online! D:")
-		centerPrint(string.rep(" ", 47))
-	end
-end
+--pages.getinfo = function(site)
+--	local res = curSites
+--	table.insert(res, 1, "Type Website Address...")
+--	if #res > 0 then
+--		clearPage(site, colors[theme["background"]])
+--		print("")
+--		term.setTextColor(colors[theme["text-color"]])
+--		term.setBackgroundColor(colors[theme["top-box"]])
+--		centerPrint(string.rep(" ", 47))
+--		centerWrite(string.rep(" ", 47))
+--		centerPrint("Retrieve Website Information")
+--		centerPrint(string.rep(" ", 47))
+--		print("")
+--
+--		term.setBackgroundColor(colors[theme["bottom-box"]])
+--		for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
+--		local opt = scrollingPrompt(res, 4, 8, 10, 43)
+--		if opt == "Type Website Address..." then
+--			clearPage(site, colors[theme["background"]])
+--			print("")
+--			term.setTextColor(colors[theme["text-color"]])
+--			term.setBackgroundColor(colors[theme["top-box"]])
+--			centerPrint(string.rep(" ", 47))
+--			centerWrite(string.rep(" ", 47))
+--			centerPrint("Retrieve Website Information")
+--			centerPrint(string.rep(" ", 47))
+--			print("")
+--
+--			term.setBackgroundColor(colors[theme["bottom-box"]])
+--			for i = 1, 3 do centerPrint(string.rep(" ", 47)) end
+--			term.setCursorPos(4, 8)
+--			write("rdnt://")
+--			opt = "rdnt://" .. modRead(nil, nil, 37)
+--		end if opt ~= nil then
+--			term.setTextColor(colors[theme["text-color"]])
+--			clearPage(site, colors[theme["background"]])
+--			print("\n\n")
+--			centerPrint("Connecting...")
+--
+--			local id, content, status = curProtocol.getWebsite(opt:gsub("rdnt://", ""))
+--
+--			if id ~= nil and status ~= nil then
+--				clearPage(site, colors[theme["background"]])
+--				print("")
+--				term.setTextColor(colors[theme["text-color"]])
+--				term.setBackgroundColor(colors[theme["top-box"]])
+--				centerPrint(string.rep(" ", 47))
+--				centerWrite(string.rep(" ", 47))
+--				centerPrint("Retrieve Website Information")
+--				centerWrite(string.rep(" ", 47))
+--				centerPrint(opt)
+--				centerPrint(string.rep(" ", 47))
+--				print("")
+--
+--				term.setBackgroundColor(colors[theme["bottom-box"]])
+--				for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+--				local b = false
+--				if verify("blacklist", id) then
+--					term.setCursorPos(4, 9)
+--					write("Website Triggers Blacklist")
+--					b = true
+--				end if verify("whitelist", id, site) then
+--					term.setCursorPos(4, 10)
+--					write("Website Triggers Whitelist")
+--					b = true
+--				end if verify("antivirus", content) then
+--					term.setCursorPos(4, 11)
+--					write("Website Triggers Antivirus")
+--					b = true
+--				end if not(b) then
+--					term.setCursorPos(4, 10)
+--					write("Website Did Not Trigger Anything!")
+--				end
+--
+--				local c = prompt({{"Save Source", 4, 13}, {"Visit Site", 4, 15}}, "vertical")
+--				if c == "Save Source" then
+--					term.setCursorPos(7, 14)
+--					write("Save As: /")
+--					local a = "/" .. modRead(nil, nil, 32)
+--
+--					term.setCursorPos(1, 14)
+--					centerWrite(string.rep(" ", 47))
+--					term.setCursorPos(7, 14)
+--					if fs.exists(a) then
+--						write("File already exists!")
+--					elseif fs.isReadOnly(a) then
+--						write("Location is read only!")
+--					else
+--						write("Saved Successfully!")
+--						local f = io.open(a, "w")
+--						f:write(content)
+--						f:close()
+--					end
+--
+--					openAddressBar = false
+--					sleep(1.3)
+--					openAddressBar = true
+--					redirect("getinfo")
+--					return
+--				elseif c == "Visit Site" then
+--					redirect(opt:gsub("rdnt://", ""))
+--					return
+--				elseif c == nil then
+--					os.queueEvent(event_exitWebsite)
+--					return
+--				end
+--			else
+--				clearPage(site, colors[theme["background"]])
+--				print("\n\n")
+--				term.setTextColor(colors[theme["text-color"]])
+--				term.setBackgroundColor(colors[theme["top-box"]])
+--				centerPrint(string.rep(" ", 47))
+--				centerWrite(string.rep(" ", 47))
+--				centerPrint("Site Does Not Exist!")
+--				centerPrint(string.rep(" ", 47))
+--			end
+--		elseif opt == nil then
+--			os.queueEvent(event_exitWebsite)
+--			return
+--		end
+--	else
+--		clearPage(site, colors[theme["background"]])
+--		print("\n\n")
+--		term.setTextColor(colors[theme["text-color"]])
+--		term.setBackgroundColor(colors[theme["top-box"]])
+--		centerPrint(string.rep(" ", 47))
+--		centerWrite(string.rep(" ", 47))
+--		centerPrint("No Websites are Currently Online! D:")
+--		centerPrint(string.rep(" ", 47))
+--	end
+--end
 
 pages.kitteh = function(site)
 	openAddressBar = false
@@ -3577,7 +3586,11 @@ local function loadSite(site)
 			for i = 1, 10 do centerPrint(string.rep(" ", 47)) end
 			term.setCursorPos(1, 8)
 			centerPrint("  The website:                                 ")
-			centerPrint("     rdnt://" .. a .. string.rep(" ", w - a:len() - 16))
+			if curProtocol == protocols.rdnt then 
+				centerPrint("     rdnt://" .. a .. string.rep(" ", w - a:len() - 16))
+			elseif curProtocol == protocols.http then 
+				centerPrint("     http://" .. a .. string.rep(" ", w - a:len() - 16))
+			end
 			centerPrint("  Is attempting to download a file to this     ")
 			centerPrint("  computer!                                    ")
 
@@ -3930,7 +3943,6 @@ local function loadSite(site)
 		else
 			openAddressBar = true
 			local res = {}
-			debugLog("Before",type(res))
 			if site ~= "" then
 				for k, v in pairs(dnsDatabase[1]) do
 					if v:find(site:lower()) then
@@ -3959,7 +3971,7 @@ local function loadSite(site)
 				for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 				local opt = scrollingPrompt(res, 4, 8, 10, 43)
 				if opt then
-					redirect(opt:gsub("rdnt://", ""))
+					redirect(opt:gsub("rdnt://", ""):gsub("http://", ""))
 					return
 				else
 					os.queueEvent(event_exitWebsite)
@@ -4130,14 +4142,15 @@ local function addressBarRead()
 		if e == "char" or e == "update_history" or e == "delete" then
 			list = {}
 			for _, v in pairs(curSites) do
-				if #list < len and v:gsub("rdnt://", ""):find(cur:lower(), 1, true) then
+				if #list < len and 
+						v:gsub("rdnt://", ""):gsub("http://", ""):find(cur:lower(), 1, true) then
 					table.insert(list, v)
 				end
 			end
 			table.sort(list)
 			table.sort(list, function(a, b)
-				local _, ac = a:gsub("rdnt://", ""):gsub(cur:lower(), "")
-				local _, bc = b:gsub("rdnt://", ""):gsub(cur:lower(), "")
+				local _, ac = a:gsub("rdnt://", ""):gsub("http://", ""):gsub(cur:lower(), "")
+				local _, bc = b:gsub("rdnt://", ""):gsub("http://", ""):gsub(cur:lower(), "")
 				return ac > bc
 			end)
 			draw(list)
@@ -4145,7 +4158,7 @@ local function addressBarRead()
 		elseif e == "mouse_click" then
 			for i = 1, #list do
 				if y == i + 1 then
-					return true, list[i]:gsub("rdnt://", "")
+					return true, list[i]:gsub("rdnt://", ""):gsub("http://", "")
 				end
 			end
 		end
@@ -4205,7 +4218,7 @@ local function addressBarMain()
 					centerPrint("This feature is used to block a server's ID")
 					centerPrint("if it's intercepting a website")
 					centerPrint("Ex. You got onto a website you didn't expect")
-					centerPrint("Managing comming soon!")
+					centerPrint("Managing servers comming soon!")
 					--centerPrint("Manage blocked servers at rdnt://settings")
 					centerPrint("")
 					centerPrint("You are about to block the server ID: " .. tostring(serverWebsiteID))
@@ -4223,6 +4236,11 @@ local function addressBarMain()
 						centerPrint("Server Not Blocked!")
 						centerPrint("You may now browse normally!")
 					end
+				elseif x >= 2 and x <= 5 then
+					-- Swap protocols
+					if curProtocol == protocols.rdnt then curProtocol = protocols.http
+					elseif curProtocol == protocols.http then curProtocol = protocols.rdnt
+					end
 				elseif not(menuBarOpen) then
 					internalWebsite = true
 
@@ -4235,7 +4253,9 @@ local function addressBarMain()
 					term.setTextColor(colors[theme["address-bar-text"]])
 					term.setCursorPos(2, 1)
 					term.clearLine()
-					write("rdnt://")
+					if curProtocol == protocols.rdnt then write("rdnt://")
+					elseif curProtocol == protocols.http then write("http://")
+					end
 					local oldWebsite = website
 					website = addressBarRead()
 					if website == nil then
@@ -4310,20 +4330,20 @@ local function main()
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Checking for Updates...")
 	centerWrite(string.rep(" ", 47))
---	if updateClient() then return end
+	if not(noInternet) then if updateClient() then return end end
 
 	-- Download Files
 	local x, y = term.getCursorPos()
 	term.setCursorPos(1, y - 1)
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Downloading Required Files...")
---	migrateFilesystem()
---	resetFilesystem()
+	if not(noInternet) then migrateFilesystem() end
+	if not(noInternet) then resetFilesystem() end
 
 	-- Download Databases
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Downloading Databases...")
---	loadDatabases()
+	if not(noInternet) then loadDatabases() end
 
 	-- Load history
 	local b = io.open(historyLocation, "r")
@@ -4342,7 +4362,7 @@ end
 
 local function startup()
 	-- HTTP API
-	if not(http) then
+	if not(http) and not(noInternet) then
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["background"]])
 		term.clear()
