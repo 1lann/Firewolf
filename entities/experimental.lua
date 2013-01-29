@@ -8,12 +8,6 @@
 --  RednetExplorer Made by ComputerCraftFan11
 --  
 
---  
---  Visit our website at:
---  http://firewolf.webege.com/
---  
-
-
 -- Improved Server Management in preparation for HTTP Support
 -- Improved updating system
 -- Starting sequence sped up
@@ -21,7 +15,6 @@
 
 -- Destroyed:
 --  rdnt://getinfo
---  
 
 
 --  -------- Variables
@@ -33,7 +26,7 @@ browserAgent = browserAgentTemplate
 local tArgs = {...}
 
 -- Server Identification
-local serverID = "other"
+local serverID = "experimental"
 local serverList = {experimental = "Experimental", other = "Other"}
 
 -- Updating
