@@ -4063,6 +4063,16 @@ local function startup()
 	return true
 end
 
+-- Check if read only
+if fs.isReadOnly(firewolfLocation) or fs.isReadOnly(rootFolder) then
+	print("Firewolf cannot modify itself or its root folder!")
+	print("")
+	print("This cold be caused by Firewolf being placed in")
+	print("the rom folder, or another program may be")
+	print("preventing the modification of Firewolf.")
+	error()
+end
+
 -- Theme
 if not(isAdvanced()) then 
 	theme = originalTheme
