@@ -818,6 +818,7 @@ local function loadTheme(path)
 	end
 end
 
+
 --  -------- Filesystem
 
 local function download(url, path)
@@ -1606,7 +1607,7 @@ end
 
 --  Server Pages
 
-local testingHTTP = true
+local testingHTTP = false
 local username, password = "", ""
 
 local function validateCredentials(username, password)
@@ -1705,30 +1706,6 @@ local function setOnline(username, password, id, flag)
 
 	else
 		return "true"
-	end
-end
-
-pages.server = function(site)
-	clearPage(site, colors[theme["background"]])
-	term.setTextColor(colors[theme["text-color"]])
-	term.setBackgroundColor(colors[theme["top-box"]])
-	print("\n")
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
-	centerPrint("Firewolf Server Management")
-	centerPrint(string.rep(" ", 43))
-	print("")
-
-	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
-	centerPrint("Select which protocol to manage:")
-	for i = 1, 3 do centerPrint(string.rep(" ", 43)) end
-
-	local opt = prompt({{"HTTP", w/2 - 15, 11}, {"RDNT", w/2 + 7, 11}}, "horizontal")
-	if opt == "HTTP" then redirect("server/http") return
-	elseif opt == "RDNT" then redirect("server/rdnt") return
-	elseif opt == nil then os.queueEvent(event_exitWebsite) return 
 	end
 end
 
@@ -2042,7 +2019,7 @@ local function newServer(onCreate)
 	end
 end
 
-pages["server/http"] = function(site, auser, apass)
+local function serverHTTP(site, auser, apass)
 	if auser == nil or apass == nil then
 		clearPage(site, colors[theme["background"]])
 		term.setTextColor(colors[theme["text-color"]])
@@ -2084,7 +2061,7 @@ pages["server/http"] = function(site, auser, apass)
 				openAddressBar = false
 				sleep(1.5)
 				openAddressBar = true
-				redirect("server/http")
+				serverHTTP(site)
 				return
 			end
 		elseif opt == "Register" then
@@ -2116,7 +2093,7 @@ pages["server/http"] = function(site, auser, apass)
 				openAddressBar = false
 				sleep(1.5)
 				openAddressBar = true
-				redirect("server/http")
+				serverHTTP(site)
 				return
 			end
 		elseif opt == nil then return end
@@ -2176,7 +2153,7 @@ pages["server/http"] = function(site, auser, apass)
 
 		local opt = prompt({{"Try Again", w/2 - 18, 12}, {"Exit", w/2 + 9, 12}}, "horizontal")
 		if opt == "Try Again" then
-			pages["server/http"](site, username, password)
+			serverHTTP(site, username, password)
 			return
 		elseif opt == "Exit" then
 			redirect("server")
@@ -2185,7 +2162,7 @@ pages["server/http"] = function(site, auser, apass)
 	end
 end
 
-pages["server/rdnt"] = function(site)
+local function serverRDNT(site)
 	local servers = {}
 	for _, v in pairs(fs.list(serverFolder)) do
 		if fs.isDir(serverFolder .. "/" .. v) then table.insert(servers, v) end
@@ -2227,6 +2204,14 @@ pages["server/rdnt"] = function(site)
 	end, function(server)
 		fs.delete(serverFolder .. "/" .. server)
 	end)
+end
+
+pages.server = function(site)
+	if curProtocol == protocol.rdnt then
+		serverRDNT(site)
+	elseif curProtocol == protocol.http then
+		serverHTTP(site)
+	end
 end
 
 --  Help Page
