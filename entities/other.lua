@@ -4070,6 +4070,9 @@ if fs.isReadOnly(firewolfLocation) or fs.isReadOnly(rootFolder) then
 	print("This cold be caused by Firewolf being placed in")
 	print("the rom folder, or another program may be")
 	print("preventing the modification of Firewolf.")
+
+	-- Reset Environment and exit
+	setfenv(1, backupEnv)
 	error()
 end
 

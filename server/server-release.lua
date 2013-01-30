@@ -666,7 +666,6 @@ local function respondToEvents()
 				if suspected[tostring(id)] then suspected[tostring(id)] = suspected[tostring(id)] + 1
 				else suspected[tostring(id)] = 1 end
 				rednet.send(id, "firewolf-site:" .. website)
-				--record("Search Request : " .. id)
 				searches = searches + 1
 			else
 				if uponAnyOtherMessage ~= nil then uponAnyOtherMessage(mes, id) end
@@ -706,8 +705,8 @@ local function edit()
 	print(" Note: The 'home' file is the index of your site")
 	print("")
 
-	local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
-		"eject", "exit", "help", "id", "mkdir", "monitor", "rename", "alias", "clear",
+	local allowed = {"move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
+		"eject", "exit", "help", "id", "monitor", "rename", "alias", "clear",
 		"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", "programs",
 		"redset", "reboot", "hello", "label", "list", "ls", "easter", "pastebin", "dir"}
 	
@@ -730,8 +729,6 @@ local function edit()
 		local com = words[1]
 		if com == "exit" then
 			break
-		elseif com == "firewolf" or (com == "easter" and words[2] == "egg") then
-			-- Easter egg
 		elseif com then
 			local a = false
 			for _, v in pairs(allowed) do
@@ -941,7 +938,6 @@ local function interface()
 			
 			enableRecording = true
 		elseif opt == "Edit" then
-			-- Edit server pages
 			enableRecording = false
 			term.setBackgroundColor(colors.black)
 			term.setTextColor(colors.white)
@@ -995,7 +991,6 @@ local function interface()
 				sleep(1.3)
 			end
 			enableRecording = false
-	
 		elseif opt == "Lock Server" then
 				os.pullEvent = os.pullEventRaw
 				serverLocked = true
@@ -1163,6 +1158,17 @@ local function startup()
 	return true
 end
 
+-- Read only
+if fs.isReadOnly(serverFolder) or fs.isReadOnly(serverSoftwareLocation) 
+		or fs.isReadOnly(rootFolder) then
+	print("Firewolf cannot modify itself or its root folder!")
+	print("")
+	print("This cold be caused by Firewolf being placed in")
+	print("the rom folder, or another program may be")
+	print("preventing the modification of Firewolf.")
+	error()
+end
+
 -- Theme
 if not(isAdvanced()) then 
 	theme = originalTheme
@@ -1171,7 +1177,7 @@ else
 	if theme == nil then theme = defaultTheme end
 end
 
--- Pasword
+-- Password
 if fs.exists(passwordDataLocation) then
 	local f = io.open(passwordDataLocation, "r")
 	serverPassword = f:read("*l")
