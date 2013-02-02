@@ -1709,8 +1709,10 @@ local function setOnline(username, password, id, flag)
 	end
 end
 
-local function manageServers(site, servers, protocol, onNewServer, onStart, onEdit, onRunOnBoot, 
+local function manageServers(site, protocol, reloadServers, onNewServer, onStart, onEdit, onRunOnBoot, 
 		onDelete, startServerName)
+	local servers = reloadServers()
+
 	if startServerName == nil then startServerName = "Start" end
 	if isAdvanced() then
 		local function draw(l, sel)
@@ -1812,6 +1814,7 @@ local function manageServers(site, servers, protocol, onNewServer, onStart, onEd
 					if x >= 4 and x <= 25 then
 						if y == 8 then
 							onNewServer()
+							servers = reloadServers()
 							break
 						elseif #servers > 0 then
 							for i, v in ipairs(disList) do
@@ -1833,7 +1836,7 @@ local function manageServers(site, servers, protocol, onNewServer, onStart, onEd
 						term.setCursorPos(32, 15)
 						write("Will Run on Boot!")
 						openAddressBar = false
-						sleep(1.1)
+						sleep(1.3)
 						openAddressBar = true
 						term.setCursorPos(32, 15)
 						write(string.rep(" ", 18))
@@ -1865,6 +1868,7 @@ local function manageServers(site, servers, protocol, onNewServer, onStart, onEd
 				return
 			elseif server == "New Server" then
 				onNewServer()
+				servers = reloadServers()
 			else
 				term.setCursorPos(30, 8)
 				write(server)
@@ -1984,7 +1988,7 @@ local function newServer(onCreate)
 	local b = false
 	for k, v in pairs(a) do
 		if url:find(v, 1, true) then
-			term.setCursorPos(5, 13)
+			term.setCursorPos(5, 14)
 			write("URL Contains Illegal '" .. v .. "'!")
 			openAddressBar = false
 			sleep(1.5)
@@ -1992,7 +1996,7 @@ local function newServer(onCreate)
 			b = true
 			break
 		elseif name == "" or url == "" then
-			term.setCursorPos(5, 13)
+			term.setCursorPos(5, 14)
 			write("URL or Name Is Empty!")
 			openAddressBar = false
 			sleep(1.5)
@@ -2005,7 +2009,7 @@ local function newServer(onCreate)
 	if not(b) then
 		local c = onCreate(name, url)
 
-		term.setCursorPos(5, 13)
+		term.setCursorPos(5, 14)
 		if c and c == "true" then
 			write("Successfully Created Server!")
 		elseif c == "false" or c == nil then
@@ -2057,7 +2061,8 @@ local function serverHTTP(site, auser, apass)
 				openAddressBar = true
 				username, password = user, pass
 			else
-				centerWrite(a)
+				if a == "false" then centerWrite("Invalid Credentials!")
+				else centerWrite(a) end
 				openAddressBar = false
 				sleep(1.5)
 				openAddressBar = true
@@ -2089,7 +2094,8 @@ local function serverHTTP(site, auser, apass)
 				openAddressBar = true
 				username, password = nuser, npass
 			else
-				centerWrite(a)
+				if a == "false" then centerWrite("Account Creation Failed!")
+				else centerWrite(a) end
 				openAddressBar = false
 				sleep(1.5)
 				openAddressBar = true
@@ -2114,10 +2120,12 @@ local function serverHTTP(site, auser, apass)
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	local sites = sitesForAccount(username, password)
 	if type(sites) == "table" then
-		local a = {}
-		for _, v in pairs(sites) do table.insert(a, v.url) end
-
-		manageServers(site, a, "http", function()
+		manageServers(site, "http", function()
+			sites = sitesForAccount(username, password)
+			local a = {}
+			for _, v in pairs(sites) do table.insert(a, v.url) end
+			return a
+		end, function()
 			newServer(function(name, url)
 				return createSite(username, password, url)
 			end)
@@ -2151,24 +2159,23 @@ local function serverHTTP(site, auser, apass)
 		term.setCursorPos(1, 10)
 		centerWrite(tostring(sites))
 
-		local opt = prompt({{"Try Again", w/2 - 18, 12}, {"Exit", w/2 + 9, 12}}, "horizontal")
+		local opt = prompt({{"Try Again", -1, 12}}, "vertical")
 		if opt == "Try Again" then
 			serverHTTP(site, username, password)
-			return
-		elseif opt == "Exit" then
-			redirect("server")
 			return
 		elseif opt == nil then return end
 	end
 end
 
 local function serverRDNT(site)
-	local servers = {}
-	for _, v in pairs(fs.list(serverFolder)) do
-		if fs.isDir(serverFolder .. "/" .. v) then table.insert(servers, v) end
-	end
+	manageServers(site, "rdnt", function()
+		local servers = {}
+		for _, v in pairs(fs.list(serverFolder)) do
+			if fs.isDir(serverFolder .. "/" .. v) then table.insert(servers, v) end
+		end
 
-	manageServers(site, servers, "rdnt", function()
+		return servers
+	end, function()
 		newServer(function(name, url)
 			if fs.exists(serverFolder .. "/" .. url) then
 				return "Server Already Exists!"
@@ -2207,9 +2214,9 @@ local function serverRDNT(site)
 end
 
 pages.server = function(site)
-	if curProtocol == protocol.rdnt then
+	if curProtocol == protocols.rdnt then
 		serverRDNT(site)
-	elseif curProtocol == protocol.http then
+	elseif curProtocol == protocols.http then
 		serverHTTP(site)
 	end
 end
@@ -4205,6 +4212,7 @@ local function addressBarMain()
 					end
 					curSites = curProtocol.getSearchResults()
 					clearPage(website, nil, true)
+					redirect(homepage)
 				elseif not(menuBarOpen) then
 					internalWebsite = true
 
@@ -4294,7 +4302,7 @@ local function main()
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Checking for Updates...")
 	centerWrite(string.rep(" ", 47))
-	if not(noInternet) then if updateClient() then return end end
+--	if not(noInternet) then if updateClient() then return end end
 
 	-- Download Files
 	local x, y = term.getCursorPos()
