@@ -948,7 +948,8 @@ protocols.rdnt.getSearchResults = function()
 					if not(resultIDs[tostring(id)]) then resultIDs[tostring(id)] = 1
 					else resultIDs[tostring(id)] = resultIDs[tostring(id)] + 1
 					end
-
+					
+					if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
 					local x = false
 					if conflict[i] then
 						x = true
@@ -973,7 +974,6 @@ protocols.rdnt.getSearchResults = function()
 					end
 
 					if not(x) and resultIDs[tostring(id)] <= 3 then
-						if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
 						debugLog("Adding", i)
 						table.insert(dnsDatabase[1], i)
 						table.insert(dnsDatabase[2], id)
