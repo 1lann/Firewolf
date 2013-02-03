@@ -760,12 +760,17 @@ local function resetFilesystem()
 
 	-- Themes
 	if isAdvanced() then
-		if autoupdate == "true" then
-			fs.delete(availableThemesLocation)
-			fs.delete(defaultThemeLocation)
-		end if not(fs.exists(availableThemesLocation)) then
-			download(availableThemesURL, availableThemesLocation)
-		end if not(fs.exists(defaultThemeLocation)) then
+		f = io.open(availableThemesLocation, "w")
+		f:write([[https://raw.github.com/1lann/firewolf/master/themes/default.txt| |Fire (default)
+https://raw.github.com/1lann/firewolf/master/themes/ice.txt| |Ice
+https://raw.github.com/1lann/firewolf/master/themes/carbon.txt| |Carbon
+https://raw.github.com/1lann/firewolf/master/themes/christmas.txt| |Christmas
+https://raw.github.com/1lann/firewolf/master/themes/original.txt| |Original
+https://raw.github.com/1lann/firewolf/master/themes/ocean.txt| |Ocean
+https://raw.github.com/1lann/firewolf/master/themes/forest.txt| |Forest
+https://raw.github.com/1lann/firewolf/master/themes/pinky.txt| |Pinky]])
+		end
+		 if not(fs.exists(defaultThemeLocation)) then
 			local f = io.open(availableThemesLocation, "r")
 			local a = f:read("*l")
 			f:close()
