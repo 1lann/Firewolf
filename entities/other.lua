@@ -957,6 +957,7 @@ protocols.rdnt.getSearchResults = function()
 						for m,n in pairs(dnsDatabase[1]) do
 							if n:lower() == i:lower() then
 								x = true
+								debugLog("Removin", n)
 								table.remove(dnsDatabase[1], m)
 								table.remove(dnsDatabase[2], m)
 								if conflict[i] then
@@ -972,6 +973,7 @@ protocols.rdnt.getSearchResults = function()
 
 					if not(x) and resultIDs[tostring(id)] <= 3 then
 						if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
+						debugLog("Adding", i)
 						table.insert(dnsDatabase[1], i)
 						table.insert(dnsDatabase[2], id)
 					end
@@ -983,6 +985,7 @@ protocols.rdnt.getSearchResults = function()
 	end
 	for k,v in pairs(conflict) do
 		table.sort(v)
+		debugLog("CAdd", k)
 		table.insert(dnsDatabase[1], k)
 		table.insert(dnsDatabase[2], v[1])
 	end
