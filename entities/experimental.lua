@@ -3,23 +3,10 @@
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
 --  License found here: https://raw.github.com/1lann/Firewolf/master/LICENSE
---
+--  
 --  Original Concept From RednetExplorer 2.4.1
 --  RednetExplorer Made by ComputerCraftFan11
 --  
-
--- Improved Server Management in preparation for HTTP Support
--- Improved updating system
--- Starting sequence sped up
--- HTTP Support
-
--- Destroyed:
---  rdnt://getinfo
---  Sub directories in servers
-
--- For next version:
---  Error catching for all HTTP requests
---  Ditch the delete and re-create for updating sites
 
 
 --  -------- Variables
@@ -34,6 +21,9 @@ local tArgs = {...}
 local serverID = "experimental"
 local serverList = {experimental = "Experimental", other = "Other"}
 
+-- Security
+local h3t59qc1fo2 = "6001e441ab0002813c6e9170a5045000500c52088200088c0a00580809008009"
+
 -- Updating
 local autoupdate = "true"
 local incognito = "false"
@@ -42,6 +32,7 @@ local noInternet = false
 -- Geometry
 local w, h = term.getSize()
 local graphics = {}
+local files = {}
 
 -- Debugging
 local debugFile = nil
@@ -72,9 +63,6 @@ local curSites = {}
 local menuBarOpen = false
 local internalWebsite = false
 local serverWebsiteID = nil
-
--- HTTP Security
-local h3t59qc1fo2 = "6001e441ab0002813c6e9170a5045000500c52088200088c0a00580809008009"
 
 -- Protocols
 local curProtocol = {}
@@ -116,7 +104,6 @@ local firewolfLocation = "/" .. shell.getRunningProgram()
 
 local userBlacklist = rootFolder .. "/user_blacklist"
 local userWhitelist = rootFolder .. "/user_whitelist"
-local globalDatabase = rootFolder .. "/database"
 
 
 --  -------- SHA-256 Hashing Algorithm
@@ -347,6 +334,7 @@ api.clearPage = function(site, color, redraw, tcolor)
 		if curProtocol == protocols.rdnt then write("rdnt://" .. a)
 		elseif curProtocol == protocols.http then write("http://" .. a)
 		end
+
 		if title ~= nil then
 			term.setCursorPos(w - title:len() - 1, 1)
 			write(title)
@@ -742,33 +730,43 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 end
 
 
---  -------- Graphics
+--  -------- Graphics and Files
 
 graphics.githubImage = [[
-f       f  
-fffffffff  
-fffffffff  
-f4244424f  
-f4444444f  
-fffffefffe  
-   fffe e   
- fffff e   
-ff f fe e  
-     e   e 
-          
+f       f 
+fffffffff 
+fffffffff 
+f4244424f 
+f4444444f 
+fffffefffe
+   fffe e 
+ fffff e  
+ff f fe e 
+     e   e
 ]]
 
+files.availableThemes = [[
+https://raw.github.com/1lann/firewolf/master/themes/default.txt| |Fire (default)
+https://raw.github.com/1lann/firewolf/master/themes/ice.txt| |Ice
+https://raw.github.com/1lann/firewolf/master/themes/carbon.txt| |Carbon
+https://raw.github.com/1lann/firewolf/master/themes/christmas.txt| |Christmas
+https://raw.github.com/1lann/firewolf/master/themes/original.txt| |Original
+https://raw.github.com/1lann/firewolf/master/themes/ocean.txt| |Ocean
+https://raw.github.com/1lann/firewolf/master/themes/forest.txt| |Forest
+https://raw.github.com/1lann/firewolf/master/themes/pinky.txt| |Pinky
+]]
 
---  -------- Themes
+files.defaultTheme = [[
+address-bar-text=white
+address-bar-background=gray
+address-bar-base=lightGray
+top-box=red
+bottom-box=orange
+background=gray
+text-color=white
+]]
 
-local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
-	["address-bar-base"] = "lightGray", ["top-box"] = "red", ["bottom-box"] = "orange", 
-	["text-color"] = "white", ["background"] = "gray"}
-local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "black", 
-	["address-bar-base"] = "black", ["top-box"] = "black", ["bottom-box"] = "black", 
-	["text-color"] = "white", ["background"] = "black"}
-
-local ownThemeFileContent = [[
+files.newTheme = [[
 -- Text color of the address bar
 address-bar-text=
 
@@ -791,6 +789,33 @@ background=
 text-color=
 
 ]]
+
+files.blacklist = {}
+
+files.whitelist = {}
+
+files.downloads = {}
+
+files.antivirusDefinitions = {{"shell.", "Modify Filesystem"}, 
+	{"fs.", "Modify Files"}, {"io.", "Modify Files"}, {"os.run", "Run Files"}, 
+	{"io[", "Modify Files"}, {"fs[", "Modify Files"}, {"fs)", "Modify Files"}, 
+	{"io)", "Modify Files"}, {"os)", "Run Files"}, {"loadstring", "Execute Text"}, 
+	{"fs--", "Modify Files"}, {"io--", "Modify Files"}, {"os--", "Run Files"}, 
+	{"fsor", "Modify Files"}, {"fs,", "Modify Files"}, {"io,", "Modify Files"}, 
+	{"ioor", "Modify Files"}, {"osor", "Run Files"}, {"shell[", "Run Files"}, 
+	{"os[\"run", "Run Files"}, {"loadstring", "Run Files"}, {"loadfile", "Run Files"}, 
+	{"dofile", "Run Files"}, {"getfenv", "Modify Env"}, {"setfenv", "Modify Env"}, 
+	{"rawset", "Modify Anything"}, {"_g", "Modify Env"}, {"_G", "Modify Env"}}
+
+
+--  -------- Themes
+
+local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
+	["address-bar-base"] = "lightGray", ["top-box"] = "red", ["bottom-box"] = "orange", 
+	["text-color"] = "white", ["background"] = "gray"}
+local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "black", 
+	["address-bar-base"] = "black", ["top-box"] = "black", ["bottom-box"] = "black", 
+	["text-color"] = "white", ["background"] = "black"}
 
 local function loadTheme(path)
 	if fs.exists(path) and not(fs.isDir(path)) then
@@ -940,6 +965,8 @@ local function migrateFilesystem()
 		fs.move("/.Firefox_Data", rootFolder)
 		fs.delete(serverSoftwareLocation)
 	end
+
+	fs.delete(rootFolder .. "/database")
 end
 
 local function resetFilesystem()
@@ -970,25 +997,21 @@ local function resetFilesystem()
 
 	-- Themes
 	if isAdvanced() then
-		if autoupdate == "true" then
-			fs.delete(availableThemesLocation)
-			fs.delete(defaultThemeLocation)
-		end if not(fs.exists(availableThemesLocation)) then
-			download(availableThemesURL, availableThemesLocation)
-		end if not(fs.exists(defaultThemeLocation)) then
-			local f = io.open(availableThemesLocation, "r")
-			local a = f:read("*l")
+		local f = io.open(availableThemesLocation, "w")
+		f:write(files.availableThemes)
+		f:close()
+		if not(fs.exists(themeLocation)) then
+			local f = io.open(themeLocation, "w")
+			f:write(files.defaultTheme)
 			f:close()
-			a = a:sub(1, a:find("| |") - 1)
-			download(a, defaultThemeLocation)
-		end if not(fs.exists(themeLocation)) then
-			fs.copy(defaultThemeLocation, themeLocation)
 		end
+	else
+		fs.delete(availableThemesLocation)
+		fs.delete(themeLocation)
 	end
 
 	-- Databases
-	fs.delete(globalDatabase)
-	for _, v in pairs({globalDatabase, userWhitelist, userBlacklist}) do
+	for _, v in pairs({userWhitelist, userBlacklist}) do
 		if not(fs.exists(v)) then
 			local f = io.open(v, "w")
 			f:write("")
@@ -1005,11 +1028,12 @@ end
 local function appendToHistory(site)
 	if incognito == "false" then
 		if site == "home" or site == "homepage" then 
-			site = homepage
+			site = homepage 
 		end if site ~= "exit" and site ~= "" and site ~= "history" and site ~= history[1] then
 			local a = "rdnt://" .. site
 			if curProtocol == protocols.http then a = "http://" .. site end
 			table.insert(history, 1, a)
+
 			local f = io.open(historyLocation, "w")
 			f:write(textutils.serialize(history))
 			f:close()
@@ -1023,52 +1047,11 @@ end
 --  -------- Databases
 
 local function loadDatabases()
-	-- Get
-	fs.delete(globalDatabase)
-	download(databaseURL, globalDatabase)
-	local f = io.open(globalDatabase, "r")
-	local l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
+	blacklist = files.blacklist
+	whitelist = files.whitelist
+	downloads = files.downloads
+	definitions = files.antivirusDefinitions
 
-	-- Blacklist  ([id])
-	blacklist = {}
-	while l ~= "START-WHITELIST" do
-		l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
-		if l ~= "" and l ~= "\n" and l ~= nil and l ~= "START-BLACKLIST" then
-			table.insert(blacklist, l)
-		end
-	end
-
-	-- Whitelist ([site name]| |[id])
-	whitelist = {}
-	while l ~= "START-DOWNLOADS" do
-		l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
-		if l ~= "" and l ~= "\n" and l ~= nil and l ~= "START-DOWNLOADS" then
-			local a, b = l:find("| |")
-			table.insert(whitelist, {l:sub(1, a - 1), l:sub(b + 1, -1)})
-		end
-	end
-
-	-- Downloads ([url])
-	downloads = {}
-	while l ~= "START-DEFINITIONS" do
-		l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
-		if l ~= "" and l ~= "\n" and l ~= nil and l ~= "START-DEFINITIONS" then
-			table.insert(downloads, l)
-		end
-	end
-
-	-- Definitions ([definition]| |[offence name])
-	definitions = {}
-	while l ~= "END-DATABASE" do
-		l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
-		if l ~= "" and l ~= "\n" and l ~= nil and l ~= "END-DATABASE" then
-			local a, b = l:find("| |")
-			table.insert(definitions, {l:sub(1, a - 1), l:sub(b + 1, -1)})
-		end
-	end
-	f:close()
-
-	-- User Blacklist
 	if not(fs.exists(userBlacklist)) then 
 		local bf = fio.open(userBlacklist, "w") 
 		bf:write("\n") 
@@ -1086,7 +1069,6 @@ local function loadDatabases()
 		bf:close()
 	end
 
-	-- User Whitelist
 	if not(fs.exists(userWhitelist)) then 
 		local wf = io.open(userWhitelist, "w") 
 		wf:write("\n")
@@ -1160,9 +1142,9 @@ protocols.http = {}
 protocols.rdnt = {}
 
 protocols.rdnt.getSearchResults = function()
+	dnsDatabase = {[1] = {}, [2] = {}}
 	local resultIDs = {}
-	dnsDatabase[1] = {}
-	dnsDatabase[2] = {}
+	local conflict = {}
 
 	rednet.broadcast("firewolf.broadcast.dns.list")
 	local startClock = os.clock()
@@ -1176,15 +1158,30 @@ protocols.rdnt.getSearchResults = function()
 					if not(resultIDs[tostring(id)]) then resultIDs[tostring(id)] = 1
 					else resultIDs[tostring(id)] = resultIDs[tostring(id)] + 1
 					end
-
+					
+					if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
 					local x = false
-					for m,n in pairs(dnsDatabase[1]) do
-						if n:lower() == i:lower() then x = true end
+					if conflict[i] then
+						x = true
+						table.insert(conflict[i], id)
+					else
+						for m, n in pairs(dnsDatabase[1]) do
+							if n:lower() == i:lower() then
+								x = true
+								table.remove(dnsDatabase[1], m)
+								table.remove(dnsDatabase[2], m)
+								if conflict[i] then
+									table.insert(conflict[i], id)
+								else
+									conflict[i] = {}
+									table.insert(conflict[i], id)
+								end
+								break
+							end
+						end
 					end
 
 					if not(x) and resultIDs[tostring(id)] <= 3 then
-						if not(i:find("rdnt://")) then i = "rdnt://" .. i end
-
 						table.insert(dnsDatabase[1], i)
 						table.insert(dnsDatabase[2], id)
 					end
@@ -1193,6 +1190,11 @@ protocols.rdnt.getSearchResults = function()
 		else
 			break
 		end
+	end
+	for k,v in pairs(conflict) do
+		table.sort(v)
+		table.insert(dnsDatabase[1], k)
+		table.insert(dnsDatabase[2], v[1])
 	end
 
 	return dnsDatabase[1]
@@ -1204,17 +1206,14 @@ protocols.rdnt.getWebsite = function(site)
 	local websiteID = nil
 	for k, v in pairs(dnsDatabase[1]) do
 		local web = site:gsub("rdnt://", "")
-		if web:find("/") then
-			web = web:sub(1, web:find("/") - 1)
-		end
+		if web:find("/") then web = web:sub(1, web:find("/") - 1) end
 		if web == v:gsub("rdnt://", "") then
 			websiteID = dnsDatabase[2][k]
 			break
 		end
 	end
-	if not websiteID then
-		return nil, nil, nil
-	end
+	if not(websiteID) then return nil, nil, nil end
+
 	sleep(timeout)
 	rednet.send(websiteID, site)
 	clock = os.clock()
@@ -1244,13 +1243,12 @@ protocols.rdnt.getWebsite = function(site)
 end
 
 protocols.http.getSearchResults = function(input)
-	dnsDatabase[1] = {}
-	dnsDatabase[2] = {}
+	dnsDatabase = {[1] = {}, [2] = {}}
 	return dnsDatabase[1]
 end
 
 protocols.http.getWebsite = function(site)
-	return nil
+	return nil, nil, nil
 end
 
 
@@ -1604,8 +1602,7 @@ pages.downloads = function(site)
 	end
 end
 
-
---  Server Pages
+--  Server Management
 
 local testingHTTP = false
 local username, password = "", ""
@@ -1826,9 +1823,11 @@ local function manageServers(site, protocol, reloadServers, onNewServer, onStart
 						end
 					elseif x >= 30 and x <= 40 and y == 10 and #servers > 0 then
 						onStart(disList[sel])
+						servers = reloadServers()
 						break
 					elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
 						onEdit(disList[sel])
+						servers = reloadServers()
 						break
 					elseif x >= 30 and x <= 46 and y == 14 and #servers > 0 and onRunOnBoot then
 						onRunOnBoot(disList[sel])
@@ -1843,6 +1842,7 @@ local function manageServers(site, protocol, reloadServers, onNewServer, onStart
 						break
 					elseif x >= 30 and x <= 41 and y == 16 and #servers > 0 then
 						onDelete(disList[sel])
+						servers = reloadServers()
 						break
 					end
 				elseif e == event_exitWebsite then return end
@@ -1880,8 +1880,10 @@ local function manageServers(site, protocol, reloadServers, onNewServer, onStart
 				local opt = prompt(a, "vertical")
 				if opt == "Start" then
 					onStart()
+					servers = reloadServers()
 				elseif opt == "Edit" then
 					onEdit()
+					servers = reloadServers()
 				elseif opt == "Run on Boot" and onRunOnBoot then
 					onRunOnBoot()
 					term.setCursorPos(32, 17)
@@ -1891,6 +1893,7 @@ local function manageServers(site, protocol, reloadServers, onNewServer, onStart
 					openAddressBar = true
 				elseif opt == "Delete" then
 					onDelete()
+					servers = reloadServers()
 				elseif opt == nil then return end
 			end
 		end
@@ -1912,9 +1915,9 @@ local function editPages(dir)
 	print("")
 
 	local allowed = {"move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
-	"eject", "exit", "help", "id", "monitor", "rename", "alias", "clear",
-	"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", "programs",
-	"redset", "reboot", "hello", "label", "list", "ls", "easter", "pastebin", "dir"}
+		"eject", "exit", "help", "id", "monitor", "rename", "alias", "clear",
+		"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", "programs",
+		"redset", "reboot", "hello", "label", "list", "ls", "easter", "pastebin", "dir"}
 	
 	while true do
 		shell.setDir(dir)
@@ -1984,7 +1987,7 @@ local function newServer(onCreate)
 	url = url:gsub(" ", "")
 
 	local a = {"/", "| |", " ", "@", "!", "$", "#", "%", "^", "&", "*", "(", ")", "rdnt://",
-		"[", "]", "{", "}", "\\", "\"", "'", ":", ";", "?", "<", ">", ",", "`", "-", "http://"}
+		"[", "]", "{", "}", "\\", "\"", "'", ":", ";", "?", "<", ">", ",", "`", "http://"}
 	local b = false
 	for k, v in pairs(a) do
 		if url:find(v, 1, true) then
@@ -2199,7 +2202,7 @@ local function serverRDNT(site)
 		openAddressBar = true
 		errPages.checkForModem()
 	end, function(server)
-		editPages(server, serverFolder .. "/" .. server)
+		editPages(serverFolder .. "/" .. server)
 		openAddressBar = true
 	end, function(server)
 		fs.delete("/old-startup")
@@ -2227,7 +2230,7 @@ pages.help = function(site)
 	clearPage(site, colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
-	print("\n")
+	print("")
 	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Firewolf Help")
@@ -2236,12 +2239,13 @@ pages.help = function(site)
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
-	local opt = prompt({{"Getting Started", 7, 9}, {"Making a Theme", 7, 11}, 
-		{"API Documentation", 7, 13}}, "vertical")
 	term.setCursorPos(7, 15)
 	write("View the full documentation here:")
 	term.setCursorPos(7, 16)
 	write("https://github.com/1lann/Firewolf/wiki")
+
+	local opt = prompt({{"Getting Started", 7, 8}, {"Making a Theme", 7, 10}, 
+		{"API Documentation", 7, 12}}, "vertical")
 	local pages = {}
 	if opt == "Getting Started" then
 		pages[1] = {title = "Getting Started - Intoduction", content = {
@@ -2271,8 +2275,6 @@ pages.help = function(site)
 			"More built-in websites:",
 			"",
 			"rdnt://settings   Firewolf settings",
-			"rdnt://update     Force update Firewolf",
-			"rdnt://getinfo    Get website info",
 			"rdnt://credits    View the credits",
 			"rdnt://exit       Exit the app"
 		}}
@@ -2429,8 +2431,7 @@ pages.settings = function(site)
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Firewolf Settings")
 		centerWrite(string.rep(" ", 43))
-		if fs.exists("/.bustedOs") then centerPrint("Designed For: BustedOS")
-		else centerPrint("Designed For: " .. serverList[serverID]) end
+		centerPrint("Designed For: " .. serverList[serverID])
 		centerPrint(string.rep(" ", 43))
 		print("")
 
@@ -2488,12 +2489,10 @@ pages.settings = function(site)
 			elseif opt == "Reset Databases" then
 				fs.delete(userWhitelist)
 				fs.delete(userBlacklist)
-				fs.delete(globalDatabase)
 			elseif opt == "Reset Settings" then
 				fs.delete(settingsLocation)
 			elseif opt == "Reset Theme" then
 				fs.delete(themeLocation)
-				fs.copy(defaultThemeLocation, themeLocation)
 			elseif opt == "Back" then
 				openAddressBar = true
 				redirect("settings")
@@ -2581,51 +2580,6 @@ pages.settings = function(site)
 end
 
 --  Other
-
-pages.update = function(site)
-	clearPage(site, colors[theme["background"]])
-	print("\n")
-	term.setTextColor(colors[theme["text-color"]])
-	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 43))
-	centerWrite(string.rep(" ", 43))
-	centerPrint("Force Update Firewolf")
-	centerPrint(string.rep(" ", 43))
-
-	print("\n")
-	term.setBackgroundColor(colors[theme["bottom-box"]])
-	for i = 1, 3 do centerPrint(string.rep(" ", 43)) end
-
-	local opt = prompt({{"Update", 7, 10}, {"Cancel", 34, 10}}, "horizontal")
-	if opt == "Update" then
-		openAddressBar = false
-		term.setCursorPos(1, 10)
-		centerWrite(string.rep(" ", 43))
-		centerWrite("Updating...")
-
-		local updateLocation = rootFolder .. "/update"
-		fs.delete(updateLocation)
-		download(firewolfURL, updateLocation)
-		centerWrite(string.rep(" ", 43))
-		centerPrint("Done!")
-		centerWrite(string.rep(" ", 43))
-		if term.isColor() then centerPrint("Click to exit...")
-		else centerPrint("Press any key to exit...") end
-		centerPrint(string.rep(" ", 43))
-		sleep(1.3)
-		fs.delete(firewolfLocation)
-		fs.move(updateLocation, firewolfLocation)
-		shell.run(firewolfLocation)
-
-		return true
-	elseif opt == "Cancel" then
-		redirect("home")
-		return
-	elseif opt == nil then
-		os.queueEvent(event_exitWebsite)
-		return
-	end
-end
 
 pages.credits = function(site)
 	clearPage(site, colors[theme["background"]])
@@ -2812,7 +2766,7 @@ errPages.checkForModem = function()
 	end
 end
 
---  Run Sites
+--  Run Pages
 
 local function loadSite(site)
 	local shellAllowed = false
@@ -4302,20 +4256,16 @@ local function main()
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Checking for Updates...")
 	centerWrite(string.rep(" ", 47))
---	if not(noInternet) then if updateClient() then return end end
+	if not(noInternet) then if updateClient() then return end end
 
 	-- Download Files
 	local x, y = term.getCursorPos()
 	term.setCursorPos(1, y - 1)
 	centerWrite(string.rep(" ", 47))
 	centerWrite("Downloading Required Files...")
-	if not(noInternet) then migrateFilesystem() end
+	migrateFilesystem()
 	if not(noInternet) then resetFilesystem() end
-
-	-- Download Databases
-	centerWrite(string.rep(" ", 47))
-	centerWrite("Downloading Databases...")
-	if not(noInternet) then loadDatabases() end
+	loadDatabases()
 
 	-- Load history
 	local b = io.open(historyLocation, "r")
@@ -4435,6 +4385,19 @@ local function startup()
 	return true
 end
 
+-- Check if read only
+if fs.isReadOnly(firewolfLocation) or fs.isReadOnly(rootFolder) then
+	print("Firewolf cannot modify itself or its root folder!")
+	print("")
+	print("This cold be caused by Firewolf being placed in")
+	print("the rom folder, or another program may be")
+	print("preventing the modification of Firewolf.")
+
+	-- Reset Environment and exit
+	setfenv(1, backupEnv)
+	error()
+end
+
 -- Theme
 if not(isAdvanced()) then 
 	theme = originalTheme
@@ -4464,45 +4427,14 @@ end
 startup()
 
 -- Exit Message
-if isAdvanced() then
-	term.setBackgroundColor(colors.black)
-	term.setTextColor(colors.white)
-end
+term.setBackgroundColor(colors.black)
+term.setTextColor(colors.white)
 term.setCursorBlink(false)
 term.clear()
 term.setCursorPos(1, 1)
-
-if fs.exists("/.bustedOs") then
-	term.setBackgroundColor(colors[theme["background"]])
-	term.setTextColor(colors[theme["text-color"]])
-	term.clear()
-	term.setCursorPos(1, 5)
-	term.setBackgroundColor(colors[theme["top-box"]])
-	api.centerPrint(string.rep(" ", 43))
-	api.centerWrite(string.rep(" ", 43))
-	api.centerPrint("Thank You for Using Firewolf " .. version)
-	api.centerWrite(string.rep(" ", 43))
-	api.centerPrint("Made by 1lann and GravityScore")
-	api.centerPrint(string.rep(" ", 43))
-	api.centerWrite(string.rep(" ", 43))
-	if isAdvanced() then api.centerPrint("Click to exit...")
-	else api.centerPrint("Press any key to exit...") end
-	api.centerPrint(string.rep(" ", 43))
-
-	while true do
-		local e = os.pullEvent()
-		if e == "mouse_click" or e == "key" then break end
-	end
-
-	term.setTextColor(colors.white)
-	term.setBackgroundColor(colors.black)
-	term.clear()
-	term.setCursorPos(1, 1)
-else
-	api.centerPrint("Thank You for Using Firewolf " .. version)
-	api.centerPrint("Made by 1lann and GravityScore")
-	term.setCursorPos(1, 3)
-end
+api.centerPrint("Thank You for Using Firewolf " .. version)
+api.centerPrint("Made by 1lann and GravityScore")
+term.setCursorPos(1, 3)
 
 -- Closes
 for _, v in pairs(rs.getSides()) do rednet.close(v) end
