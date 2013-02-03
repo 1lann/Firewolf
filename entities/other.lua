@@ -813,49 +813,25 @@ end
 local function loadDatabases()
 	-- Get
 	fs.delete(globalDatabase)
-	debugLog(download(databaseURL, globalDatabase))
-	local f = io.open(globalDatabase, "r")
-	local l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
 
 	-- Blacklist  ([id])
 	blacklist = {}
-	while l ~= "START-WHITELIST" do
-		l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
-		if l ~= "" and l ~= "\n" and l ~= nil and l ~= "START-BLACKLIST" then
-			table.insert(blacklist, l)
-		end
-	end
 
 	-- Whitelist ([site name]| |[id])
 	whitelist = {}
-	while l ~= "START-DOWNLOADS" do
-		l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
-		if l ~= "" and l ~= "\n" and l ~= nil and l ~= "START-DOWNLOADS" then
-			local a, b = l:find("| |")
-			table.insert(whitelist, {l:sub(1, a - 1), l:sub(b + 1, -1)})
-		end
-	end
 
 	-- Downloads ([url])
 	downloads = {}
-	while l ~= "START-DEFINITIONS" do
-		l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
-		if l ~= "" and l ~= "\n" and l ~= nil and l ~= "START-DEFINITIONS" then
-			table.insert(downloads, l)
-		end
-	end
 
 	-- Definitions ([definition]| |[offence name])
-	definitions = {}
-	while l ~= "END-DATABASE" do
-		l = f:read("*l"):gsub("^%s*(.-)%s*$", "%1")
-		if l ~= "" and l ~= "\n" and l ~= nil and l ~= "END-DATABASE" then
-			local a, b = l:find("| |")
-			--debugLog("add object!")
-			table.insert(definitions, {l:sub(1, a - 1), l:sub(b + 1, -1)})
-		end
-	end
-	f:close()
+	definitions = {{"shell.", "Run Files"}, {"shell.", "Modify Filesystem"}, {"fs.", "Modify Files"}, {"io.", "Modify Files"},
+{"os.run", "Run Files"}, {"io[", "Modify Files"}, {"fs[", "Modify Files"}, {"fs)", "Modify Files"},
+{"io)", "Modify Files"}, {"os)", "Run Files"}, {"loadstring", "Execute Text"}, {"fs--", "Modify Files"},
+{"io--", "Modify Files"}, {"os--", "Run Files"}, {"fsor", "Modify Files"}, {"fs,", "Modify Files"},
+{"io,", "Modify Files"}, {"ioor", "Modify Files"}, {"osor", "Run Files"}, {"shell[", "Run Files"},
+{"os[\"run", "Run Files"}, {"loadstring", "Run Files"}, {"loadfile", "Run Files"}, {"dofile", "Run Files"},
+{"getfenv", "Modify Env"}, {"setfenv", "Modify Env"}, {"rawset", "Modify Anything"}, {"_g", "Modify Env"},
+{"_G", "Modify Env"}}
 
 	-- User Blacklist
 	if not(fs.exists(userBlacklist)) then 
@@ -874,6 +850,7 @@ local function loadDatabases()
 		end
 		bf:close()
 	end
+
 
 	-- User Whitelist
 	if not(fs.exists(userWhitelist)) then 
@@ -971,6 +948,7 @@ protocols.rdnt.getSearchResults = function()
 					local x = false
 					for m,n in pairs(dnsDatabase[1]) do
 						if n:lower() == i:lower() then
+							x = true
 							table.remove(dnsDatabase[1], m)
 							table.remove(dnsDatabase[2], m)
 							if conflict[i] then
@@ -982,7 +960,7 @@ protocols.rdnt.getSearchResults = function()
 						end
 					end
 
-					if resultIDs[tostring(id)] <= 3 then
+					if not(x) and resultIDs[tostring(id)] <= 3 then
 						if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
 						table.insert(dnsDatabase[1], i)
 						table.insert(dnsDatabase[2], id)
