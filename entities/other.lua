@@ -950,16 +950,21 @@ protocols.rdnt.getSearchResults = function()
 					end
 
 					local x = false
-					for m,n in pairs(dnsDatabase[1]) do
-						if n:lower() == i:lower() then
-							x = true
-							table.remove(dnsDatabase[1], m)
-							table.remove(dnsDatabase[2], m)
-							if conflict[i] then
-								table.insert(conflict[i], id)
-							else
-								conflict[i] = {}
-								table.insert(conflict[i], id)
+					if conflict[i] then
+						table.insert(conflict[i], id)
+					else
+						for m,n in pairs(dnsDatabase[1]) do
+							if n:lower() == i:lower() then
+								x = true
+								table.remove(dnsDatabase[1], m)
+								table.remove(dnsDatabase[2], m)
+								if conflict[i] then
+									table.insert(conflict[i], id)
+								else
+									conflict[i] = {}
+									table.insert(conflict[i], id)
+								end
+								break
 							end
 						end
 					end
