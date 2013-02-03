@@ -1533,9 +1533,11 @@ local function manageServers(site, protocol, reloadServers, onNewServer, onStart
 						end
 					elseif x >= 30 and x <= 40 and y == 10 and #servers > 0 then
 						onStart(disList[sel])
+						servers = reloadServers()
 						break
 					elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
 						onEdit(disList[sel])
+						servers = reloadServers()
 						break
 					elseif x >= 30 and x <= 46 and y == 14 and #servers > 0 and onRunOnBoot then
 						onRunOnBoot(disList[sel])
@@ -1550,6 +1552,7 @@ local function manageServers(site, protocol, reloadServers, onNewServer, onStart
 						break
 					elseif x >= 30 and x <= 41 and y == 16 and #servers > 0 then
 						onDelete(disList[sel])
+						servers = reloadServers()
 						break
 					end
 				elseif e == event_exitWebsite then return end
@@ -1587,8 +1590,10 @@ local function manageServers(site, protocol, reloadServers, onNewServer, onStart
 				local opt = prompt(a, "vertical")
 				if opt == "Start" then
 					onStart()
+					servers = reloadServers()
 				elseif opt == "Edit" then
 					onEdit()
+					servers = reloadServers()
 				elseif opt == "Run on Boot" and onRunOnBoot then
 					onRunOnBoot()
 					term.setCursorPos(32, 17)
@@ -1598,6 +1603,7 @@ local function manageServers(site, protocol, reloadServers, onNewServer, onStart
 					openAddressBar = true
 				elseif opt == "Delete" then
 					onDelete()
+					servers = reloadServers()
 				elseif opt == nil then return end
 			end
 		end
@@ -1995,8 +2001,7 @@ pages.settings = function(site)
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Firewolf Settings")
 		centerWrite(string.rep(" ", 43))
-		if fs.exists("/.bustedOs") then centerPrint("Designed For: BustedOS")
-		else centerPrint("Designed For: " .. serverList[serverID]) end
+		centerPrint("Designed For: " .. serverList[serverID])
 		centerPrint(string.rep(" ", 43))
 		print("")
 
@@ -3993,45 +3998,14 @@ end
 startup()
 
 -- Exit Message
-if isAdvanced() then
-	term.setBackgroundColor(colors.black)
-	term.setTextColor(colors.white)
-end
+term.setBackgroundColor(colors.black)
+term.setTextColor(colors.white)
 term.setCursorBlink(false)
 term.clear()
 term.setCursorPos(1, 1)
-
-if fs.exists("/.bustedOs") then
-	term.setBackgroundColor(colors[theme["background"]])
-	term.setTextColor(colors[theme["text-color"]])
-	term.clear()
-	term.setCursorPos(1, 5)
-	term.setBackgroundColor(colors[theme["top-box"]])
-	api.centerPrint(string.rep(" ", 43))
-	api.centerWrite(string.rep(" ", 43))
-	api.centerPrint("Thank You for Using Firewolf " .. version)
-	api.centerWrite(string.rep(" ", 43))
-	api.centerPrint("Made by 1lann and GravityScore")
-	api.centerPrint(string.rep(" ", 43))
-	api.centerWrite(string.rep(" ", 43))
-	if isAdvanced() then api.centerPrint("Click to exit...")
-	else api.centerPrint("Press any key to exit...") end
-	api.centerPrint(string.rep(" ", 43))
-
-	while true do
-		local e = os.pullEvent()
-		if e == "mouse_click" or e == "key" then break end
-	end
-
-	term.setTextColor(colors.white)
-	term.setBackgroundColor(colors.black)
-	term.clear()
-	term.setCursorPos(1, 1)
-else
-	api.centerPrint("Thank You for Using Firewolf " .. version)
-	api.centerPrint("Made by 1lann and GravityScore")
-	term.setCursorPos(1, 3)
-end
+api.centerPrint("Thank You for Using Firewolf " .. version)
+api.centerPrint("Made by 1lann and GravityScore")
+term.setCursorPos(1, 3)
 
 -- Closes
 for _, v in pairs(rs.getSides()) do rednet.close(v) end
