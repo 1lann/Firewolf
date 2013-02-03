@@ -3,7 +3,7 @@
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
 --  License found here: https://raw.github.com/1lann/Firewolf/master/LICENSE
---
+--  
 --  Original Concept From RednetExplorer 2.4.1
 --  RednetExplorer Made by ComputerCraftFan11
 --  
