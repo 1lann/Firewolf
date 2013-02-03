@@ -976,7 +976,7 @@ protocols.rdnt.getSearchResults = function()
 		end
 	end
 	for k,v in pairs(conflict) do
-		v = table.sort(v)
+		table.sort(v)
 		table.insert(dnsDatabase[1], k)
 		table.insert(dnsDatabase[2], v[1])
 	end
