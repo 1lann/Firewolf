@@ -8,11 +8,6 @@
 --  RednetExplorer Made by ComputerCraftFan11
 --  
 
---  
---  Visit our website at:
---  http://firewolf.webege.com/
---  
-
 
 --  -------- Variables
 
@@ -33,6 +28,7 @@ local incognito = "false"
 -- Geometry
 local w, h = term.getSize()
 local graphics = {}
+local files = {}
 
 -- Debugging
 local debugFile = nil
@@ -104,7 +100,6 @@ local firewolfLocation = "/" .. shell.getRunningProgram()
 
 local userBlacklist = rootFolder .. "/user_blacklist"
 local userWhitelist = rootFolder .. "/user_whitelist"
-local globalDatabase = rootFolder .. "/database"
 
 
 --  -------- Firewolf API
@@ -533,33 +528,43 @@ local function modRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, exit
 end
 
 
---  -------- Graphics
+--  -------- Graphics and Files
 
 graphics.githubImage = [[
-f       f  
-fffffffff  
-fffffffff  
-f4244424f  
-f4444444f  
-fffffefffe  
-   fffe e   
- fffff e   
-ff f fe e  
-     e   e 
-          
+f       f 
+fffffffff 
+fffffffff 
+f4244424f 
+f4444444f 
+fffffefffe
+   fffe e 
+ fffff e  
+ff f fe e 
+     e   e
 ]]
 
+files.availableThemes = [[
+https://raw.github.com/1lann/firewolf/master/themes/default.txt| |Fire (default)
+https://raw.github.com/1lann/firewolf/master/themes/ice.txt| |Ice
+https://raw.github.com/1lann/firewolf/master/themes/carbon.txt| |Carbon
+https://raw.github.com/1lann/firewolf/master/themes/christmas.txt| |Christmas
+https://raw.github.com/1lann/firewolf/master/themes/original.txt| |Original
+https://raw.github.com/1lann/firewolf/master/themes/ocean.txt| |Ocean
+https://raw.github.com/1lann/firewolf/master/themes/forest.txt| |Forest
+https://raw.github.com/1lann/firewolf/master/themes/pinky.txt| |Pinky
+]]
 
---  -------- Themes
+files.defaultTheme = [[
+address-bar-text=white
+address-bar-background=gray
+address-bar-base=lightGray
+top-box=red
+bottom-box=orange
+background=gray
+text-color=white
+]]
 
-local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
-	["address-bar-base"] = "lightGray", ["top-box"] = "red", ["bottom-box"] = "orange", 
-	["text-color"] = "white", ["background"] = "gray"}
-local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "black", 
-	["address-bar-base"] = "black", ["top-box"] = "black", ["bottom-box"] = "black", 
-	["text-color"] = "white", ["background"] = "black"}
-
-local ownThemeFileContent = [[
+files.newTheme = [[
 -- Text color of the address bar
 address-bar-text=
 
@@ -582,6 +587,33 @@ background=
 text-color=
 
 ]]
+
+files.blacklist = {}
+
+files.whitelist = {}
+
+files.downloads = {}
+
+files.antivirusDefinitions = {{"shell.", "Modify Filesystem"}, 
+	{"fs.", "Modify Files"}, {"io.", "Modify Files"}, {"os.run", "Run Files"}, 
+	{"io[", "Modify Files"}, {"fs[", "Modify Files"}, {"fs)", "Modify Files"}, 
+	{"io)", "Modify Files"}, {"os)", "Run Files"}, {"loadstring", "Execute Text"}, 
+	{"fs--", "Modify Files"}, {"io--", "Modify Files"}, {"os--", "Run Files"}, 
+	{"fsor", "Modify Files"}, {"fs,", "Modify Files"}, {"io,", "Modify Files"}, 
+	{"ioor", "Modify Files"}, {"osor", "Run Files"}, {"shell[", "Run Files"}, 
+	{"os[\"run", "Run Files"}, {"loadstring", "Run Files"}, {"loadfile", "Run Files"}, 
+	{"dofile", "Run Files"}, {"getfenv", "Modify Env"}, {"setfenv", "Modify Env"}, 
+	{"rawset", "Modify Anything"}, {"_g", "Modify Env"}, {"_G", "Modify Env"}}
+
+
+--  -------- Themes
+
+local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
+	["address-bar-base"] = "lightGray", ["top-box"] = "red", ["bottom-box"] = "orange", 
+	["text-color"] = "white", ["background"] = "gray"}
+local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "black", 
+	["address-bar-base"] = "black", ["top-box"] = "black", ["bottom-box"] = "black", 
+	["text-color"] = "white", ["background"] = "black"}
 
 local function loadTheme(path)
 	if fs.exists(path) and not(fs.isDir(path)) then
@@ -730,6 +762,8 @@ local function migrateFilesystem()
 		fs.move("/.Firefox_Data", rootFolder)
 		fs.delete(serverSoftwareLocation)
 	end
+
+	fs.delete(rootFolder .. "/database")
 end
 
 local function resetFilesystem()
@@ -760,29 +794,21 @@ local function resetFilesystem()
 
 	-- Themes
 	if isAdvanced() then
-		f = io.open(availableThemesLocation, "w")
-		f:write([[https://raw.github.com/1lann/firewolf/master/themes/default.txt| |Fire (default)
-https://raw.github.com/1lann/firewolf/master/themes/ice.txt| |Ice
-https://raw.github.com/1lann/firewolf/master/themes/carbon.txt| |Carbon
-https://raw.github.com/1lann/firewolf/master/themes/christmas.txt| |Christmas
-https://raw.github.com/1lann/firewolf/master/themes/original.txt| |Original
-https://raw.github.com/1lann/firewolf/master/themes/ocean.txt| |Ocean
-https://raw.github.com/1lann/firewolf/master/themes/forest.txt| |Forest
-https://raw.github.com/1lann/firewolf/master/themes/pinky.txt| |Pinky]])
-		 if not(fs.exists(defaultThemeLocation)) then
-			local f = io.open(availableThemesLocation, "r")
-			local a = f:read("*l")
+		local f = io.open(availableThemesLocation, "w")
+		f:write(files.availableThemes)
+		f:close()
+		if not(fs.exists(themeLocation)) then
+			local f = io.open(themeLocation, "w")
+			f:write(files.defaultTheme)
 			f:close()
-			a = a:sub(1, a:find("| |") - 1)
-			download(a, defaultThemeLocation)
-		end if not(fs.exists(themeLocation)) then
-			fs.copy(defaultThemeLocation, themeLocation)
 		end
+	else
+		fs.delete(availableThemesLocation)
+		fs.delete(themeLocation)
 	end
 
 	-- Databases
-	fs.delete(globalDatabase)
-	for _, v in pairs({globalDatabase, userWhitelist, userBlacklist}) do
+	for _, v in pairs({userWhitelist, userBlacklist}) do
 		if not(fs.exists(v)) then
 			local f = io.open(v, "w")
 			f:write("")
@@ -815,29 +841,11 @@ end
 --  -------- Databases
 
 local function loadDatabases()
-	-- Get
-	fs.delete(globalDatabase)
+	blacklist = files.blacklist
+	whitelist = files.whitelist
+	downloads = files.downloads
+	definitions = files.antivirusDefinitions
 
-	-- Blacklist  ([id])
-	blacklist = {}
-
-	-- Whitelist ([site name]| |[id])
-	whitelist = {}
-
-	-- Downloads ([url])
-	downloads = {}
-
-	-- Definitions ([definition]| |[offence name])
-	definitions = {{"shell.", "Run Files"}, {"shell.", "Modify Filesystem"}, {"fs.", "Modify Files"}, {"io.", "Modify Files"},
-{"os.run", "Run Files"}, {"io[", "Modify Files"}, {"fs[", "Modify Files"}, {"fs)", "Modify Files"},
-{"io)", "Modify Files"}, {"os)", "Run Files"}, {"loadstring", "Execute Text"}, {"fs--", "Modify Files"},
-{"io--", "Modify Files"}, {"os--", "Run Files"}, {"fsor", "Modify Files"}, {"fs,", "Modify Files"},
-{"io,", "Modify Files"}, {"ioor", "Modify Files"}, {"osor", "Run Files"}, {"shell[", "Run Files"},
-{"os[\"run", "Run Files"}, {"loadstring", "Run Files"}, {"loadfile", "Run Files"}, {"dofile", "Run Files"},
-{"getfenv", "Modify Env"}, {"setfenv", "Modify Env"}, {"rawset", "Modify Anything"}, {"_g", "Modify Env"},
-{"_G", "Modify Env"}}
-
-	-- User Blacklist
 	if not(fs.exists(userBlacklist)) then 
 		local bf = fio.open(userBlacklist, "w") 
 		bf:write("\n") 
@@ -855,8 +863,6 @@ local function loadDatabases()
 		bf:close()
 	end
 
-
-	-- User Whitelist
 	if not(fs.exists(userWhitelist)) then 
 		local wf = io.open(userWhitelist, "w") 
 		wf:write("\n")
@@ -905,9 +911,7 @@ local function verify(database, ...)
 		-- content
 		local c = args[1]:gsub(" ", ""):gsub("\n", ""):gsub("\t", "")
 		local a = {}
-		debugLog("start def")
 		for _, v in pairs(definitions) do
-			debugLog(definitions)
 			local b = false
 			for _, c in pairs(a) do
 				if c == v[2] then b = true end
@@ -955,11 +959,9 @@ protocols.rdnt.getSearchResults = function()
 						x = true
 						table.insert(conflict[i], id)
 					else
-						for m,n in pairs(dnsDatabase[1]) do
-							debugLog("Comparing", n,i)
+						for m, n in pairs(dnsDatabase[1]) do
 							if n:lower() == i:lower() then
 								x = true
-								debugLog("Removin", n)
 								table.remove(dnsDatabase[1], m)
 								table.remove(dnsDatabase[2], m)
 								if conflict[i] then
@@ -974,7 +976,6 @@ protocols.rdnt.getSearchResults = function()
 					end
 
 					if not(x) and resultIDs[tostring(id)] <= 3 then
-						debugLog("Adding", i)
 						table.insert(dnsDatabase[1], i)
 						table.insert(dnsDatabase[2], id)
 					end
@@ -986,7 +987,6 @@ protocols.rdnt.getSearchResults = function()
 	end
 	for k,v in pairs(conflict) do
 		table.sort(v)
-		debugLog("CAdd", k)
 		table.insert(dnsDatabase[1], k)
 		table.insert(dnsDatabase[2], v[1])
 	end
@@ -1008,16 +1008,14 @@ protocols.rdnt.getWebsite = function(site)
 			break
 		end
 	end
-	if not websiteID then
+	if not(websiteID) then
 		return nil, nil, nil
 	end
 	sleep(timeout)
-	debugLog("Connect", site, websiteID)
 	rednet.send(websiteID, site)
 	clock = os.clock()
 	while os.clock() - clock < timeout do
 		id, content = rednet.receive(timeout)
-		debugLog("received",id)
 		if id then
 			if id == websiteID then
 				local bl = verify("blacklist", id)
@@ -2004,12 +2002,10 @@ pages.settings = function(site)
 			elseif opt == "Reset Databases" then
 				fs.delete(userWhitelist)
 				fs.delete(userBlacklist)
-				fs.delete(globalDatabase)
 			elseif opt == "Reset Settings" then
 				fs.delete(settingsLocation)
 			elseif opt == "Reset Theme" then
 				fs.delete(themeLocation)
-				fs.copy(defaultThemeLocation, themeLocation)
 			elseif opt == "Back" then
 				openAddressBar = true
 				redirect("settings")
@@ -2459,11 +2455,11 @@ end
 local function loadSite(site)
 	local shellAllowed = false
 	local function runSite(cacheLoc, antivirusEnv)
-		if not antivirusEnv then
-			debugLog("antivirus env not present")
+		if not(antivirusEnv) then
 			antivirusEnv = {}
 			nenv = {}
 		end
+
 		-- Clear
 		clearPage(site, colors.black)
 		term.setBackgroundColor(colors.black)
@@ -2474,11 +2470,9 @@ local function loadSite(site)
 		local nenv = antivirusEnv
 		local safeFunc = true
 		local unsafeFunc = {}
-		debugLog("avArg", antivirusEnv[1])
 		if antivirusEnv[1] ~= "firewolf-override" then
-			debugLog("applying sandbox")
-		unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
-			"getfenv", "setfenv", "rawset"}
+			unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
+				"getfenv", "setfenv", "rawset"}
 		end
 		for k, v in pairs(env) do 
 			safeFunc = true
@@ -2486,7 +2480,6 @@ local function loadSite(site)
 				if k == vi then safeFunc = false break end
 			end
 			if safeFunc then
-				debugLog("safe", k)
 				if type(v) ~= "table" then nenv[k] = v
 				else
 					nenv[k] = {}
@@ -3480,11 +3473,7 @@ local function loadSite(site)
 
 		if status == "safe" and site ~= "" then
 			if not(antivirusProcessed) then
-				debugLog("Not processed")
 				antivirusEnv = allowFunctions({""})
-			end
-			for k,v in pairs(antivirusEnv) do
-				debugLog("avEntry", k)
 			end
 			internalWebsite = false
 			local f = io.open(cacheLoc, "w")
@@ -3557,7 +3546,6 @@ local function loadSite(site)
 		else
 			openAddressBar = true
 			local res = {}
-			debugLog("Before",type(res))
 			if site ~= "" then
 				for k, v in pairs(dnsDatabase[1]) do
 					if v:find(site:lower()) then
@@ -3946,10 +3934,6 @@ local function main()
 	centerWrite("Downloading Required Files...")
 	migrateFilesystem()
 	resetFilesystem()
-
-	-- Download Databases
-	centerWrite(string.rep(" ", 47))
-	centerWrite("Downloading Databases...")
 	loadDatabases()
 
 	-- Load history

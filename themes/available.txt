@@ -1,8 +1,0 @@
-https://raw.github.com/1lann/firewolf/master/themes/default.txt| |Fire (default)
-https://raw.github.com/1lann/firewolf/master/themes/ice.txt| |Ice
-https://raw.github.com/1lann/firewolf/master/themes/carbon.txt| |Carbon
-https://raw.github.com/1lann/firewolf/master/themes/christmas.txt| |Christmas
-https://raw.github.com/1lann/firewolf/master/themes/original.txt| |Original
-https://raw.github.com/1lann/firewolf/master/themes/ocean.txt| |Ocean
-https://raw.github.com/1lann/firewolf/master/themes/forest.txt| |Forest
-https://raw.github.com/1lann/firewolf/master/themes/pinky.txt| |Pinky
