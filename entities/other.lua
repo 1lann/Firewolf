@@ -769,7 +769,6 @@ https://raw.github.com/1lann/firewolf/master/themes/original.txt| |Original
 https://raw.github.com/1lann/firewolf/master/themes/ocean.txt| |Ocean
 https://raw.github.com/1lann/firewolf/master/themes/forest.txt| |Forest
 https://raw.github.com/1lann/firewolf/master/themes/pinky.txt| |Pinky]])
-		end
 		 if not(fs.exists(defaultThemeLocation)) then
 			local f = io.open(availableThemesLocation, "r")
 			local a = f:read("*l")
