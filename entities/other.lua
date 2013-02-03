@@ -1794,7 +1794,7 @@ pages.help = function(site)
 	clearPage(site, colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
-	print("\n")
+	print("")
 	centerPrint(string.rep(" ", 47))
 	centerWrite(string.rep(" ", 47))
 	centerPrint("Firewolf Help")
@@ -1803,12 +1803,13 @@ pages.help = function(site)
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
-	local opt = prompt({{"Getting Started", 7, 9}, {"Making a Theme", 7, 11}, 
-		{"API Documentation", 7, 13}}, "vertical")
 	term.setCursorPos(7, 15)
 	write("View the full documentation here:")
 	term.setCursorPos(7, 16)
 	write("https://github.com/1lann/Firewolf/wiki")
+
+	local opt = prompt({{"Getting Started", 7, 8}, {"Making a Theme", 7, 10}, 
+		{"API Documentation", 7, 12}}, "vertical")
 	local pages = {}
 	if opt == "Getting Started" then
 		pages[1] = {title = "Getting Started - Intoduction", content = {
