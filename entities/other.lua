@@ -8,16 +8,6 @@
 --  RednetExplorer Made by ComputerCraftFan11
 --  
 
---  In this version:
---  - Improved server management in preparation for HTTP support
---  - Improved updating system
---  - Built-in databases
---  - Massively sped up starting sequence
---  - ID conflicts resolver
---  - Removed rdnt://getinfo
---  - Removed rdnt://update
---  - Removed sub-directories in servers
-
 
 --  -------- Variables
 
