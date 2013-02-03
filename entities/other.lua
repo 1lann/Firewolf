@@ -951,6 +951,7 @@ protocols.rdnt.getSearchResults = function()
 
 					local x = false
 					if conflict[i] then
+						x = true
 						table.insert(conflict[i], id)
 					else
 						for m,n in pairs(dnsDatabase[1]) do
