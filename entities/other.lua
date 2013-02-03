@@ -955,6 +955,7 @@ protocols.rdnt.getSearchResults = function()
 						table.insert(conflict[i], id)
 					else
 						for m,n in pairs(dnsDatabase[1]) do
+							debugLog("Comparing", n,i)
 							if n:lower() == i:lower() then
 								x = true
 								debugLog("Removin", n)
