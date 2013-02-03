@@ -953,6 +953,7 @@ protocols.rdnt = {}
 protocols.rdnt.getSearchResults = function()
 	local resultIDs = {}
 	dnsDatabase = {[1] = {}, [2] = {}}
+	local conflict = {}
 
 	rednet.broadcast("firewolf.broadcast.dns.list")
 	local startClock = os.clock()
@@ -969,10 +970,19 @@ protocols.rdnt.getSearchResults = function()
 
 					local x = false
 					for m,n in pairs(dnsDatabase[1]) do
-						if n:lower() == i:lower() then x = true end
+						if n:lower() == i:lower() then
+							table.remove(dnsDatabase[1], m)
+							table.remove(dnsDatabase[2], m)
+							if conflict[i] then
+								table.insert(conflict[i], id)
+							else
+								conflict[i] = {}
+								table.insert(conflict[i], id)
+							end
+						end
 					end
 
-					if not(x) and resultIDs[tostring(id)] <= 3 then
+					if resultIDs[tostring(id)] <= 3 then
 						if not(i:find("rdnt://")) then i = ("rdnt://" .. i) end
 						table.insert(dnsDatabase[1], i)
 						table.insert(dnsDatabase[2], id)
@@ -982,6 +992,11 @@ protocols.rdnt.getSearchResults = function()
 		else
 			break
 		end
+	end
+	for k,v in pairs(conflict) do
+		v = table.sort(v)
+		table.insert(dnsDatabase[1], k)
+		table.insert(dnsDatabase[2], v[1])
 	end
 
 	return dnsDatabase[1]
