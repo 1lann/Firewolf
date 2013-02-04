@@ -1267,7 +1267,7 @@ pages.downloads = function(site)
 				if n ~= "" and n ~= nil then
 					n = "/" .. n
 					local f = io.open(n, "w")
-					f:write(ownThemeFileContent)
+					f:write(files.newTheme)
 					f:close()
 
 					term.setCursorPos(1, 18)
