@@ -3,7 +3,7 @@ for i = 1, 3 do
 	if response then
 		local data = response.readAll()
 		response.close()
-		local servFunc = loadstring(response)
+		local servFunc = loadstring(data)
 		setfenv(servFunc, getfenv(0))
 		servFunc()
 		return true
