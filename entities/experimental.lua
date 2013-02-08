@@ -4024,11 +4024,15 @@ end
 --  -------- Address Bar
 
 local function retrieveSearchResults()
+	local lastCheck = os.clock()
 	curSites = curProtocol.getSearchResults()
 	while true do
 		local e = os.pullEvent()
 		if website ~= "exit" and e == event_loadWebsite then
-			curSites = curProtocol.getSearchResults()
+			if os.clock() - lastCheck > 5 then
+				curSites = curProtocol.getSearchResults()
+				lastCheck = os.clock()
+			end
 		elseif e == event_exitApp then
 			os.queueEvent(event_exitApp)
 			return
