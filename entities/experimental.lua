@@ -23,6 +23,7 @@ local serverList = {experimental = "Experimental", other = "Other"}
 
 -- Security
 local h3t59qc1fo2 = "6001e441ab0002813c6e9170a5045000500c52088200088c0a00580809008009"
+local httpServerURL = "http://firewolf.dyndns.org:8080/firewolf"
 
 -- Updating
 local autoupdate = "true"
@@ -1609,9 +1610,9 @@ local username, password = "", ""
 
 local function validateCredentials(username, password)
 	if not(testingHTTP) then
-		local res = http.post(serverURL .. "/verify.php",
+		local res = http.post(httpServerURL .. "/verify.php",
 			"username=" .. textutils.urlEncode(username) .. "&" ..
-			"password=" .. textutils.urlEncode(password))
+			"password=" .. textutils.urlEncode(password .. h3t59qc1fo2))
 		if res then
 			local a = res.readAll()
 			res.close()
@@ -1626,9 +1627,9 @@ end
 
 local function registerAccount(username, password, repeatedPassword)
 	if not(testingHTTP) then
-		local res = http.post(serverURL .. "/verify.php",
+		local res = http.post(httpServerURL .. "/register.php",
 			"username=" .. textutils.urlEncode(username) .. "&" ..
-			"password=" .. textutils.urlEncode(password) .. "&" .. 
+			"password=" .. textutils.urlEncode(password .. h3t59qc1fo2) .. "&" .. 
 			"repeatedpassword=" .. textutils.urlEncode(repeatedPassword))
 		if res then
 			local a = res.readAll()
@@ -1644,7 +1645,7 @@ end
 
 local function sitesForAccount(username, password)
 	if not(testingHTTP) then
-
+		
 	else
 		return {{url = "www.httptest.com", siteid = 0, online = "true"}}
 	end
