@@ -8,6 +8,9 @@
 --  RednetExplorer Made by ComputerCraftFan11
 --  
 
+--  HTTP Support
+--  
+
 
 --  -------- Variables
 
@@ -1044,6 +1047,26 @@ local function appendToHistory(site)
 	end
 end
 
+local function checkForModem(display)
+	while true do
+		local present = false
+		for _, v in pairs(rs.getSides()) do
+			if peripheral.getType(v) == "modem" then
+				rednet.open(v)
+				present = true
+				break
+			end
+		end
+
+		if not(present) and type(display) == "function" then
+			display()
+			os.pullEvent("peripheral")
+		else
+			return true
+		end
+	end
+end
+
 
 --  -------- Databases
 
@@ -1245,11 +1268,46 @@ end
 
 protocols.http.getSearchResults = function(input)
 	dnsDatabase = {[1] = {}, [2] = {}}
+	local res = http.post(httpServerURL .. "/search.php", 
+		"password=" .. textutils.urlEncode(h3t59qc1fo2))
+	if res then
+		local a = res.readAll()
+		res.close()
+		if a:find("true") then
+			local b = textutils.unserialize(a:gsub("true\n", ""))
+			for _, v in pairs(b) do
+				table.insert(dnsDatabase[1], v.url)
+				table.insert(dnsDatabase[2], v.siteid)
+			end
+		end
+	end
+
 	return dnsDatabase[1]
 end
 
 protocols.http.getWebsite = function(site)
-	return nil, nil, nil
+	local id, content, status = nil, nil, nil
+
+	if site:sub(-1, -1) == "/" then site = site:sub(1, -2):gsub("http://", "") end
+	local url, page = "", "home"
+	if site:find("/") then
+		url = site:sub(1, site:find("/") - 1)
+		page = site:sub(site:find("/") + 1, -1)
+	end
+
+	local res = http.post(httpServerURL .. "/get.php",
+		"password=" .. textutils.urlEncode(h3t59qc1fo2) .. "&" ..
+		"url=" .. textutils.urlEncode(url) .. "&" .. 
+		"page=" .. textutils.urlEncode(page))
+	if res then
+		local a = res.readAll()
+		res.close()
+		if a:find("true\n") then
+			id, content, status = -1, a:sub(11, -5), "safe"
+		end
+	end
+
+	return id, content, status
 end
 
 
@@ -1263,9 +1321,16 @@ local errPages = {}
 pages.firewolf = function(site)
 	internalWebsite = true
 	clearPage(site, colors[theme["background"]])
-	print("")
 	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["background"]])
+
+	term.setCursorPos(3, 2)
+	write("^")
+	term.setCursorPos(3, 3)
+	write("|  Click to swap between protocols!")
+
 	term.setBackgroundColor(colors[theme["top-box"]])
+	term.setCursorPos(1, 5)
 	centerPrint(string.rep(" ", 43))
 	centerPrint([[         _,-='"-.__               /\_/\    ]])
 	centerPrint([[          -.}        =._,.-==-._.,  @ @._, ]])
@@ -1273,16 +1338,13 @@ pages.firewolf = function(site)
 	centerPrint([[ Firewolf ]] .. version .. string.rep(" ", 8 - version:len()) ..
 		[["     G..m-"^m m'        ]])
 	centerPrint(string.rep(" ", 43))
-	print("\n")
+	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
-	centerPrint("  News:                       [- Sites -]  ")
-	centerPrint("  - Version 2.3.8 has just been released!  ")
-	centerPrint("    Check it out on the forums! It has     ")
-	centerPrint("    a massive overhaul of all the systems  ")
-	centerPrint("  - Version 2.3.7 has been released! It    ")
-	centerPrint("    includes a new mini menu and help!     ")
+	centerPrint("  Visit rdnt://help for help!              ")
+	centerPrint("  Visit rdnt://sites for built in sites!   ")
+	centerPrint("  Visit rdnt://exit to exit!               ")
 	centerPrint(string.rep(" ", 43))
 
 	while true do
@@ -1291,7 +1353,6 @@ pages.firewolf = function(site)
 			redirect("sites")
 			return
 		elseif e == event_exitWebsite then
-			os.queueEvent(event_exitWebsite)
 			return
 		end
 	end
@@ -1339,7 +1400,6 @@ pages.sites = function(site)
 				end
 			end
 		elseif e == event_exitWebsite then
-			os.queueEvent(event_exitWebsite)
 			return
 		end
 	end
@@ -1363,7 +1423,15 @@ pages.history = function(site)
 		for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 
 		local a = {"Clear History"}
-		for i, v in ipairs(history) do table.insert(a, v) end
+		for i, v in ipairs(history) do 
+			if not(v:find("rdnt://")) or not(v:find("http://")) then
+				history[i] = "rdnt://" .. history[i]
+				local f = io.open(historyLocation, "w")
+				f:write(textutils.serialize(history))
+				f:close()
+			end
+			table.insert(a, history[i]) 
+		end
 		local opt = scrollingPrompt(a, 6, 8, 10, 40)
 		if opt == "Clear History" then
 			history = {}
@@ -1400,7 +1468,6 @@ pages.history = function(site)
 			redirect(opt:gsub("rdnt://", ""):gsub("http://", ""))
 			return
 		elseif opt == nil then
-			os.queueEvent(event_exitWebsite)
 			return
 		end
 	else
@@ -1457,7 +1524,6 @@ pages.downloads = function(site)
 			for i = 1, 12 do centerPrint(string.rep(" ", 47)) end
 			local t = scrollingPrompt(c, 4, 8, 10, 44)
 			if t == nil then
-				os.queueEvent(event_exitWebsite)
 				return
 			elseif t == "Make my Own" then
 				term.setCursorPos(6, 18)
@@ -1477,7 +1543,6 @@ pages.downloads = function(site)
 					sleep(1.1)
 					openAddressBar = true
 				elseif n == nil then
-					os.queueEvent(event_exitWebsite)
 					return
 				end
 			elseif t == "Load my Own" then
@@ -1518,7 +1583,6 @@ pages.downloads = function(site)
 						openAddressBar = true
 					end
 				elseif n == nil then
-					os.queueEvent(event_exitWebsite)
 					return
 				end
 			else
@@ -1592,13 +1656,11 @@ pages.downloads = function(site)
 
 		local opt = prompt({{"Back", -1, 11}}, "vertical")
 		if opt == nil then
-			os.queueEvent(event_exitWebsite)
 			return
 		elseif opt == "Back" then
 			redirect("downloads")
 		end
 	elseif opt == nil then
-		os.queueEvent(event_exitWebsite)
 		return
 	end
 end
@@ -1618,7 +1680,7 @@ local function validateCredentials(username, password)
 			res.close()
 			return a
 		else
-			return "false"
+			return "Failed to Connect"
 		end
 	else
 		return "true"
@@ -1636,7 +1698,7 @@ local function registerAccount(username, password, repeatedPassword)
 			res.close()
 			return a
 		else
-			return "false"
+			return "Failed to Connect"
 		end
 	else
 		return "true"
@@ -1645,9 +1707,22 @@ end
 
 local function sitesForAccount(username, password)
 	if not(testingHTTP) then
-		
+		local res = http.post(httpServerURL .. "/account_sites.php",
+			"username=" .. textutils.urlEncode(username) .. "&" ..
+			"password=" .. textutils.urlEncode(password .. h3t59qc1fo2))
+		if res then
+			local a = res.readAll()
+			res.close()
+			if a:find("true") then
+				return textutils.unserialize(a:gsub("true\n", ""))
+			else
+				return a
+			end
+		else
+			return "Failed to Connect"
+		end
 	else
-		return {{url = "www.httptest.com", siteid = 0, online = "true"}}
+		return {{url = "www.httptest.com", owner = username, siteid = 0, online = "true"}}
 	end
 end
 
@@ -1669,7 +1744,17 @@ end
 
 local function createSite(username, password, url)
 	if not(testingHTTP) then
-
+		local res = http.post(httpServerURL .. "/upload_site.php",
+			"username=" .. textutils.urlEncode(username) .. "&" ..
+			"password=" .. textutils.urlEncode(password .. h3t59qc1fo2) .. "&" .. 
+			"url=" .. textutils.urlEncode(url))
+		if res then
+			local a = res.readAll()
+			res.close()
+			return a
+		else
+			return "Failed to Connect"
+		end
 	else
 		return "true"
 	end
@@ -1823,7 +1908,8 @@ local function manageServers(site, protocol, reloadServers, onNewServer, onStart
 							end
 						end
 					elseif x >= 30 and x <= 40 and y == 10 and #servers > 0 then
-						onStart(disList[sel])
+						startServerName = onStart(disList[sel])
+						if startServerName == nil then startServerName = "Start" end
 						servers = reloadServers()
 						break
 					elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
@@ -1865,7 +1951,6 @@ local function manageServers(site, protocol, reloadServers, onNewServer, onStart
 			for _, v in pairs(servers) do table.insert(a, v) end
 			local server = scrollingPrompt(a, 4, 8, 10)
 			if server == nil then
-				os.queueEvent(event_exitWebsite)
 				return
 			elseif server == "New Server" then
 				onNewServer()
@@ -1973,7 +2058,6 @@ local function newServer(onCreate)
 	write("Name: ")
 	local name = modRead(nil, nil, 28, true)
 	if name == nil then
-		os.queueEvent(event_exitWebsite)
 		return
 	end
 	term.setCursorPos(5, 11)
@@ -1982,7 +2066,6 @@ local function newServer(onCreate)
 	write("rdnt://")
 	local url = modRead(nil, nil, 33)
 	if url == nil then
-		os.queueEvent(event_exitWebsite)
 		return
 	end
 	url = url:gsub(" ", "")
@@ -2124,6 +2207,8 @@ local function serverHTTP(site, auser, apass)
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	local sites = sitesForAccount(username, password)
 	if type(sites) == "table" then
+		local n = "Start"
+		if sites[1] and sites[1].online == "true" then n = "Stop" end
 		manageServers(site, "http", function()
 			sites = sitesForAccount(username, password)
 			local a = {}
@@ -2138,8 +2223,10 @@ local function serverHTTP(site, auser, apass)
 			for _, v in pairs(sites) do if v.url == url then data = v end end
 
 			local new = "true"
-			if v.online == "true" then new = "false" end
+			local newt = "Stop"
+			if v.online == "true" then new = "false" newt = "Start" end
 			setOnline(username, password, v.id, new)
+			return newt
 		end, function(server)
 			local data = nil
 			for _, v in pairs(sites) do if v.url == url then data = v end end
@@ -2155,7 +2242,7 @@ local function serverHTTP(site, auser, apass)
 			local data = nil
 			for _, v in pairs(sites) do if v.url == url then data = v end end
 			deleteSite(username, password, data.siteid)
-		end)
+		end, n)
 	else
 		for i = 1, 7 do centerPrint(string.rep(" ", 47)) end
 		term.setCursorPos(1, 8)
@@ -2201,7 +2288,7 @@ local function serverRDNT(site)
 		shell.run(serverSoftwareLocation, server, serverFolder .. "/" .. server)
 		setfenv(1, env)
 		openAddressBar = true
-		errPages.checkForModem()
+		checkForModem(true)
 	end, function(server)
 		editPages(serverFolder .. "/" .. server)
 		openAddressBar = true
@@ -2369,7 +2456,6 @@ pages.help = function(site)
 			"https://github.com/1lann/Firewolf/wiki"
 		}}
 	elseif opt == nil then
-		os.queueEvent(event_exitWebsite)
 		return
 	end
 
@@ -2410,7 +2496,6 @@ pages.help = function(site)
 		elseif opt == "Back" then
 			break
 		elseif opt == nil then
-			os.queueEvent(event_exitWebsite)
 			return
 		end
 
@@ -2457,7 +2542,6 @@ pages.settings = function(site)
 			write("rdnt://")
 			local a = modRead(nil, nil, 30)
 			if a == nil then
-				os.queueEvent(event_exitWebsite)
 				return
 			end
 			if a ~= "" then homepage = a end
@@ -2500,7 +2584,6 @@ pages.settings = function(site)
 				return
 			elseif opt == nil then
 				openAddressBar = true
-				os.queueEvent(event_exitWebsite)
 				return
 			end
 
@@ -2569,7 +2652,6 @@ pages.settings = function(site)
 				end
 			end
 		elseif opt == nil then
-			os.queueEvent(event_exitWebsite)
 			return
 		end
 
@@ -2720,782 +2802,761 @@ errPages.crash = function(err)
 	end
 end
 
-errPages.checkForModem = function()
-	while true do
-		local present = false
-		for _, v in pairs(rs.getSides()) do
-			if peripheral.getType(v) == "modem" then
-				rednet.open(v)
-				present = true
-				break
-			end
-		end
-
-		if not(present) then
-			website = "nomodem"
-			clearPage("nomodem", colors[theme["background"]])
-			print("")
-			term.setTextColor(colors[theme["text-color"]])
-			term.setBackgroundColor(colors[theme["top-box"]])
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
-			centerPrint("No Modem Attached! D:")
-			centerPrint(string.rep(" ", 43))
-			print("")
-
-			term.setBackgroundColor(colors[theme["bottom-box"]])
-			centerPrint(string.rep(" ", 43))
-			centerPrint("  No wireless modem was found on this      ")
-			centerPrint("  computer, and Firewolf is not able to    ")
-			centerPrint("  run without one!                         ")
-			centerPrint(string.rep(" ", 43))
-			centerWrite(string.rep(" ", 43))
-			centerPrint("Waiting for a modem to be attached...")
-			centerWrite(string.rep(" ", 43))
-			if isAdvanced() then centerPrint("Click to exit...")
-			else centerPrint("Press any key to exit...") end
-			centerPrint(string.rep(" ", 43))
-
-			while true do
-				local e, id = os.pullEvent()
-				if e == "key" or e == "mouse_click" then return false
-				elseif e == "peripheral" then break end
-			end
-		else
-			return true
-		end
-	end
-end
-
 --  Run Pages
 
-local function loadSite(site)
-	local shellAllowed = false
-	local function runSite(cacheLoc, antivirusEnv)
-		if not(antivirusEnv) then
-			antivirusEnv = {}
-			nenv = {}
-		end
+local shellAllowed = false
+local function runSite(cacheLoc, antivirusEnv)
+	if not(antivirusEnv) then
+		antivirusEnv = {}
+		nenv = {}
+	end
 
-		-- Clear
-		clearPage(site, colors.black)
-		term.setBackgroundColor(colors.black)
-		term.setTextColor(colors.white)
+	-- Clear
+	clearPage(site, colors.black)
+	term.setBackgroundColor(colors.black)
+	term.setTextColor(colors.white)
 
-		-- Setup environment
-		local cbc, ctc = colors.black, colors.white
-		local nenv = antivirusEnv
-		local safeFunc = true
-		local unsafeFunc = {}
-		if antivirusEnv[1] ~= "firewolf-override" then
-			unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
-				"getfenv", "setfenv", "rawset"}
+	-- Setup environment
+	local cbc, ctc = colors.black, colors.white
+	local nenv = antivirusEnv
+	local safeFunc = true
+	local unsafeFunc = {}
+	if antivirusEnv[1] ~= "firewolf-override" then
+		unsafeFunc = {"os", "shell", "fs", "io", "loadstring", "loadfile", "dofile", 
+			"getfenv", "setfenv", "rawset"}
+	end
+	for k, v in pairs(env) do 
+		safeFunc = true
+		for ki, vi in pairs(unsafeFunc) do
+			if k == vi then safeFunc = false break end
 		end
-		for k, v in pairs(env) do 
-			safeFunc = true
-			for ki, vi in pairs(unsafeFunc) do
-				if k == vi then safeFunc = false break end
-			end
-			if safeFunc then
-				if type(v) ~= "table" then nenv[k] = v
-				else
-					nenv[k] = {}
-					for i, d in pairs(v) do nenv[k][i] = d end
-				end
+		if safeFunc then
+			if type(v) ~= "table" then nenv[k] = v
+			else
+				nenv[k] = {}
+				for i, d in pairs(v) do nenv[k][i] = d end
 			end
 		end
-		nenv.term = {}
+	end
+	nenv.term = {}
 
-		local function ospullEvent(a)
-			if a == "derp" then return true end
-			while true do
-				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
-				if e == event_exitWebsite then
-					queueWebsiteExit = true
-					env.error(event_exitWebsite)
-				elseif e == "terminate" then
-					env.error()
-				end
+	local function ospullEvent(a)
+		if a == "derp" then return true end
+		while true do
+			local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
+			if e == event_exitWebsite then
+				queueWebsiteExit = true
+				env.error(event_exitWebsite)
+			elseif e == "terminate" then
+				env.error()
+			end
 
-				if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
-						and e ~= event_loadWebsite then
-					if a then
-						if e == a then return e, p1, p2, p3, p4, p5 end
-					else return e, p1, p2, p3, p4, p5 end
-				end
+			if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
+					and e ~= event_loadWebsite then
+				if a then
+					if e == a then return e, p1, p2, p3, p4, p5 end
+				else return e, p1, p2, p3, p4, p5 end
 			end
 		end
+	end
 
-		nenv.term.getSize = function()
-			local wid, hei = env.term.getSize()
-			return wid, hei - 1
-		end
+	nenv.term.getSize = function()
+		local wid, hei = env.term.getSize()
+		return wid, hei - 1
+	end
 
-		nenv.term.setCursorPos = function(x, y)
-			if not(y > 0) then y = 1 end
-			return env.term.setCursorPos(x, y + 1)
-		end
+	nenv.term.setCursorPos = function(x, y)
+		if not(y > 0) then y = 1 end
+		return env.term.setCursorPos(x, y + 1)
+	end
 
-		nenv.term.getCursorPos = function()
-			local x, y = env.term.getCursorPos()
-			return x, y + 1
-		end
+	nenv.term.getCursorPos = function()
+		local x, y = env.term.getCursorPos()
+		return x, y + 1
+	end
 
-		nenv.term.clear = function()
-			local x, y = env.term.getCursorPos()
-			api.clearPage(website, cbc, nil, ctc)
-			env.term.setCursorPos(x, y)
-		end
+	nenv.term.clear = function()
+		local x, y = env.term.getCursorPos()
+		api.clearPage(website, cbc, nil, ctc)
+		env.term.setCursorPos(x, y)
+	end
 
-		nenv.term.setBackgroundColor = function(col)
-			cbc = col
-			return env.term.setBackgroundColor(col)
-		end
+	nenv.term.setBackgroundColor = function(col)
+		cbc = col
+		return env.term.setBackgroundColor(col)
+	end
 
-		nenv.term.setBackgroundColour = function(col)
-			cbc = col
-			return env.term.setBackgroundColour(col)
-		end
+	nenv.term.setBackgroundColour = function(col)
+		cbc = col
+		return env.term.setBackgroundColour(col)
+	end
 
-		nenv.term.getBackgroundColor = function()
-			return cbc
-		end
+	nenv.term.getBackgroundColor = function()
+		return cbc
+	end
 
-		nenv.term.getBackgroundColour = function()
-			return cbc
-		end
+	nenv.term.getBackgroundColour = function()
+		return cbc
+	end
 
-		nenv.term.setTextColor = function(col)
-			ctc = col
-			return env.term.setTextColor(col)
-		end
+	nenv.term.setTextColor = function(col)
+		ctc = col
+		return env.term.setTextColor(col)
+	end
 
-		nenv.term.setTextColour = function(col)
-			ctc = col
-			return env.term.setTextColour(col)
-		end
+	nenv.term.setTextColour = function(col)
+		ctc = col
+		return env.term.setTextColour(col)
+	end
 
-		nenv.term.getTextColour = function()
-			return ctc
-		end
+	nenv.term.getTextColour = function()
+		return ctc
+	end
 
-		nenv.term.getTextColor = function()
-			return ctc
-		end
+	nenv.term.getTextColor = function()
+		return ctc
+	end
 
-		nenv.term.write = function(text)
-			return env.term.write(text)
-		end
+	nenv.term.write = function(text)
+		return env.term.write(text)
+	end
 
-		nenv.term.setCursorBlink = function(bool)
-			return env.term.setCursorBlink(bool)
-		end
+	nenv.term.setCursorBlink = function(bool)
+		return env.term.setCursorBlink(bool)
+	end
 
-		nenv.write = function(text)
-			return env.write(text)
-		end
+	nenv.write = function(text)
+		return env.write(text)
+	end
 
-		nenv.print = function(...)
-			return env.print(...)
-		end
+	nenv.print = function(...)
+		return env.print(...)
+	end
 
-		nenv.term.isColor = function()
-			return isAdvanced()
-		end
+	nenv.term.isColor = function()
+		return isAdvanced()
+	end
 
-		nenv.term.isColour = function()
-			return isAdvanced()
-		end
+	nenv.term.isColour = function()
+		return isAdvanced()
+	end
 
-		local oldScroll = term.scroll
-		term.scroll = function(n)
-			local x, y = env.term.getCursorPos()
-			oldScroll(n)
-			clearPage(website, cbc, true)
-			env.term.setCursorPos(x, y)
-		end
+	local oldScroll = term.scroll
+	term.scroll = function(n)
+		local x, y = env.term.getCursorPos()
+		oldScroll(n)
+		clearPage(website, cbc, true)
+		env.term.setCursorPos(x, y)
+	end
 
-		nenv.prompt = function(list, dir)
-			local fixPrompt = function(list, dir)
-				if isAdvanced() then
-					for _, v in pairs(list) do
-						if v.bg then term.setBackgroundColor(v.bg) end
-						if v.tc then term.setTextColor(v.tc) end
-						if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 6)/2) end
+	nenv.prompt = function(list, dir)
+		local fixPrompt = function(list, dir)
+			if isAdvanced() then
+				for _, v in pairs(list) do
+					if v.bg then term.setBackgroundColor(v.bg) end
+					if v.tc then term.setTextColor(v.tc) end
+					if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 6)/2) end
 
-						term.setCursorPos(v[2], v[3])
-						write("[- " .. v[1])
-						term.setCursorPos(v[2] + v[1]:len() + 3, v[3])
-						write(" -]")
-					end
+					term.setCursorPos(v[2], v[3])
+					write("[- " .. v[1])
+					term.setCursorPos(v[2] + v[1]:len() + 3, v[3])
+					write(" -]")
+				end
 
-					while true do
-						local e, but, x, y = ospullEvent()
-						if e == "mouse_click" then
-							for _, v in pairs(list) do
-								if x >= v[2] and x <= v[2] + v[1]:len() + 5 and y == v[3] then
-									return v[1]
-								end
+				while true do
+					local e, but, x, y = ospullEvent()
+					if e == "mouse_click" then
+						for _, v in pairs(list) do
+							if x >= v[2] and x <= v[2] + v[1]:len() + 5 and y == v[3] then
+								return v[1]
 							end
-						elseif e == event_exitWebsite then
-							os.queueEvent(event_exitWebsite)
-							return nil
 						end
+					elseif e == event_exitWebsite then
+						os.queueEvent(event_exitWebsite)
+						return nil
 					end
-				else
-					for _, v in pairs(list) do
-						term.setBackgroundColor(colors.black)
-						term.setTextColor(colors.white)
-						if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 4)/2) end
+				end
+			else
+				for _, v in pairs(list) do
+					term.setBackgroundColor(colors.black)
+					term.setTextColor(colors.white)
+					if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 4)/2) end
 
-						term.setCursorPos(v[2], v[3])
-						write("  " .. v[1])
-						term.setCursorPos(v[2] + v[1]:len() + 2, v[3])
-						write("  ")
+					term.setCursorPos(v[2], v[3])
+					write("  " .. v[1])
+					term.setCursorPos(v[2] + v[1]:len() + 2, v[3])
+					write("  ")
+				end
+
+				local key1 = 200
+				local key2 = 208
+				if dir == "horizontal" then
+					key1 = 203
+					key2 = 205
+				end
+
+				local curSel = 1
+				term.setCursorPos(list[curSel][2], list[curSel][3])
+				write("[")
+				term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, 
+					list[curSel][3])
+				write("]")
+
+				while true do
+					local e, key = ospullEvent()
+					term.setCursorPos(list[curSel][2], list[curSel][3])
+					write(" ")
+					term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, 
+						list[curSel][3])
+					write(" ")
+					if e == "key" and key == key1 and curSel > 1 then
+						curSel = curSel - 1
+					elseif e == "key" and key == key2 and curSel < #list then
+						curSel = curSel + 1
+					elseif e == "key" and key == 28 then
+						return list[curSel][1]
+					elseif e == event_exitWebsite then
+						os.queueEvent(event_exitWebsite)
+						return nil
 					end
-
-					local key1 = 200
-					local key2 = 208
-					if dir == "horizontal" then
-						key1 = 203
-						key2 = 205
-					end
-
-					local curSel = 1
 					term.setCursorPos(list[curSel][2], list[curSel][3])
 					write("[")
 					term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, 
 						list[curSel][3])
 					write("]")
-
-					while true do
-						local e, key = ospullEvent()
-						term.setCursorPos(list[curSel][2], list[curSel][3])
-						write(" ")
-						term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, 
-							list[curSel][3])
-						write(" ")
-						if e == "key" and key == key1 and curSel > 1 then
-							curSel = curSel - 1
-						elseif e == "key" and key == key2 and curSel < #list then
-							curSel = curSel + 1
-						elseif e == "key" and key == 28 then
-							return list[curSel][1]
-						elseif e == event_exitWebsite then
-							os.queueEvent(event_exitWebsite)
-							return nil
-						end
-						term.setCursorPos(list[curSel][2], list[curSel][3])
-						write("[")
-						term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, 
-							list[curSel][3])
-						write("]")
-					end
 				end
 			end
-
-			local a = {}
-			for k, v in pairs(list) do
-				local b, t = v.b, v.t
-				if b == nil then b = cbg end
-				if t == nil then t = ctc end
-				table.insert(a, {v[1], v[2], v[3] + 1, bg = b, tc = t})
-			end
-
-			return fixPrompt(a, dir)
 		end
 
-		nenv.scrollingPrompt = function(list, x, y, len, width)
-			local y = y + 1
-			local wid = width
-			if wid == nil then wid = w - 3 end
+		local a = {}
+		for k, v in pairs(list) do
+			local b, t = v.b, v.t
+			if b == nil then b = cbg end
+			if t == nil then t = ctc end
+			table.insert(a, {v[1], v[2], v[3] + 1, bg = b, tc = t})
+		end
 
-			local function updateDisplayList(items, loc, len)
-				local ret = {}
-				for i = 1, len do
-					local item = items[i + loc - 1]
-					if item ~= nil then table.insert(ret, item) end
+		return fixPrompt(a, dir)
+	end
+
+	nenv.scrollingPrompt = function(list, x, y, len, width)
+		local y = y + 1
+		local wid = width
+		if wid == nil then wid = w - 3 end
+
+		local function updateDisplayList(items, loc, len)
+			local ret = {}
+			for i = 1, len do
+				local item = items[i + loc - 1]
+				if item ~= nil then table.insert(ret, item) end
+			end
+			return ret
+		end
+
+		if isAdvanced() then
+			local function draw(a)
+				for i, v in ipairs(a) do
+					term.setCursorPos(1, y + i - 1)
+					api.centerWrite(string.rep(" ", wid + 2))
+					term.setCursorPos(x, y + i - 1)
+					write("[ " .. v:sub(1, wid - 5))
+					term.setCursorPos(wid + x - 2, y + i - 1)
+					write("  ]")
 				end
-				return ret
 			end
 
-			if isAdvanced() then
-				local function draw(a)
-					for i, v in ipairs(a) do
-						term.setCursorPos(1, y + i - 1)
-						api.centerWrite(string.rep(" ", wid + 2))
-						term.setCursorPos(x, y + i - 1)
-						write("[ " .. v:sub(1, wid - 5))
-						term.setCursorPos(wid + x - 2, y + i - 1)
-						write("  ]")
+			local loc = 1
+			local disList = updateDisplayList(list, loc, len)
+			draw(disList)
+			
+			while true do
+				local e, but, clx, cly = ospullEvent()
+				if e == "key" and but == 200 and loc > 1 then
+					loc = loc - 1
+					disList = updateDisplayList(list, loc, len)
+					draw(disList)
+				elseif e == "key" and but == 208 and loc + len - 1 < #list then
+					loc = loc + 1
+					disList = updateDisplayList(list, loc, len)
+					draw(disList)
+				elseif e == "mouse_scroll" and but > 0 and loc + len - 1 < #list then
+					loc = loc + but
+					disList = updateDisplayList(list, loc, len)
+					draw(disList)
+				elseif e == "mouse_scroll" and but < 0 and loc > 1 then
+					loc = loc + but
+					disList = updateDisplayList(list, loc, len)
+					draw(disList)
+				elseif e == "mouse_click" then
+					for i, v in ipairs(disList) do
+						if clx >= x and clx <= x + wid and cly == i + y - 1 then
+							return v
+						end
 					end
+				elseif e == event_exitWebsite then
+					os.queueEvent(event_exitWebsite)
+					return nil
 				end
+			end
+		else
+			local function draw(a)
+				for i, v in ipairs(a) do
+					term.setCursorPos(1, y + i - 1)
+					api.centerWrite(string.rep(" ", wid + 2))
+					term.setCursorPos(x, y + i - 1)
+					write("[ ] " .. v:sub(1, wid - 5))
+				end
+			end
 
-				local loc = 1
-				local disList = updateDisplayList(list, loc, len)
-				draw(disList)
-				
-				while true do
-					local e, but, clx, cly = ospullEvent()
-					if e == "key" and but == 200 and loc > 1 then
+			local loc = 1
+			local curSel = 1
+			local disList = updateDisplayList(list, loc, len)
+			draw(disList)
+			term.setCursorPos(x + 1, y + curSel - 1)
+			write("x")
+
+			while true do
+				local e, key = ospullEvent()
+				term.setCursorPos(x + 1, y + curSel - 1)
+				write(" ")
+				if e == "key" and key == 200 then
+					if curSel > 1 then
+						curSel = curSel - 1
+					elseif loc > 1 then
 						loc = loc - 1
 						disList = updateDisplayList(list, loc, len)
 						draw(disList)
-					elseif e == "key" and but == 208 and loc + len - 1 < #list then
+					end
+				elseif e == "key" and key == 208 then
+					if curSel < #disList then
+						curSel = curSel + 1
+					elseif loc + len - 1 < #list then
 						loc = loc + 1
 						disList = updateDisplayList(list, loc, len)
 						draw(disList)
-					elseif e == "mouse_scroll" and but > 0 and loc + len - 1 < #list then
-						loc = loc + but
-						disList = updateDisplayList(list, loc, len)
-						draw(disList)
-					elseif e == "mouse_scroll" and but < 0 and loc > 1 then
-						loc = loc + but
-						disList = updateDisplayList(list, loc, len)
-						draw(disList)
-					elseif e == "mouse_click" then
-						for i, v in ipairs(disList) do
-							if clx >= x and clx <= x + wid and cly == i + y - 1 then
-								return v
-							end
-						end
-					elseif e == event_exitWebsite then
-						os.queueEvent(event_exitWebsite)
-						return nil
 					end
+				elseif e == "key" and key == 28 then
+					return list[curSel + loc - 1]
+				elseif e == event_exitWebsite then
+					os.queueEvent(event_exitWebsite)
+					return nil
 				end
-			else
-				local function draw(a)
-					for i, v in ipairs(a) do
-						term.setCursorPos(1, y + i - 1)
-						api.centerWrite(string.rep(" ", wid + 2))
-						term.setCursorPos(x, y + i - 1)
-						write("[ ] " .. v:sub(1, wid - 5))
-					end
-				end
-
-				local loc = 1
-				local curSel = 1
-				local disList = updateDisplayList(list, loc, len)
-				draw(disList)
 				term.setCursorPos(x + 1, y + curSel - 1)
 				write("x")
+			end
+		end
+	end
 
-				while true do
-					local e, key = ospullEvent()
-					term.setCursorPos(x + 1, y + curSel - 1)
-					write(" ")
-					if e == "key" and key == 200 then
-						if curSel > 1 then
-							curSel = curSel - 1
-						elseif loc > 1 then
-							loc = loc - 1
-							disList = updateDisplayList(list, loc, len)
-							draw(disList)
+	nenv.loadImageFromServer = function(image)
+		sleep(0.05)
+		local mid, msgImage = curProtocol.getWebsite(site .. "/" .. image)
+		if mid then
+			local f = env.io.open(rootFolder .. "/temp_file", "w")
+			f:write(msgImage)
+			f:close()
+			local rImage = env.paintutils.loadImage(rootFolder .. "/temp_file")
+			fs.delete(rootFolder .. "/temp_file")
+			return rImage
+		end
+		return nil
+	end
+
+	nenv.ioReadFileFromServer = function(file)
+		sleep(0.05)
+		local mid, msgFile = curProtocol.getWebsite(site .. "/" .. file)
+		if mid then
+			local f = env.io.open(rootFolder .. "/temp_file", "w")
+			f:write(msgFile)
+			f:close()
+			local rFile = env.io.open(rootFolder .. "/temp_file", "r")
+			return rFile
+		end
+		return nil
+	end
+
+	--[[
+	nenv.getCookie = function(cookieId)
+		sleep(0.1)
+		env.rednet.send(id, textutils.serialize({"getCookie", cookieId}))
+		local startClock = os.clock()
+		while os.clock() - startClock < timeout do
+			local mid, status = env.rednet.receive(timeout)
+			if mid == id then
+				if status == "[$notexist$]" then
+					return false
+				elseif env.string.find(status, "[$cookieData$]") then
+					return env.string.gsub(status, "[$cookieData$]", "")
+				end
+			end
+		end
+		return false
+	end
+
+	nenv.takeFromCookieJar = function(cookieId)
+		nenv.getCookie(cookieId)
+	end
+
+	nenv.createCookie = function(cookieId)
+		sleep(0.1)
+		env.rednet.send(id, textutils.serialize({"createCookie", cookieId}))
+		local startClock = os.clock()
+		while os.clock() - startClock < timeout do
+			local mid, status = env.rednet.receive(timeout)
+			if mid == id then
+				if status == "[$notexist$]" then
+					return false
+				elseif env.string.find(status, "[$cookieData$]") then
+					return env.string.gsub(status, "[$cookieData$]", "")
+				end
+			end
+		end
+		return false
+	end
+
+	nenv.bakeCookie = function(cookieId)
+		nenv.createCookie(cookieId)
+	end
+
+	nenv.deleteCookie = function(cookieId)
+
+	end
+
+	nenv.eatCookie = function(cookieId)
+		nenv.deleteCookie(cookieId)
+	end
+	]]--
+
+	nenv.redirect = function(url)
+		api.redirect(url)
+		env.error()
+	end
+
+	if shellAllowed then
+		nenv.shell.run = function(file, ...)
+			if file == "clear" then
+				api.clearPage(website, cbc)
+				env.term.setCursorPos(1, 2)
+			else
+				env.shell.run(file, ...)
+			end
+		end
+	end
+
+	local queueWebsiteExit = false
+	nenv.os.pullEvent = function(a)
+		if a == "derp" then return true end
+		while true do
+			local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
+			if e == event_exitWebsite then
+				queueWebsiteExit = true
+				env.error(event_exitWebsite)
+			elseif e == "terminate" then
+				env.error()
+			end
+
+			if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
+					and e ~= event_loadWebsite then
+				if a then
+					if e == a then return e, p1, p2, p3, p4, p5 end
+				else return e, p1, p2, p3, p4, p5 end
+			end
+		end
+	end
+
+	nenv.sleep = function(_nTime)
+	    local timer = os.startTimer(_nTime)
+		repeat local _, param = ospullEvent("timer")
+		until param == timer
+	end
+
+	nenv.read = function(_sReplaceChar, _tHistory)
+		term.setCursorBlink(true)
+
+	    local sLine = ""
+		local nHistoryPos = nil
+		local nPos = 0
+	    if _sReplaceChar then
+			_sReplaceChar = string.sub(_sReplaceChar, 1, 1)
+		end
+		
+		local w, h = term.getSize()
+		local sx, sy = term.getCursorPos()
+		
+		local function redraw(_sCustomReplaceChar)
+			local nScroll = 0
+			if sx + nPos >= w then
+				nScroll = (sx + nPos) - w
+			end
+				
+			term.setCursorPos(sx, sy)
+			local sReplace = _sCustomReplaceChar or _sReplaceChar
+			if sReplace then
+				term.write(string.rep(sReplace, string.len(sLine) - nScroll))
+			else
+				term.write(string.sub(sLine, nScroll + 1))
+			end
+			term.setCursorPos(sx + nPos - nScroll, sy)
+		end
+		
+		while true do
+			local sEvent, param = ospullEvent()
+			if sEvent == "char" then
+				sLine = string.sub(sLine, 1, nPos) .. param .. string.sub(sLine, nPos + 1)
+				nPos = nPos + 1
+				redraw()
+				
+			elseif sEvent == "key" then
+			    if param == keys.enter then
+					break
+				elseif param == keys.left then
+					if nPos > 0 then
+						nPos = nPos - 1
+						redraw()
+					end
+				elseif param == keys.right then
+					if nPos < string.len(sLine) then
+						nPos = nPos + 1
+						redraw()
+					end
+				elseif param == keys.up or param == keys.down then
+					if _tHistory then
+						redraw(" ");
+						if param == keys.up then
+							if nHistoryPos == nil then
+								if #_tHistory > 0 then
+									nHistoryPos = #_tHistory
+								end
+							elseif nHistoryPos > 1 then
+								nHistoryPos = nHistoryPos - 1
+							end
+						else
+							if nHistoryPos == #_tHistory then
+								nHistoryPos = nil
+							elseif nHistoryPos ~= nil then
+								nHistoryPos = nHistoryPos + 1
+							end						
 						end
-					elseif e == "key" and key == 208 then
-						if curSel < #disList then
-							curSel = curSel + 1
-						elseif loc + len - 1 < #list then
-							loc = loc + 1
-							disList = updateDisplayList(list, loc, len)
-							draw(disList)
+						
+						if nHistoryPos then
+	                    	sLine = _tHistory[nHistoryPos]
+	                    	nPos = string.len(sLine) 
+	                    else
+							sLine = ""
+							nPos = 0
 						end
-					elseif e == "key" and key == 28 then
-						return list[curSel + loc - 1]
-					elseif e == event_exitWebsite then
-						os.queueEvent(event_exitWebsite)
-						return nil
+						redraw()
+	                end
+				elseif param == keys.backspace then
+					if nPos > 0 then
+						redraw(" ");
+						sLine = string.sub(sLine, 1, nPos - 1) .. string.sub(sLine, nPos + 1)
+						nPos = nPos - 1					
+						redraw()
 					end
-					term.setCursorPos(x + 1, y + curSel - 1)
-					write("x")
-				end
-			end
-		end
-
-		nenv.loadImageFromServer = function(image)
-			sleep(0.05)
-			local mid, msgImage = curProtocol.getWebsite(site .. "/" .. image)
-			if mid then
-				local f = env.io.open(rootFolder .. "/temp_file", "w")
-				f:write(msgImage)
-				f:close()
-				local rImage = env.paintutils.loadImage(rootFolder .. "/temp_file")
-				fs.delete(rootFolder .. "/temp_file")
-				return rImage
-			end
-			return nil
-		end
-
-		nenv.ioReadFileFromServer = function(file)
-			sleep(0.05)
-			local mid, msgFile = curProtocol.getWebsite(site .. "/" .. file)
-			if mid then
-				local f = env.io.open(rootFolder .. "/temp_file", "w")
-				f:write(msgFile)
-				f:close()
-				local rFile = env.io.open(rootFolder .. "/temp_file", "r")
-				return rFile
-			end
-			return nil
-		end
-
-		--[[
-		nenv.getCookie = function(cookieId)
-			sleep(0.1)
-			env.rednet.send(id, textutils.serialize({"getCookie", cookieId}))
-			local startClock = os.clock()
-			while os.clock() - startClock < timeout do
-				local mid, status = env.rednet.receive(timeout)
-				if mid == id then
-					if status == "[$notexist$]" then
-						return false
-					elseif env.string.find(status, "[$cookieData$]") then
-						return env.string.gsub(status, "[$cookieData$]", "")
+				elseif param == keys.home then
+					nPos = 0
+					redraw()		
+				elseif param == keys.delete then
+					if nPos < string.len(sLine) then
+						redraw(" ");
+						sLine = string.sub(sLine, 1, nPos) .. string.sub(sLine, nPos + 2)
+						redraw()
 					end
-				end
-			end
-			return false
-		end
-
-		nenv.takeFromCookieJar = function(cookieId)
-			nenv.getCookie(cookieId)
-		end
-
-		nenv.createCookie = function(cookieId)
-			sleep(0.1)
-			env.rednet.send(id, textutils.serialize({"createCookie", cookieId}))
-			local startClock = os.clock()
-			while os.clock() - startClock < timeout do
-				local mid, status = env.rednet.receive(timeout)
-				if mid == id then
-					if status == "[$notexist$]" then
-						return false
-					elseif env.string.find(status, "[$cookieData$]") then
-						return env.string.gsub(status, "[$cookieData$]", "")
-					end
-				end
-			end
-			return false
-		end
-
-		nenv.bakeCookie = function(cookieId)
-			nenv.createCookie(cookieId)
-		end
-
-		nenv.deleteCookie = function(cookieId)
-
-		end
-
-		nenv.eatCookie = function(cookieId)
-			nenv.deleteCookie(cookieId)
-		end
-		]]--
-
-		nenv.redirect = function(url)
-			api.redirect(url)
-			env.error()
-		end
-
-		if shellAllowed then
-			nenv.shell.run = function(file, ...)
-				if file == "clear" then
-					api.clearPage(website, cbc)
-					env.term.setCursorPos(1, 2)
-				else
-					env.shell.run(file, ...)
+				elseif param == keys["end"] then
+					nPos = string.len(sLine)
+					redraw()
 				end
 			end
 		end
+		
+		term.setCursorBlink(false)
+		term.setCursorPos(w + 1, sy)
+		print()
+		
+		return sLine
+	end
 
-		local queueWebsiteExit = false
-		nenv.os.pullEvent = function(a)
-			if a == "derp" then return true end
-			while true do
-				local e, p1, p2, p3, p4, p5 = env.os.pullEventRaw()
-				if e == event_exitWebsite then
-					queueWebsiteExit = true
-					env.error(event_exitWebsite)
-				elseif e == "terminate" then
-					env.error()
-				end
-
-				if e ~= event_exitWebsite and e ~= event_redirect and e ~= event_exitApp 
-						and e ~= event_loadWebsite then
-					if a then
-						if e == a then return e, p1, p2, p3, p4, p5 end
-					else return e, p1, p2, p3, p4, p5 end
-				end
-			end
-		end
-
-		nenv.sleep = function(_nTime)
-		    local timer = os.startTimer(_nTime)
-			repeat local _, param = ospullEvent("timer")
-			until param == timer
-		end
-
-		nenv.read = function(_sReplaceChar, _tHistory)
+	-- Download API
+	nenv.urlDownload = function(url)
+		local function webmodRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, 
+				exitOnControl)
 			term.setCursorBlink(true)
-
-		    local sLine = ""
-			local nHistoryPos = nil
-			local nPos = 0
-		    if _sReplaceChar then
-				_sReplaceChar = string.sub(_sReplaceChar, 1, 1)
-			end
-			
+			local line = ""
+			local hisPos = nil
+			local pos = 0
+			if replaceChar then replaceChar = replaceChar:sub(1, 1) end
 			local w, h = term.getSize()
 			local sx, sy = term.getCursorPos()
-			
-			local function redraw(_sCustomReplaceChar)
-				local nScroll = 0
-				if sx + nPos >= w then
-					nScroll = (sx + nPos) - w
-				end
-					
+
+			local function redraw(repl)
+				local scroll = 0
+				if line:len() >= maxLen then scroll = line:len() - maxLen end
+
 				term.setCursorPos(sx, sy)
-				local sReplace = _sCustomReplaceChar or _sReplaceChar
-				if sReplace then
-					term.write(string.rep(sReplace, string.len(sLine) - nScroll))
-				else
-					term.write(string.sub(sLine, nScroll + 1))
-				end
-				term.setCursorPos(sx + nPos - nScroll, sy)
+				local a = repl or replaceChar
+				if a then term.write(string.rep(a, line:len() - scroll))
+				else term.write(line:sub(scroll + 1)) end
+				term.setCursorPos(sx + pos - scroll, sy)
 			end
-			
+
 			while true do
-				local sEvent, param = ospullEvent()
-				if sEvent == "char" then
-					sLine = string.sub(sLine, 1, nPos) .. param .. string.sub(sLine, nPos + 1)
-					nPos = nPos + 1
+				local e, but, x, y, p4, p5 = ospullEvent()
+				if e == "char" and not(stopAtMaxLen == true and line:len() >= maxLen) then
+					line = line:sub(1, pos) .. but .. line:sub(pos + 1, -1)
+					pos = pos + 1
 					redraw()
-					
-				elseif sEvent == "key" then
-				    if param == keys.enter then
+				elseif e == "key" then
+					if but == keys.enter then
 						break
-					elseif param == keys.left then
-						if nPos > 0 then
-							nPos = nPos - 1
-							redraw()
+					elseif but == keys.left then
+						if pos > 0 then pos = pos - 1 redraw() end
+					elseif but == keys.right then
+						if pos < line:len() then pos = pos + 1 redraw() end
+					elseif (but == keys.up or but == keys.down) and his then
+						redraw(" ")
+						if but == keys.up then
+							if hisPos == nil and #his > 0 then hisPos = #his
+							elseif hisPos > 1 then hisPos = hisPos - 1 end
+						elseif but == keys.down then
+							if hisPos == #his then hisPos = nil
+							elseif hisPos ~= nil then hisPos = hisPos + 1 end
 						end
-					elseif param == keys.right then
-						if nPos < string.len(sLine) then
-							nPos = nPos + 1
-							redraw()
+
+						if hisPos then
+							line = his[hisPos]
+							pos = line:len()
+						else
+							line = ""
+							pos = 0
 						end
-					elseif param == keys.up or param == keys.down then
-						if _tHistory then
-							redraw(" ");
-							if param == keys.up then
-								if nHistoryPos == nil then
-									if #_tHistory > 0 then
-										nHistoryPos = #_tHistory
-									end
-								elseif nHistoryPos > 1 then
-									nHistoryPos = nHistoryPos - 1
-								end
-							else
-								if nHistoryPos == #_tHistory then
-									nHistoryPos = nil
-								elseif nHistoryPos ~= nil then
-									nHistoryPos = nHistoryPos + 1
-								end						
-							end
-							
-							if nHistoryPos then
-		                    	sLine = _tHistory[nHistoryPos]
-		                    	nPos = string.len(sLine) 
-		                    else
-								sLine = ""
-								nPos = 0
-							end
-							redraw()
-		                end
-					elseif param == keys.backspace then
-						if nPos > 0 then
-							redraw(" ");
-							sLine = string.sub(sLine, 1, nPos - 1) .. string.sub(sLine, nPos + 1)
-							nPos = nPos - 1					
-							redraw()
-						end
-					elseif param == keys.home then
-						nPos = 0
-						redraw()		
-					elseif param == keys.delete then
-						if nPos < string.len(sLine) then
-							redraw(" ");
-							sLine = string.sub(sLine, 1, nPos) .. string.sub(sLine, nPos + 2)
-							redraw()
-						end
-					elseif param == keys["end"] then
-						nPos = string.len(sLine)
 						redraw()
+						if liveUpdates then
+							local a, data = liveUpdates(line, "update_history", nil, nil, 
+									nil, nil, nil)
+							if a == true and data == nil then
+								term.setCursorBlink(false)
+								return line
+							elseif a == true and data ~= nil then
+								term.setCursorBlink(false)
+								return data
+							end
+						end
+					elseif but == keys.backspace and pos > 0 then
+						redraw(" ")
+						line = line:sub(1, pos - 1) .. line:sub(pos + 1, -1)
+						pos = pos - 1
+						redraw()
+						if liveUpdates then
+							local a, data = liveUpdates(line, "delete", nil, nil, nil, nil, nil)
+							if a == true and data == nil then
+								term.setCursorBlink(false)
+								return line
+							elseif a == true and data ~= nil then
+								term.setCursorBlink(false)
+								return data
+							end
+						end
+					elseif but == keys.home then
+						pos = 0
+						redraw()
+					elseif but == keys.delete and pos < line:len() then
+						redraw(" ")
+						line = line:sub(1, pos) .. line:sub(pos + 2, -1)
+						redraw()
+						if liveUpdates then
+							local a, data = liveUpdates(line, "delete", nil, nil, nil, nil, nil)
+							if a == true and data == nil then
+								term.setCursorBlink(false)
+								return line
+							elseif a == true and data ~= nil then
+								term.setCursorBlink(false)
+								return data
+							end
+						end
+					elseif but == keys["end"] then
+						pos = line:len()
+						redraw()
+					elseif (but == 29 or but == 157) and not(exitOnControl) then 
+						term.setCursorBlink(false)
+						return nil
+					end
+				end if liveUpdates then
+					local a, data = liveUpdates(line, e, but, x, y, p4, p5)
+					if a == true and data == nil then
+						term.setCursorBlink(false)
+						return line
+					elseif a == true and data ~= nil then
+						term.setCursorBlink(false)
+						return data
 					end
 				end
 			end
-			
+
 			term.setCursorBlink(false)
-			term.setCursorPos(w + 1, sy)
-			print()
-			
-			return sLine
+			if line ~= nil then line = line:gsub("^%s*(.-)%s*$", "%1") end
+			return line
 		end
 
-		-- Download API
-		nenv.urlDownload = function(url)
-			local function webmodRead(replaceChar, his, maxLen, stopAtMaxLen, liveUpdates, 
-					exitOnControl)
-				term.setCursorBlink(true)
-				local line = ""
-				local hisPos = nil
-				local pos = 0
-				if replaceChar then replaceChar = replaceChar:sub(1, 1) end
-				local w, h = term.getSize()
-				local sx, sy = term.getCursorPos()
+		clearPage(website, colors[theme["background"]])
+		print("\n\n")
+		nenv.term.setTextColor(colors[theme["text-color"]])
+		nenv.term.setBackgroundColor(colors[theme["top-box"]])
+		centerPrint(string.rep(" ", 47))
+		centerWrite(string.rep(" ", 47))
+		centerPrint("Processing Download Request...")
+		centerPrint(string.rep(" ", 47))
 
-				local function redraw(repl)
-					local scroll = 0
-					if line:len() >= maxLen then scroll = line:len() - maxLen end
-
-					term.setCursorPos(sx, sy)
-					local a = repl or replaceChar
-					if a then term.write(string.rep(a, line:len() - scroll))
-					else term.write(line:sub(scroll + 1)) end
-					term.setCursorPos(sx + pos - scroll, sy)
-				end
-
-				while true do
-					local e, but, x, y, p4, p5 = ospullEvent()
-					if e == "char" and not(stopAtMaxLen == true and line:len() >= maxLen) then
-						line = line:sub(1, pos) .. but .. line:sub(pos + 1, -1)
-						pos = pos + 1
-						redraw()
-					elseif e == "key" then
-						if but == keys.enter then
-							break
-						elseif but == keys.left then
-							if pos > 0 then pos = pos - 1 redraw() end
-						elseif but == keys.right then
-							if pos < line:len() then pos = pos + 1 redraw() end
-						elseif (but == keys.up or but == keys.down) and his then
-							redraw(" ")
-							if but == keys.up then
-								if hisPos == nil and #his > 0 then hisPos = #his
-								elseif hisPos > 1 then hisPos = hisPos - 1 end
-							elseif but == keys.down then
-								if hisPos == #his then hisPos = nil
-								elseif hisPos ~= nil then hisPos = hisPos + 1 end
-							end
-
-							if hisPos then
-								line = his[hisPos]
-								pos = line:len()
-							else
-								line = ""
-								pos = 0
-							end
-							redraw()
-							if liveUpdates then
-								local a, data = liveUpdates(line, "update_history", nil, nil, 
-										nil, nil, nil)
-								if a == true and data == nil then
-									term.setCursorBlink(false)
-									return line
-								elseif a == true and data ~= nil then
-									term.setCursorBlink(false)
-									return data
-								end
-							end
-						elseif but == keys.backspace and pos > 0 then
-							redraw(" ")
-							line = line:sub(1, pos - 1) .. line:sub(pos + 1, -1)
-							pos = pos - 1
-							redraw()
-							if liveUpdates then
-								local a, data = liveUpdates(line, "delete", nil, nil, nil, nil, nil)
-								if a == true and data == nil then
-									term.setCursorBlink(false)
-									return line
-								elseif a == true and data ~= nil then
-									term.setCursorBlink(false)
-									return data
-								end
-							end
-						elseif but == keys.home then
-							pos = 0
-							redraw()
-						elseif but == keys.delete and pos < line:len() then
-							redraw(" ")
-							line = line:sub(1, pos) .. line:sub(pos + 2, -1)
-							redraw()
-							if liveUpdates then
-								local a, data = liveUpdates(line, "delete", nil, nil, nil, nil, nil)
-								if a == true and data == nil then
-									term.setCursorBlink(false)
-									return line
-								elseif a == true and data ~= nil then
-									term.setCursorBlink(false)
-									return data
-								end
-							end
-						elseif but == keys["end"] then
-							pos = line:len()
-							redraw()
-						elseif (but == 29 or but == 157) and not(exitOnControl) then 
-							term.setCursorBlink(false)
-							return nil
-						end
-					end if liveUpdates then
-						local a, data = liveUpdates(line, e, but, x, y, p4, p5)
-						if a == true and data == nil then
-							term.setCursorBlink(false)
-							return line
-						elseif a == true and data ~= nil then
-							term.setCursorBlink(false)
-							return data
-						end
-					end
-				end
-
-				term.setCursorBlink(false)
-				if line ~= nil then line = line:gsub("^%s*(.-)%s*$", "%1") end
-				return line
-			end
-
-			clearPage(website, colors[theme["background"]])
-			print("\n\n")
-			nenv.term.setTextColor(colors[theme["text-color"]])
-			nenv.term.setBackgroundColor(colors[theme["top-box"]])
+		openAddressBar = false
+		local res = http.get(url)
+		openAddressBar = true
+		local data = nil
+		if res then
+			data = res.readAll()
+			res.close()
+		else
+			term.setCursorPos(1, 5)
 			centerPrint(string.rep(" ", 47))
 			centerWrite(string.rep(" ", 47))
-			centerPrint("Processing Download Request...")
+			centerPrint("Error: Download Failed!")
 			centerPrint(string.rep(" ", 47))
-
 			openAddressBar = false
-			local res = http.get(url)
+			sleep(3)
 			openAddressBar = true
-			local data = nil
-			if res then
-				data = res.readAll()
-				res.close()
-			else
-				term.setCursorPos(1, 5)
-				centerPrint(string.rep(" ", 47))
-				centerWrite(string.rep(" ", 47))
-				centerPrint("Error: Download Failed!")
-				centerPrint(string.rep(" ", 47))
-				openAddressBar = false
-				sleep(3)
-				openAddressBar = true
 
-				clearPage(website, colors.black)
-				term.setCursorPos(1, 2)
-				return nil
-			end
+			clearPage(website, colors.black)
+			term.setCursorPos(1, 2)
+			return nil
+		end
 
+		clearPage(website, colors[theme["background"]])
+		print("")
+		nenv.term.setBackgroundColor(colors[theme["top-box"]])
+		centerPrint(string.rep(" ", 47))
+		centerWrite(string.rep(" ", 47))
+		centerPrint("Download Files")
+		centerPrint(string.rep(" ", 47))
+		print("")
+
+		local a = website
+		if a:find("/") then a = a:sub(1, a:find("/") - 1) end
+
+		nenv.term.setBackgroundColor(colors[theme["bottom-box"]])
+		for i = 1, 10 do centerPrint(string.rep(" ", 47)) end
+		term.setCursorPos(1, 8)
+		centerPrint("  The website:                                 ")
+		if curProtocol == protocols.rdnt then 
+			centerPrint("     rdnt://" .. a .. string.rep(" ", w - a:len() - 16))
+		elseif curProtocol == protocols.http then 
+			centerPrint("     http://" .. a .. string.rep(" ", w - a:len() - 16))
+		end
+		centerPrint("  Is attempting to download a file to this     ")
+		centerPrint("  computer!                                    ")
+
+		local opt = nenv.prompt({{"Download", 6, 14}, {"Cancel", w - 16, 14}}, "horizontal")
+		if opt == "Download" then
 			clearPage(website, colors[theme["background"]])
 			print("")
+			nenv.term.setTextColor(colors[theme["text-color"]])
 			nenv.term.setBackgroundColor(colors[theme["top-box"]])
 			centerPrint(string.rep(" ", 47))
 			centerWrite(string.rep(" ", 47))
@@ -3503,108 +3564,82 @@ local function loadSite(site)
 			centerPrint(string.rep(" ", 47))
 			print("")
 
-			local a = website
-			if a:find("/") then a = a:sub(1, a:find("/") - 1) end
-
-			nenv.term.setBackgroundColor(colors[theme["bottom-box"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
 			for i = 1, 10 do centerPrint(string.rep(" ", 47)) end
-			term.setCursorPos(1, 8)
-			centerPrint("  The website:                                 ")
-			if curProtocol == protocols.rdnt then 
-				centerPrint("     rdnt://" .. a .. string.rep(" ", w - a:len() - 16))
-			elseif curProtocol == protocols.http then 
-				centerPrint("     http://" .. a .. string.rep(" ", w - a:len() - 16))
-			end
-			centerPrint("  Is attempting to download a file to this     ")
-			centerPrint("  computer!                                    ")
-
-			local opt = nenv.prompt({{"Download", 6, 14}, {"Cancel", w - 16, 14}}, "horizontal")
-			if opt == "Download" then
-				clearPage(website, colors[theme["background"]])
-				print("")
-				nenv.term.setTextColor(colors[theme["text-color"]])
-				nenv.term.setBackgroundColor(colors[theme["top-box"]])
-				centerPrint(string.rep(" ", 47))
-				centerWrite(string.rep(" ", 47))
-				centerPrint("Download Files")
-				centerPrint(string.rep(" ", 47))
-				print("")
-
-				term.setBackgroundColor(colors[theme["bottom-box"]])
-				for i = 1, 10 do centerPrint(string.rep(" ", 47)) end
-				local a = tostring(math.random(1000, 9999))
-				term.setCursorPos(5, 8)
-				write("This is for security purposes: " .. a)
-				term.setCursorPos(5, 9)
-				write("Enter the 4 numbers above: ")
-				local b = webmodRead(nil, nil, 4, true)
-				if b == nil then
-					os.queueEvent(event_exitWebsite)
-					return
-				end
-
-				if b == a then
-					term.setCursorPos(5, 11)
-					write("Save As: /")
-					local c = webmodRead(nil, nil, w - 18, false)
-					if c ~= "" and c ~= nil then
-						c = "/" .. c
-						local f = io.open(c, "w")
-						f:write(data)
-						f:close()
-						term.setCursorPos(5, 13)
-						centerWrite("Download Successful! Continuing to Website...")
-						openAddressBar = false
-						sleep(1.1)
-						openAddressBar = true
-
-						clearPage(website, colors.black)
-						term.setCursorPos(1, 2)
-						return c
-					elseif c == nil then
-						os.queueEvent(event_exitWebsite)
-						return
-					end
-				else
-					term.setCursorPos(5, 13)
-					centerWrite("Incorrect! Cancelling Download...")
-					openAddressBar = false
-					sleep(1.1)
-					openAddressBar = true
-				end
-			elseif opt == "Cancel" then
-				term.setCursorPos(1, 15)
-				centerWrite("             Download Canceled!             ")
-				openAddressBar = false
-				sleep(1.1)
-				openAddressBar = true
-			elseif opt == nil then
+			local a = tostring(math.random(1000, 9999))
+			term.setCursorPos(5, 8)
+			write("This is for security purposes: " .. a)
+			term.setCursorPos(5, 9)
+			write("Enter the 4 numbers above: ")
+			local b = webmodRead(nil, nil, 4, true)
+			if b == nil then
 				os.queueEvent(event_exitWebsite)
 				return
 			end
 
-			clearPage(website, colors.black)
-			term.setCursorPos(1, 2)
-			return nil
+			if b == a then
+				term.setCursorPos(5, 11)
+				write("Save As: /")
+				local c = webmodRead(nil, nil, w - 18, false)
+				if c ~= "" and c ~= nil then
+					c = "/" .. c
+					local f = io.open(c, "w")
+					f:write(data)
+					f:close()
+					term.setCursorPos(5, 13)
+					centerWrite("Download Successful! Continuing to Website...")
+					openAddressBar = false
+					sleep(1.1)
+					openAddressBar = true
+
+					clearPage(website, colors.black)
+					term.setCursorPos(1, 2)
+					return c
+				elseif c == nil then
+					os.queueEvent(event_exitWebsite)
+					return
+				end
+			else
+				term.setCursorPos(5, 13)
+				centerWrite("Incorrect! Cancelling Download...")
+				openAddressBar = false
+				sleep(1.1)
+				openAddressBar = true
+			end
+		elseif opt == "Cancel" then
+			term.setCursorPos(1, 15)
+			centerWrite("             Download Canceled!             ")
+			openAddressBar = false
+			sleep(1.1)
+			openAddressBar = true
+		elseif opt == nil then
+			os.queueEvent(event_exitWebsite)
+			return
 		end
 
-		nenv.pastebinDownload = function(code)
-			return nenv.urlDownload("http://pastebin.com/raw.php?i=" .. code)
-		end
-
-		-- Run
-		local fn, err = env.loadfile(cacheLoc)
-		if fn and not(err) then
-			env.setfenv(fn, nenv)
-			_, err = env.pcall(fn)
-			env.setfenv(1, backupEnv)
-		end
-
-		-- Catch website error
-		if err and not(err:find(event_exitWebsite)) then errPages.crash(err) end
-		if queueWebsiteExit then os.queueEvent(event_exitWebsite) end
+		clearPage(website, colors.black)
+		term.setCursorPos(1, 2)
+		return nil
 	end
 
+	nenv.pastebinDownload = function(code)
+		return nenv.urlDownload("http://pastebin.com/raw.php?i=" .. code)
+	end
+
+	-- Run
+	local fn, err = env.loadfile(cacheLoc)
+	if fn and not(err) then
+		env.setfenv(fn, nenv)
+		_, err = env.pcall(fn)
+		env.setfenv(1, backupEnv)
+	end
+
+	-- Catch website error
+	if err and not(err:find(event_exitWebsite)) then errPages.crash(err) end
+	if queueWebsiteExit then os.queueEvent(event_exitWebsite) end
+end
+
+local function loadSite(site)
 	local function allowFunctions(offences)
 		local function appendTable(tableData, addTable, tableName, ignore, overrideFunc)
 			if not(tableData[tableName]) then tableData[tableName] = {} end
@@ -3674,22 +3709,40 @@ local function loadSite(site)
 
 	-- Draw
 	openAddressBar = false
-	clearPage(site, colors[theme["background"]])
-	term.setTextColor(colors[theme["text-color"]])
-	term.setBackgroundColor(colors[theme["background"]])
-	print("\n\n")
-	centerWrite("Getting DNS Listing...")
+	clearPage(site, colors.black)
+	term.setTextColor(colors.white)
+	term.setBackgroundColor(colors.black)
 	internalWebsite = true
-
-	-- Redirection bots
 	loadingRate = loadingRate + 1
-	term.clearLine()
-	centerWrite("Getting Website...")
+
+	-- Modem
+	if curProtocol == protocols.rdnt then
+		checkForModem(function()
+			clearPage(website, colors[theme["background"]])
+			print("")
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
+			centerPrint(string.rep(" ", 43))
+			centerWrite(string.rep(" ", 43))
+			centerPrint("No Modem Attached! D:")
+			centerPrint(string.rep(" ", 43))
+			print("")
+
+			term.setBackgroundColor(colors[theme["bottom-box"]])
+			centerPrint(string.rep(" ", 43))
+			centerPrint("  No wireless modem was found on this      ")
+			centerPrint("  computer, and Firewolf cannot use the    ")
+			centerPrint("  RDNT protocol without one!               ")
+			centerPrint(string.rep(" ", 43))
+			centerWrite(string.rep(" ", 43))
+			centerPrint("Waiting for a modem to be attached...")
+			centerPrint(string.rep(" ", 43))
+		end)
+	end
 
 	-- Get website
 	local id, content, status = curProtocol.getWebsite(site)
 	term.clearLine()
-	centerWrite("Processing Website...")
 
 	-- Display website
 	local cacheLoc = cacheFolder .. "/" .. site:gsub("/", "$slazh$")
@@ -3783,7 +3836,6 @@ local function loadSite(site)
 						end
 						openAddressBar = true
 					elseif opt == nil then
-						os.queueEvent(event_exitWebsite)
 						return
 					end
 				end
@@ -3861,7 +3913,6 @@ local function loadSite(site)
 				centerPrint("  cached version was not loaded!               ")
 				centerPrint(string.rep(" ", 47))
 			elseif opt == nil then
-				os.queueEvent(event_exitWebsite)
 				return
 			end
 		else
@@ -3898,7 +3949,6 @@ local function loadSite(site)
 					redirect(opt:gsub("rdnt://", ""):gsub("http://", ""))
 					return
 				else
-					os.queueEvent(event_exitWebsite)
 					return
 				end
 			elseif site == "" and #res == 0 then
@@ -3981,23 +4031,19 @@ local function websiteMain()
 			return
 		end
 
-		-- Perform Checks
-		local skip = false
-		local oldWebsite = website
-		if not(errPages.checkForModem()) then
-			os.queueEvent(event_exitApp)
-			return
-		end
-		website = oldWebsite
+		-- Checks
+		checkForModem()
 		if os.clock() - loadingClock > 5 then
 			loadingRate = 0
 			loadingClock = os.clock()
-		elseif loadingRate >= 8 then
+		end 
+
+		-- Run Site
+		if loadingRate >= 8 then
 			errPages.overspeed()
 			loadingClock = os.clock()
 			loadingRate = 0
-			skip = true
-		end if not(skip) then
+		else
 			-- Add to history
 			appendToHistory(website)
 
@@ -4278,7 +4324,7 @@ local function main()
 	b:close()
 
 	-- Modem
-	if not(errPages.checkForModem()) then return end
+	checkForModem()
 	website = homepage
 
 	-- Run
