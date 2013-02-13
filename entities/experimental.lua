@@ -1322,15 +1322,8 @@ pages.firewolf = function(site)
 	internalWebsite = true
 	clearPage(site, colors[theme["background"]])
 	term.setTextColor(colors[theme["text-color"]])
-	term.setBackgroundColor(colors[theme["background"]])
-
-	term.setCursorPos(3, 2)
-	write("^")
-	term.setCursorPos(3, 3)
-	write("|  Click to swap between protocols!")
-
 	term.setBackgroundColor(colors[theme["top-box"]])
-	term.setCursorPos(1, 5)
+	print("")
 	centerPrint(string.rep(" ", 43))
 	centerPrint([[         _,-='"-.__               /\_/\    ]])
 	centerPrint([[          -.}        =._,.-==-._.,  @ @._, ]])
@@ -1338,13 +1331,16 @@ pages.firewolf = function(site)
 	centerPrint([[ Firewolf ]] .. version .. string.rep(" ", 8 - version:len()) ..
 		[["     G..m-"^m m'        ]])
 	centerPrint(string.rep(" ", 43))
-	print("")
+	print("\n")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	centerPrint(string.rep(" ", 43))
-	centerPrint("  Visit rdnt://help for help!              ")
-	centerPrint("  Visit rdnt://sites for built in sites!   ")
-	centerPrint("  Visit rdnt://exit to exit!               ")
+	centerPrint("  News:                       [- Sites -]  ")
+	centerPrint("  - Version 3.0 is finally out! It brings  ")
+	centerPrint("    the long awaited HTTP support to       ")
+	centerPrint("    Firewolf, along with more improvements ")
+	centerPrint("  Click on rdnt:// or http:// to swap      ")
+	centerPrint("  between protocols!                       ")
 	centerPrint(string.rep(" ", 43))
 
 	while true do
@@ -4488,7 +4484,9 @@ api.centerPrint("Made by 1lann and GravityScore")
 term.setCursorPos(1, 3)
 
 -- Closes
-for _, v in pairs(rs.getSides()) do rednet.close(v) end
+for _, v in pairs(rs.getSides()) do 
+	if peripheral.getType(v) == "modem" then rednet.close(v) end
+end
 if debugFile then debugFile:close() end
 
 -- Reset Environment
