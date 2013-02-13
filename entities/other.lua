@@ -4002,7 +4002,7 @@ api.centerPrint("Made by 1lann and GravityScore")
 term.setCursorPos(1, 3)
 
 -- Closes
-for _, v in pairs(rs.getSides()) do rednet.close(v) end
+for _, v in pairs(rs.getSides()) do if peripheral.getType(v) == "modem" then rednet.close(v) end end
 if debugFile then debugFile:close() end
 
 -- Reset Environment
