@@ -1,4 +1,3 @@
-
 --  
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
@@ -2403,6 +2402,10 @@ local function loadSite(site)
 			local x, y = env.term.getCursorPos()
 			api.clearPage(website, cbc, nil, ctc)
 			env.term.setCursorPos(x, y)
+		end
+		
+		nenv.term.clearLine = function()
+			return env.term.clearLine()
 		end
 
 		nenv.term.setBackgroundColor = function(col)
