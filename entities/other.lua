@@ -817,7 +817,7 @@ local function resetFilesystem()
 
 	-- Server Software
 	if not(fs.exists(serverSoftwareLocation)) then
-		if not pcall(functiom() download(serverURL, serverSoftwareLocation) end) then
+		if not pcall(function() download(serverURL, serverSoftwareLocation) end) then
 			download("http://pastebin.com/raw.php?i=uTPhLfqj", serverSoftwareLocation)
 		end
 	end
