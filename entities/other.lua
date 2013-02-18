@@ -688,7 +688,8 @@ local function updateClient()
 	term.setCursorPos(1, y - 1)
 	centerWrite(string.rep(" ", 47))
 	centerWrite(":( 1lann is sad...")
-	centerPrint(string.rep(" ", 47))
+	print("")
+	centerWrite(string.rep(" ", 47))
 	if not(ret) then
 		sleep(0.1)
 		local ret = false
