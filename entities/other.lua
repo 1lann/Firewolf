@@ -649,7 +649,7 @@ end
 
 local function download(url, path)
 	for i = 1, 3 do
-		local response = http.get(url)
+		local response = pcall(function() http.get(url) end)
 		if response then
 			local data = response.readAll()
 			response.close()
