@@ -668,7 +668,7 @@ end
 local function updateClient()
 	local ret = false
 	local source = nil
-	http.request(firewolfURL)
+	pcall(function() http.request(firewolfURL) end)
 	local a = os.startTimer(15)
 	while true do
 		local e, url, handle = os.pullEvent()
@@ -686,6 +686,25 @@ local function updateClient()
 	end
 
 	if not(ret) then
+		local ret = false
+		local source = nil
+		pcall(function() http.request("http://pastebin.com/raw.php?i=ppnsSi26") end)
+		local a = os.startTimer(15)
+		while true do
+			local e, url, handle = os.pullEvent()
+			if e == "http_success" then
+				source = handle
+				ret = true
+				break
+			elseif e == "http_failure" then
+				ret = false
+				break
+			elseif e == "timer" and url == a then
+				ret = false
+				break
+			end
+		end
+		if not(ret) then
 		sleep(0.5)
 		if isAdvanced() then
 			term.setTextColor(colors[theme["text-color"]])
@@ -760,6 +779,7 @@ local function updateClient()
 		end
 	end
 end
+end
 
 local function migrateFilesystem()
 	if fs.exists("/.Firefox_Data") then
@@ -793,7 +813,9 @@ local function resetFilesystem()
 
 	-- Server Software
 	if not(fs.exists(serverSoftwareLocation)) then
-		download(serverURL, serverSoftwareLocation)
+		if not download(serverURL, serverSoftwareLocation) then
+			download("http://pastebin.com/raw.php?i=uTPhLfqj", serverSoftwareLocation)
+		end
 	end
 
 	-- Themes
