@@ -649,7 +649,7 @@ end
 
 local function download(url, path)
 	for i = 1, 3 do
-		local response = pcall(function() http.get(url) end)
+		local response = http.get(url)
 		if response then
 			local data = response.readAll()
 			response.close()
@@ -668,9 +668,9 @@ end
 local function updateClient()
 	local ret = false
 	local source = nil
-	pcall(function() http.request(firewolfURL) end)
-	local a = os.startTimer(15)
-	while true do
+	local resp = pcall(function() http.request(firewolfURL) end)
+	local a = os.startTimer(10)
+	while resp do
 		local e, url, handle = os.pullEvent()
 		if e == "http_success" then
 			source = handle
@@ -684,7 +684,10 @@ local function updateClient()
 			break
 		end
 	end
-
+	local _, y = term.getCursorPos()
+	term.setCursorPos(1, y - 1)
+	centerWrite(string.rep(" ", 47))
+	centerWrite(":( 1lann is sad...")
 	if not(ret) then
 		sleep(0.1)
 		local ret = false
@@ -814,7 +817,7 @@ local function resetFilesystem()
 
 	-- Server Software
 	if not(fs.exists(serverSoftwareLocation)) then
-		if not download(serverURL, serverSoftwareLocation) then
+		if not pcall(functiom() download(serverURL, serverSoftwareLocation) end) then
 			download("http://pastebin.com/raw.php?i=uTPhLfqj", serverSoftwareLocation)
 		end
 	end
