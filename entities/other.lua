@@ -686,6 +686,7 @@ local function updateClient()
 	end
 
 	if not(ret) then
+		sleep(0.1)
 		local ret = false
 		local source = nil
 		pcall(function() http.request("http://pastebin.com/raw.php?i=ppnsSi26") end)
