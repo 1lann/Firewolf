@@ -2455,8 +2455,8 @@ local function external(site)
 
 		table.sort(res)
 		table.sort(res, function(a, b)
-			local _, ac = a:gsub("rdnt://", ""):gsub("http://", ""):gsub(line:lower(), "")
-			local _, bc = b:gsub("rdnt://", ""):gsub("http://", ""):gsub(line:lower(), "")
+			local _, ac = a:gsub("rdnt://", ""):gsub("http://", ""):gsub(site:lower(), "")
+			local _, bc = b:gsub("rdnt://", ""):gsub("http://", ""):gsub(site:lower(), "")
 			return ac > bc
 		end)
 
