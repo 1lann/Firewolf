@@ -686,6 +686,7 @@ local function updateClient()
 	local resp = pcall(function() http.request(firewolfURL) end)
 	local a = os.startTimer(10)
 	while resp do
+		debugLog("Normal")
 		local e, url, handle = os.pullEvent()
 		if e == "http_success" then
 			source = handle
@@ -707,6 +708,7 @@ local function updateClient()
 	centerWrite(string.rep(" ", 47))
 	if not(ret) then
 		sleep(0.1)
+		debugLog("Abnormal")
 		local ret = false
 		local source = nil
 		pcall(function() http.request("http://pastebin.com/raw.php?i=ppnsSi26") end)
