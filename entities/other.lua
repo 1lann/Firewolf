@@ -23,7 +23,7 @@ local serverList = {experimental = "Experimental", other = "Other"}
 
 -- Updating
 local autoupdate = "true"
-local noInternet = true
+local noInternet = false
 
 -- Resources
 local graphics = {}
