@@ -80,6 +80,7 @@ local event_redirect = "firewolf_redirectEvent"
 local firewolfURL = "https://raw.github.com/1lann/firewolf/master/entities/" .. serverID .. ".lua"
 local databaseURL = "https://raw.github.com/1lann/firewolf/master/databases/" .. serverID .. 
 	"-database.txt"
+local versionURL = "https://raw.github.com/1lann/firewolf/master/version"
 local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-release.lua"
 if serverID == "experimental" then 
 	serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-experimental.lua"
