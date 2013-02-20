@@ -12,7 +12,7 @@
 --  -------- Variables
 
 -- Version
-local version = "2.3.8"
+local version = "2.4"
 local serverID = "release"
 
 -- Prevent Control-T
@@ -62,7 +62,7 @@ local statsLocation = rootFolder .. "/" .. website .. "_stats"
 local themeLocation = rootFolder .. "/theme"
 local defaultThemeLocation = rootFolder .. "/default_theme"
 local passwordDataLocation = rootFolder .. "/." .. website .. "_password"
-local serverSoftwareLocation = "/" .. shell.getRunningProgram()
+local serverLocation = "/" .. shell.getRunningProgram()
 
 -- Parse Arguments
 if #args >= 2 then
@@ -71,14 +71,7 @@ if #args >= 2 then
 	statsLocation = rootFolder .. "/" .. website .. "_stats"
 	passwordDataLocation = rootFolder .. "/." .. website .. "_password"
 else
-	term.setTextColor(colors.white)
-	term.setBackgroundColor(colors.black)
-	term.clear()
-	term.setCursorPos(1, 3)
-	centerWrite("Invalid Arguments! D:")
-	sleep(1.1)
-	term.clear()
-	term.setCursorPos(1, 1)
+	print("Invalid Arguments! D:")
 	return
 end
 
@@ -100,18 +93,53 @@ local function oldPullEvent(ex)
 	end
 end
 
-local function centerPrint(text)
-	local w, h = term.getSize()
-	local x, y = term.getCursorPos()
-	term.setCursorPos(math.ceil((w + 1)/2 - text:len()/2), y)
-	print(text)
+local function printWithType(t, func)
+	if type(t) == "table" then
+		for k, v in pairs(t) do
+			env.pcall(function() printWithType(v, func) end)
+		end
+	else
+		func(tostring(t))
+	end
 end
 
 local function centerWrite(text)
-	local w, h = term.getSize()
 	local x, y = term.getCursorPos()
-	term.setCursorPos(math.ceil((w + 1)/2 - text:len()/2), y)
-	write(text)
+	printWithType(text, function(t)
+		term.setCursorPos(math.ceil((w + 1)/2 - t:len()/2), y)
+		write(t)
+	end)
+end
+
+local function centerPrint(text)
+	centerWrite(text)
+	print()
+end
+
+local function leftWrite(text)
+	local x, y = term.getCursorPos()
+	printWithType(text, function(t)
+		term.setCursorPos(1, y)
+		write(text)
+	end)
+end
+
+local function leftPrint(text)
+	leftWrite(text)
+	print()
+end
+
+local function rightWrite(text)
+	local x, y = term.getCursorPos()
+	printWithType(text, function(t)
+		term.setCursorPos(w - text:len() + 1, y)
+		write(text)
+	end)
+end
+
+local function rightPrint(text)
+	rightWrite(text)
+	print()
 end
 
 local function clearPage(r)
@@ -230,8 +258,8 @@ local function scrollingPrompt(list, x, y, len, width)
 	if isAdvanced() then
 		local function draw(a)
 			for i, v in ipairs(a) do
-				term.setCursorPos(1, y + i - 1)
-				centerWrite(string.rep(" ", wid + 2))
+				term.setCursorPos(x, y + i - 1)
+				write(string.rep(" ", wid))
 				term.setCursorPos(x, y + i - 1)
 				write("[ " .. v:sub(1, wid - 5))
 				term.setCursorPos(wid + x - 2, y + i - 1)
@@ -272,8 +300,8 @@ local function scrollingPrompt(list, x, y, len, width)
 	else
 		local function draw(a)
 			for i, v in ipairs(a) do
-				term.setCursorPos(1, y + i - 1)
-				centerWrite(string.rep(" ", wid + 2))
+				term.setCursorPos(x, y + i - 1)
+				write(string.rep(" ", wid))
 				term.setCursorPos(x, y + i - 1)
 				write("[ ] " .. v:sub(1, wid - 5))
 			end
@@ -326,7 +354,7 @@ local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"
 	["text-color"] = "white", ["background"] = "black"}
 
 local function loadTheme(path)
-	if fs.exists(path) and not(fs.isDir(path)) then
+	if fs.exists(path) and not fs.isDir(path) then
 		local a = {}
 		local f = io.open(path, "r")
 		local l = f:read("*l")
@@ -371,8 +399,8 @@ local function download(url, path)
 end
 
 local function validateFilesystem()
-	if not(fs.exists(rootFolder)) or not(fs.exists(serverFolder)) or not(fs.exists(dataLocation)) or
-			not(fs.exists(serverSoftwareLocation)) or not(fs.exists(dataLocation .. "/home")) then
+	if not fs.exists(rootFolder) or not fs.exists(serverFolder) or not fs.exists(dataLocation) or
+			not fs.exists(serverLocation) or not fs.exists(dataLocation .. "/home") then
 		term.setBackgroundColor(colors[theme["background"]])
 		term.setTextColor(colors[theme["text-color"]])
 		term.clear()
@@ -415,16 +443,16 @@ local function updateClient()
 	-- Update
 	download(serverURL, updateLocation)
 	local a = io.open(updateLocation, "r")
-	local b = io.open(serverSoftwareLocation, "r")
+	local b = io.open(serverLocation, "r")
 	local new = a:read("*a")
 	local cur = b:read("*a")
 	a:close()
 	b:close()
 
 	if cur ~= new then
-		fs.delete(serverSoftwareLocation)
-		fs.move(updateLocation, serverSoftwareLocation)
-		shell.run(serverSoftwareLocation, args[1], args[2])
+		fs.delete(serverLocation)
+		fs.move(updateLocation, serverLocation)
+		shell.run(serverLocation, args[1], args[2])
 		error()
 	else
 		fs.delete(updateLocation)
@@ -489,7 +517,7 @@ uponServerApiLoad()
 ]]
 
 local function loadServerAPI()
-	if not(fs.exists(dataLocation .. "/serverapi")) then
+	if not fs.exists(dataLocation .. "/serverapi") then
 		local f = io.open(dataLocation .. "/serverapi", "w")
 		f:write(serverAPIContent)
 		f:close()
@@ -513,7 +541,7 @@ local function loadPages(loc)
 	local a = fs.list(loc)
 	local p = {}
 	for i = 1, #a do
-		if not(fs.isDir(loc .. "/" .. a[i])) then
+		if not fs.isDir(loc .. "/" .. a[i]) then
 			local f = io.open(loc .. "/" .. a[i])
 			local cont = f:read("*a")
 			f:close()
@@ -541,7 +569,7 @@ local function checkForModem()
 			end
 		end
 
-		if not(present) then
+		if not present then
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["background"]])
 			term.clear()
@@ -633,7 +661,7 @@ local function respondToEvents()
 			if tostring(id) == v then ignore = true break end
 		end
 
-		if e == "rednet_message" and enableResponse == true and not(ignore) then
+		if e == "rednet_message" and enableResponse == true and not ignore then
 			if mes == website or mes == website .. "/" or mes == website .. "/home" then
 				if suspected[tostring(id)] then suspected[tostring(id)] = suspected[tostring(id)] + 1
 				else suspected[tostring(id)] = 1 end
@@ -666,7 +694,6 @@ local function respondToEvents()
 				if suspected[tostring(id)] then suspected[tostring(id)] = suspected[tostring(id)] + 1
 				else suspected[tostring(id)] = 1 end
 				rednet.send(id, "firewolf-site:" .. website)
-				record("Search Request : " .. id)
 				searches = searches + 1
 			else
 				if uponAnyOtherMessage ~= nil then uponAnyOtherMessage(mes, id) end
@@ -695,7 +722,7 @@ local function edit()
 	openAddressBar = false
 	local oldLoc = shell.dir()
 	local commandHis = {}
-	local dir = serverFolder .. "/" .. website
+	local dir = dataLocation
 	term.setBackgroundColor(colors.black)
 	term.setTextColor(colors.white)
 	term.clear()
@@ -703,11 +730,11 @@ local function edit()
 	print("")
 	print(" Server Shell Editing")
 	print(" Type 'exit' to return to Firewolf.")
-	print(" Note: The 'home' file is the index of your site")
+	print(" The 'home' file is the index of your site")
 	print("")
 
-	local allowed = {"cd", "move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
-		"eject", "exit", "help", "id", "mkdir", "monitor", "rename", "alias", "clear",
+	local allowed = {"move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
+		"eject", "exit", "help", "id", "monitor", "rename", "alias", "clear",
 		"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", "programs",
 		"redset", "reboot", "hello", "label", "list", "ls", "easter", "pastebin", "dir"}
 	
@@ -730,8 +757,6 @@ local function edit()
 		local com = words[1]
 		if com == "exit" then
 			break
-		elseif com == "firewolf" or (com == "easter" and words[2] == "egg") then
-			-- Easter egg
 		elseif com then
 			local a = false
 			for _, v in pairs(allowed) do
@@ -769,7 +794,7 @@ local function interface()
 
 		if enableResponse == false then p1 = "Unpause Server" end
 		term.setBackgroundColor(colors[theme["top-box"]])
-		if not(serverLocked) and not(serverPassword) then
+		if not serverLocked and not serverPassword then
 			os.pullEvent = oldPullEvent
 			opt = prompt({{"Add Lock", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
 				{"Stop", w - 13, 5}}, "vertical")
@@ -816,7 +841,7 @@ local function interface()
 		end
 
 		if opt == p1 then
-			enableResponse = not(enableResponse)
+			enableResponse = not enableResponse
 		elseif opt == "Manage" then
 			while true do
 				enableRecording = false
@@ -941,7 +966,6 @@ local function interface()
 			
 			enableRecording = true
 		elseif opt == "Edit" then
-			-- Edit server pages
 			enableRecording = false
 			term.setBackgroundColor(colors.black)
 			term.setTextColor(colors.white)
@@ -995,7 +1019,6 @@ local function interface()
 				sleep(1.3)
 			end
 			enableRecording = false
-	
 		elseif opt == "Lock Server" then
 				os.pullEvent = os.pullEventRaw
 				serverLocked = true
@@ -1025,30 +1048,30 @@ local function main()
 	term.clear()
 	term.setCursorPos(1, 2)
 	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 47))
-	centerPrint([[          ______ ____ ____   ______            ]])
-	centerPrint([[ ------- / ____//  _// __ \ / ____/            ]])
-	centerPrint([[ ------ / /_    / / / /_/ // __/               ]])
-	centerPrint([[ ----- / __/  _/ / / _  _// /___               ]])
-	centerPrint([[ ---- / /    /___//_/ |_|/_____/               ]])
-	centerPrint([[ --- / /       _       __ ____   __     ______ ]])
-	centerPrint([[ -- /_/       | |     / // __ \ / /    / ____/ ]])
-	centerPrint([[              | | /| / // / / // /    / /_     ]])
-	centerPrint([[              | |/ |/ // /_/ // /___ / __/     ]])
-	centerPrint([[              |__/|__/ \____//_____//_/        ]])
-	centerPrint(string.rep(" ", 47))
+	leftPrint(string.rep(" ", 47))
+	leftPrint([[          ______ ____ ____   ______            ]])
+	leftPrint([[ ------- / ____//  _// __ \ / ____/            ]])
+	leftPrint([[ ------ / /_    / / / /_/ // __/               ]])
+	leftPrint([[ ----- / __/  _/ / / _  _// /___               ]])
+	leftPrint([[ ---- / /    /___//_/ |_|/_____/               ]])
+	leftPrint([[ --- / /       _       __ ____   __     ______ ]])
+	leftPrint([[ -- /_/       | |     / // __ \ / /    / ____/ ]])
+	leftPrint([[              | | /| / // / / // /    / /_     ]])
+	leftPrint([[              | |/ |/ // /_/ // /___ / __/     ]])
+	leftPrint([[              |__/|__/ \____//_____//_/        ]])
+	leftPrint(string.rep(" ", 47))
 	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
-	centerPrint(string.rep(" ", 47))
-	centerWrite(string.rep(" ", 47))
-	centerPrint("Loading Firewolf Server " .. version .. "...")
-	centerWrite(string.rep(" ", 47))
+
+	rightPrint(string.rep(" ", 27 + version:len()))
+	rightPrint("  Loading Firewolf Server " .. version .. " ")
+	rightPrint(string.rep(" ", 27 + version:len()))
 
 	-- Filesystem
-	if not(validateFilesystem()) then return end
+	if not validateFilesystem() then return end
 
 	-- Update
-	if autoupdate then updateClient() end
+--	if autoupdate then updateClient() end
 
 	-- Load
 	pages = loadPages(dataLocation)
@@ -1063,7 +1086,7 @@ local function main()
 		if c then permantentIgnoreDatabase = textutils.unserialize(c) end
 		f:close()
 	end
-	if not(checkForModem()) then return end
+	if not checkForModem() then return end
 
 	-- Start UI
 	parallel.waitForAll(respondToEvents, interface, parallelWithServer)
@@ -1071,30 +1094,28 @@ end
 
 local function startup()
 	-- HTTP API
-	if not(http) then
+	if not http then
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["background"]])
 		term.clear()
 		term.setCursorPos(1, 2)
 		term.setBackgroundColor(colors[theme["top-box"]])
-		centerPrint(string.rep(" ", 47))
-		centerWrite(string.rep(" ", 47))
-		centerPrint("HTTP API Not Enabled! D:")
-		centerPrint(string.rep(" ", 47))
+		leftPrint(string.rep(" ", 24))
+		leftPrint(" HTTP Not Enabled!  ")
+		leftPrint(string.rep(" ", 24))
 		print("")
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
-		centerPrint(string.rep(" ", 47))
-		centerPrint("  Firewolf is unable to run without the HTTP  ")
-		centerPrint("  API Enabled! Please enable it in the CC     ")
-		centerPrint("  Config!                                     ")
-		centerPrint(string.rep(" ", 47))
+		rightPrint(string.rep(" ", 36))
+		rightPrint("  Firewolf is unable to run without ")
+		rightPrint("       the HTTP Enabled! Please ")
+		rightPrint("    enable it in your ComputerCraft ")
+		rightPrint("                            Config! ")
+		rightPrint(string.rep(" ", 36))
 
-		centerPrint(string.rep(" ", 47))
-		centerWrite(string.rep(" ", 47))
-		if isAdvanced() then centerPrint("Click to exit...")
-		else centerPrint("Press any key to exit...") end
-		centerPrint(string.rep(" ", 47))
+		if isAdvanced() then rightPrint("                   Click to exit... ")
+		else rightPrint("           Press any key to exit... ") end
+		rightPrint(string.rep(" ", 36))
 
 		while true do
 			local e, but, x, y = os.pullEvent()
@@ -1124,16 +1145,16 @@ local function startup()
 
 	-- Run
 	local _, err = pcall(main)
-	if err ~= nil then
+	if err and err ~= "parallel:22: Terminated" then
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["background"]])
 		term.clear()
 		term.setCursorPos(1, 2)
+		term.setCursorBlink(false)
 		term.setBackgroundColor(colors[theme["top-box"]])
-		centerPrint(string.rep(" ", 47))
-		centerWrite(string.rep(" ", 47))
-		centerPrint("Firewolf has Crashed! D:")
-		centerPrint(string.rep(" ", 47))
+		leftPrint(string.rep(" ", 27))
+		leftPrint(" Firewolf has Crashed! D:  ")
+		leftPrint(string.rep(" ", 27))
 		print("")
 		term.setBackgroundColor(colors[theme["background"]])
 		print("")
@@ -1141,16 +1162,24 @@ local function startup()
 		print("")
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
-		centerPrint(string.rep(" ", 47))
-		centerPrint("  Please report this error to 1lann or         ")
-		centerPrint("  GravityScore so we are able to fix it!       ")
-		centerPrint("  If this problem persists, try deleting       ")
-		centerPrint("  " .. rootFolder .. "                              ")
-		centerPrint(string.rep(" ", 47))
-		centerWrite(string.rep(" ", 47))
-		if isAdvanced() then centerPrint("Click to Exit...")
-		else centerPrint("Press any key to exit...") end
-		centerPrint(string.rep(" ", 47))
+		rightPrint(string.rep(" ", 41))
+		if autoupdate == "true" then
+			rightPrint("    Please report this error to 1lann or ")
+			rightPrint("  GravityScore so we are able to fix it! ")
+			rightPrint("  If this problem persists, try deleting ")
+			rightPrint("                         " .. rootFolder .. " ")
+		else
+			rightPrint("        Automatic updating is off! A new ")
+			rightPrint("     version may have have been released ")
+			rightPrint("                that may fix this error! ")
+			rightPrint("        If you didn't turn auto updating ")
+			rightPrint("             off, delete " .. rootFolder .. " ")
+		end
+
+		rightPrint(string.rep(" ", 41))
+		if isAdvanced() then rightPrint("                        Click to exit... ")
+		else rightPrint("                Press any key to exit... ") end
+		rightPrint(string.rep(" ", 41))
 
 		while true do
 			local e, but, x, y = os.pullEvent()
@@ -1163,8 +1192,21 @@ local function startup()
 	return true
 end
 
+-- Check If Read Only
+if fs.isReadOnly(serverLocation) or fs.isReadOnly(rootFolder) then
+	print("Firewolf cannot modify itself or its root folder!")
+	print("")
+	print("This cold be caused by Firewolf being placed in")
+	print("the rom folder, or another program may be")
+	print("preventing the modification of Firewolf.")
+
+	-- Reset Environment and Exit
+	setfenv(1, oldEnv)
+	error()
+end
+
 -- Theme
-if not(isAdvanced()) then 
+if not isAdvanced() then 
 	theme = originalTheme
 else
 	theme = loadTheme(themeLocation)
@@ -1189,6 +1231,11 @@ term.setBackgroundColor(colors.black)
 term.setTextColor(colors.white)
 term.clear()
 term.setCursorPos(1, 1)
+centerPrint("Thank You for Using Firewolf Server " .. version)
+centerPrint("Made by 1lann and GravityScore")
+term.setCursorPos(1, 3)
 
 -- Close Rednet
-for _, v in pairs(rs.getSides()) do rednet.close(v) end
+for _, v in pairs(rs.getSides()) do 
+	if peripheral.getType(v) == "modem" then rednet.close(v) end
+end
