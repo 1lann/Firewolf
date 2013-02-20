@@ -1071,7 +1071,7 @@ local function main()
 	if not validateFilesystem() then return end
 
 	-- Update
---	if autoupdate then updateClient() end
+	if autoupdate then updateClient() end
 
 	-- Load
 	pages = loadPages(dataLocation)

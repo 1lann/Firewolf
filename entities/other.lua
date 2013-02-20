@@ -2813,7 +2813,7 @@ local function main()
 	rightPrint(string.rep(" ", 32))
 	rightPrint("        Checking for Updates... ")
 	rightPrint(string.rep(" ", 32))
---	if not noInternet then if updateClient() then return end end
+	if not noInternet then if updateClient() then return end end
 
 	-- Download Files
 	local x, y = term.getCursorPos()
