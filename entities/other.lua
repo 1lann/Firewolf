@@ -12,6 +12,7 @@
 
 -- Version
 local version = "2.3.9"
+local build = 1
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -666,6 +667,20 @@ local function download(url, path)
 end
 
 local function updateClient()
+	for i = 1, 3 do
+		local response = http.get(versionURL)
+		if response then
+			local data = response.readAll()
+			response.close()
+			if tonumber(data) then
+				if tonumber(data) > build then
+					break
+				else
+					return false
+				end
+			end
+		end
+	end
 	local ret = false
 	local source = nil
 	local resp = pcall(function() http.request(firewolfURL) end)
@@ -687,7 +702,7 @@ local function updateClient()
 	local _, y = term.getCursorPos()
 	term.setCursorPos(1, y - 1)
 	centerWrite(string.rep(" ", 47))
-	centerWrite(":( 1lann is sad...")
+	centerWrite("Backup Mode...")
 	print("")
 	centerWrite(string.rep(" ", 47))
 	if not(ret) then
@@ -767,22 +782,12 @@ local function updateClient()
 
 		return true
 	elseif source and autoupdate == "true" then
-		local b = io.open(firewolfLocation, "r")
-		local new = source.readAll()
-		local cur = b:read("*a")
-		source.close()
-		b:close()
-
-		if cur ~= new then
-			fs.delete(firewolfLocation)
-			local f = io.open(firewolfLocation, "w")
-			f:write(new)
-			f:close()
-			shell.run(firewolfLocation)
-			return true
-		else
-			return false
-		end
+		fs.delete(firewolfLocation)
+		local f = io.open(firewolfLocation, "w")
+		f:write(new)
+		f:close()
+		shell.run(firewolfLocation)
+		return true
 	end
 end
 end
@@ -2016,6 +2021,8 @@ pages.settings = function(site)
 		centerPrint(string.rep(" ", 43))
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Firewolf Settings")
+		centerWrite(string.rep(" ", 43))
+		centerPrint("Build: " .. tostring(build))
 		centerWrite(string.rep(" ", 43))
 		centerPrint("Designed For: " .. serverList[serverID])
 		centerPrint(string.rep(" ", 43))
