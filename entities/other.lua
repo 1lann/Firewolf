@@ -81,6 +81,7 @@ local firewolfURL = "https://raw.github.com/1lann/firewolf/master/entities/" .. 
 local a = "release"
 if serverID == "experimental" then a = "experimental" end
 local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-" .. a .. ".lua"
+local buildURL = "https://raw.github.com/1lann/firewolf/master/build"
 
 -- Data Locations
 local rootFolder = "/.Firewolf_Data"
@@ -1061,25 +1062,26 @@ local function download(url, path)
 		end
 	end
 
-	return false
+	return false  
 end
 
 local function updateClient()
-	local buildData = nil
 	local skipNormal = false
-	http.request(buildURL)
-	local a = os.startTimer(15)
-	while true do
-		local e, url, handle = os.pullEvent()
-		if e == "http_success" then
-			if tonumber(handle.readAll()) > build then
+	if serverID ~= "experimental" then
+		http.request(buildURL)
+		local a = os.startTimer(15)
+		while true do
+			local e, url, handle = os.pullEvent()
+			if e == "http_success" then
+				if tonumber(handle.readAll()) > build then
+					break
+				else
+					return false
+				end
+			elseif e == "http_failure" or (e == "timer" and url == a) then
+				skipNormal = true
 				break
-			else
-				return false
 			end
-		elseif e == "http_failure" or (e == "timer" and url == a) then
-			skipNormal = true
-			break
 		end
 	end
 	local ret = false
