@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 3
+local build = 4
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -1089,8 +1089,8 @@ local function updateClient()
 	if not(skipNormal) then
 		local x, y = term.getCursorPos()
 		term.setCursorPos(1, y - 2)
-		rightWrite(string.rep(" ", 32))
-		rightWrite("           Updating Firewolf... ")
+		api.rightWrite(string.rep(" ", 32))
+		api.rightWrite("           Updating Firewolf... ")
 		http.request(firewolfURL)
 		local a = os.startTimer(15)
 		while true do
