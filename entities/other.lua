@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 4
+local build = 3
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -1065,7 +1065,7 @@ local function download(url, path)
 	return false  
 end
 
-local function updateClient()
+local function updateClient(rightWrite)
 	local skipNormal = false
 	if serverID ~= "experimental" then
 		http.request(buildURL)
@@ -1089,8 +1089,8 @@ local function updateClient()
 	if not(skipNormal) then
 		local x, y = term.getCursorPos()
 		term.setCursorPos(1, y - 2)
-		api.rightWrite(string.rep(" ", 32))
-		api.rightWrite("           Updating Firewolf... ")
+		rightWrite(string.rep(" ", 32))
+		rightWrite("           Updating Firewolf... ")
 		http.request(firewolfURL)
 		local a = os.startTimer(15)
 		while true do
@@ -2838,7 +2838,7 @@ local function main()
 	rightPrint(string.rep(" ", 32))
 	rightPrint("        Checking for Updates... ")
 	rightPrint(string.rep(" ", 32))
-	if not noInternet then if updateClient() then
+	if not noInternet then if updateClient(rightWrite) then
 
 	if debugFile then debugFile:close() end
 	-- Reset Environment
