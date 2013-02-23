@@ -1065,48 +1065,43 @@ local function download(url, path)
 	return false  
 end
 
-local function updateClient(rightWrite)
+local function updateClient()
 	local skipNormal = false
 	if serverID ~= "experimental" then
 		http.request(buildURL)
-		local a = os.startTimer(15)
+		local a = os.startTimer(10)
 		while true do
 			local e, url, handle = os.pullEvent()
 			if e == "http_success" then
-				if tonumber(handle.readAll()) > build then
-					break
-				else
-					return false
-				end
+				if tonumber(handle.readAll()) > build then break
+				else return false end
 			elseif e == "http_failure" or (e == "timer" and url == a) then
 				skipNormal = true
 				break
 			end
 		end
 	end
-	local ret = false
-	local source = nil
-	if not(skipNormal) then
-		local x, y = term.getCursorPos()
+
+	if not skipNormal then
+		local source = nil
 		term.setCursorPos(1, y - 2)
 		rightWrite(string.rep(" ", 32))
-		rightWrite("           Updating Firewolf... ")
+		rightWrite("Updating Firewolf... ")
+
 		http.request(firewolfURL)
-		local a = os.startTimer(15)
+		local a = os.startTimer(10)
 		while true do
 			local e, url, handle = os.pullEvent()
 			if e == "http_success" then
 				source = handle
-				ret = true
 				break
 			elseif e == "http_failure" or (e == "timer" and url == a) then
-				ret = false
 				break
 			end
 		end
 	end
 
-	if not ret then
+	if not source then
 		if isAdvanced() then
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["background"]])
@@ -1142,7 +1137,6 @@ local function updateClient(rightWrite)
 			write("        Click to exit...        ")
 			term.setCursorPos(19, 15)
 			write(string.rep(" ", 32))
-			os.pullEvent("mouse_click")
 		else
 			term.clear()
 			term.setCursorPos(1, 1)
@@ -1157,7 +1151,11 @@ local function updateClient(rightWrite)
 			centerPrint("http://status.github.com")
 			print("")
 			centerPrint("Press any key to exit...")
-			os.pullEvent("key")
+		end
+
+		while true do
+			local e = oldpullevent()
+			if e == "mouse_click" or e == "key" then break end
 		end
 
 		return true
@@ -2838,9 +2836,10 @@ local function main()
 	rightPrint(string.rep(" ", 32))
 	rightPrint("        Checking for Updates... ")
 	rightPrint(string.rep(" ", 32))
+	setfenv(updateClient, env)
 	if not noInternet then if updateClient(rightWrite) then
-
 	if debugFile then debugFile:close() end
+
 	-- Reset Environment
 	setfenv(1, oldEnv)
 	os.pullEvent = oldpullevent
