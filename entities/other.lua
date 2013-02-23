@@ -13,6 +13,7 @@
 
 -- Version
 local version = "2.4"
+local build = 1
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -1064,19 +1065,38 @@ local function download(url, path)
 end
 
 local function updateClient()
-	local ret = false
-	local source = nil
-	http.request(firewolfURL)
+	local buildData = nil
+	local skipNormal = false
+	http.request(buildURL)
 	local a = os.startTimer(15)
 	while true do
 		local e, url, handle = os.pullEvent()
 		if e == "http_success" then
-			source = handle
-			ret = true
-			break
+			if tonumber(handle.readAll()) > build then
+				break
+			else
+				return false
+			end
 		elseif e == "http_failure" or (e == "timer" and url == a) then
-			ret = false
+			skipNormal = true
 			break
+		end
+	end
+	local ret = false
+	local source = nil
+	if not(skipNormal) then
+		http.request(firewolfURL)
+		local a = os.startTimer(15)
+		while true do
+			local e, url, handle = os.pullEvent()
+			if e == "http_success" then
+				source = handle
+				ret = true
+				break
+			elseif e == "http_failure" or (e == "timer" and url == a) then
+				ret = false
+				break
+			end
 		end
 	end
 
