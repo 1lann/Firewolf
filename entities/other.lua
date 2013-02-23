@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 2
+local build = 3
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -1173,7 +1173,6 @@ local function updateClient()
 			local f = io.open(firewolfLocation, "w")
 			f:write(new)
 			f:close()
-			shell.run(firewolfLocation)
 			return true
 		else
 			return false
@@ -2839,7 +2838,15 @@ local function main()
 	rightPrint(string.rep(" ", 32))
 	rightPrint("        Checking for Updates... ")
 	rightPrint(string.rep(" ", 32))
-	if not noInternet then if updateClient() then return end end
+	if not noInternet then if updateClient() then
+
+	if debugFile then debugFile:close() end
+	-- Reset Environment
+	setfenv(1, oldEnv)
+	os.pullEvent = oldpullevent
+	shell.run(firewolfLocation)
+	error()
+	end end
 
 	-- Download Files
 	local x, y = term.getCursorPos()
