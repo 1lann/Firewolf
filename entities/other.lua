@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 3
+local build = 4
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
