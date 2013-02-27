@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 4
+local build = 5
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -58,7 +58,7 @@ local errorPages = {}
 
 local website = ""
 local homepage = ""
-local timeout = 0.08
+local timeout = 0.2
 local loadingRate = 0
 local openAddressBar = true
 local menuBarOpen = false
