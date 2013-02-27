@@ -1161,7 +1161,7 @@ local function updateClient()
 			if e == "mouse_click" or e == "key" then break end
 		end
 
-		return true
+		return false
 	elseif source and autoupdate == "true" then
 		local b = io.open(firewolfLocation, "r")
 		local new = source.readAll()
