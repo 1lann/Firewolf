@@ -405,7 +405,7 @@ api.loadImageFromServer = function(path)
 		f:close()
 
 		local image = paintutils.loadImage(rootFolder .. "/temp_file")
-		env.fs.delete(f:close())
+		env.fs.delete("/temp_file")
 		return image
 	end
 	return nil
