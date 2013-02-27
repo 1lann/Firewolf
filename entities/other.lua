@@ -1082,8 +1082,9 @@ local function updateClient()
 		end
 	end
 
+	local source = nil
+
 	if not skipNormal then
-		local source = nil
 		local _, y = term.getCursorPos()
 		term.setCursorPos(1, y - 2)
 		rightWrite(string.rep(" ", 32))
