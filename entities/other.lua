@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 5
+local build = 6
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -1108,6 +1108,7 @@ local function updateClient()
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["background"]])
 			term.clear()
+			if not fs.exists(rootFolder) then fs.makeDir(rootFolder) end
 			local f = io.open(rootFolder .. "/temp_file", "w")
 			f:write(graphics.githubImage)
 			f:close()
