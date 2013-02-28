@@ -769,7 +769,11 @@ override.term.getSize = function()
 end
 
 override.term.setCursorPos = function(x, y)
-	return env.term.setCursorPos(x, y + 1)
+	if y < 1 then
+		return env.term.setCursorPos(x, 1)
+	else
+		return env.term.setCursorPos(x, y+1)
+	end
 end
 
 override.term.getCursorPos = function()
