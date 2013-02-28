@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 6
+local build = 9
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -734,7 +734,7 @@ api.rWrite = function(text) api.rightWrite(text) end
 
 local pullevent = function(data)
 	while true do
-		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
+		local e, p1, p2, p3, p4, p5 = os.pullEventRaw(data)
 		if e == event_exitWebsite or e == "terminate" then
 			error()
 		end
@@ -840,6 +840,20 @@ end
 
 override.term.isColor = function() return isAdvanced() end
 override.term.isColour = function() return override.term.isColor() end
+
+override.os.pullEvent = function(lEvent)
+	while true do
+		local e, p1, p2, p3, p4, p5 = os.pullEventRaw(lEvent)
+		if e == event_exitWebsite or e == "terminate" then
+			error()
+		elseif e == "mouse_click" then
+			return e, p1, p2, p3+1
+		end
+
+		if data ~= "" and e == data then return e, p1, p2, p3, p4, p5
+		else return e, p1, p2, p3, p4, p5 end
+	end
+end
 
 override.prompt = function(list, dir) 
 	local a = {}
@@ -2609,7 +2623,6 @@ local function websitecoroutine()
 				return
 			end
 		else
-			setfenv(external, override)
 			local _, err = pcall(function() external(website) end)
 
 			if err then
