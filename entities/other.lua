@@ -559,7 +559,8 @@ end
 
 -- Prompt Software
 api.prompt = function(list, dir)
-	local os.pullEvent = function()
+	local os = {}
+	os["pullEvent"] = function()
 	return oldpullevent()
 	end
 	if isAdvanced() then
