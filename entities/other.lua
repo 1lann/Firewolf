@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 10
+local build = 11
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -847,7 +847,9 @@ override.os.pullEvent = function(data)
 		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
 		if e == event_exitWebsite or e == "terminate" then
 			error()
-		elseif e == "mouse_click" then
+		elseif e == "mouse_click" and not data then
+			return e, p1, p2, p3-1
+		elseif e == "mouse_click" and data == "mouse_click" then
 			return e, p1, p2, p3-1
 		end
 
