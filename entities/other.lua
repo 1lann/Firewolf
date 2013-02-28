@@ -848,8 +848,10 @@ override.os.pullEvent = function(data)
 		if e == event_exitWebsite or e == "terminate" then
 			error()
 		elseif e == "mouse_click" and not data then
+			debugLog("click", p3)
 			return e, p1, p2, p3-1
 		elseif e == "mouse_click" and data == "mouse_click" then
+			debugLog("click", p3)
 			return e, p1, p2, p3-1
 		end
 
