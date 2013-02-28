@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 8
+local build = 6
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -559,10 +559,6 @@ end
 
 -- Prompt Software
 api.prompt = function(list, dir)
-	local os = {}
-	os["pullEvent"] = function()
-	return oldpullevent()
-	end
 	if isAdvanced() then
 		for _, v in pairs(list) do
 			if v.bg then term.setBackgroundColor(v.bg) end
@@ -741,8 +737,6 @@ local pullevent = function(data)
 		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
 		if e == event_exitWebsite or e == "terminate" then
 			error()
-		elseif e == "mouse_click" then
-			return e, p1, p2, p3+1
 		end
 
 		if data ~= "" and e == data then return e, p1, p2, p3, p4, p5
