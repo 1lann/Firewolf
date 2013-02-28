@@ -559,7 +559,9 @@ end
 
 -- Prompt Software
 api.prompt = function(list, dir)
-	local os.pullEvent = function() return oldpullevent() end
+	local os.pullEvent = function()
+	return oldpullevent()
+	end
 	if isAdvanced() then
 		for _, v in pairs(list) do
 			if v.bg then term.setBackgroundColor(v.bg) end
