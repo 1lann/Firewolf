@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 9
+local build = 10
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -739,7 +739,8 @@ local pullevent = function(data)
 			error()
 		end
 
-		if data ~= "" and e == data then return e, p1, p2, p3, p4, p5
+		if data then 
+		if e == data then return e, p1, p2, p3, p4, p5 end
 		else return e, p1, p2, p3, p4, p5 end
 	end
 end
@@ -850,7 +851,8 @@ override.os.pullEvent = function(data)
 			return e, p1, p2, p3+1
 		end
 
-		if data ~= "" and e == data then return e, p1, p2, p3, p4, p5
+		if data then 
+		if e == data then return e, p1, p2, p3, p4, p5 end
 		else return e, p1, p2, p3, p4, p5 end
 	end
 end
