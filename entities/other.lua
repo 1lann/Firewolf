@@ -2623,6 +2623,7 @@ local function websitecoroutine()
 				return
 			end
 		else
+			setfenv(external, override)
 			local _, err = pcall(function() external(website) end)
 
 			if err then
