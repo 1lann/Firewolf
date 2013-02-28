@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 7
+local build = 8
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -559,6 +559,7 @@ end
 
 -- Prompt Software
 api.prompt = function(list, dir)
+	local os.pullEvent() = function() return oldpullevent() end
 	if isAdvanced() then
 		for _, v in pairs(list) do
 			if v.bg then term.setBackgroundColor(v.bg) end
@@ -771,11 +772,7 @@ override.term.getSize = function()
 end
 
 override.term.setCursorPos = function(x, y)
-	if y < 1 then
-		return env.term.setCursorPos(x, 1)
-	else
-		return env.term.setCursorPos(x, y + 1)
-	end
+	return env.term.setCursorPos(x, y + 1)
 end
 
 override.term.getCursorPos = function()
