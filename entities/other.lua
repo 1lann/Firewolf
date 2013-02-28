@@ -734,7 +734,7 @@ api.rWrite = function(text) api.rightWrite(text) end
 
 local pullevent = function(data)
 	while true do
-		local e, p1, p2, p3, p4, p5 = os.pullEventRaw(data)
+		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
 		if e == event_exitWebsite or e == "terminate" then
 			error()
 		end
@@ -841,9 +841,9 @@ end
 override.term.isColor = function() return isAdvanced() end
 override.term.isColour = function() return override.term.isColor() end
 
-override.os.pullEvent = function(lEvent)
+override.os.pullEvent = function(data)
 	while true do
-		local e, p1, p2, p3, p4, p5 = os.pullEventRaw(lEvent)
+		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
 		if e == event_exitWebsite or e == "terminate" then
 			error()
 		elseif e == "mouse_click" then
