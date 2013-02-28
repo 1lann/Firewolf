@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 7
+local build = 6
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -732,19 +732,11 @@ api.lWrite = function(text) api.leftWrite(text) end
 api.rPrint = function(text) api.rightPrint(text) end
 api.rWrite = function(text) api.rightWrite(text) end
 
-hideBar = false
-
 local pullevent = function(data)
 	while true do
 		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
 		if e == event_exitWebsite or e == "terminate" then
 			error()
-		elseif e == "mouse_click" then
-			if not hideBar then
-				return p1, p2, p3+1
-			else
-				return p1, p2, p3
-			end
 		end
 
 		if data ~= "" and e == data then return e, p1, p2, p3, p4, p5
@@ -771,40 +763,18 @@ local curtext, curbackground = colors.white, colors.black
 override.term = {}
 for k, v in pairs(env.term) do override.term[k] = v end
 
-override.hideBar = function()
-	hideBar = true
-end
-
-override.showBar = function()
-	hudeBar = false
-end
-	
-
 override.term.getSize = function()
-
 	local a, b = env.term.getSize()
-	if not hideBar then
-		return a, b - 1
-	else
-		return a, b
-	end
+	return a, b - 1
 end
 
 override.term.setCursorPos = function(x, y)
-	if not hideBar then
-		return env.term.setCursorPos(x, y + 1)
-	else
-		return env.term.setCursorPos(x,y)
-	end
+	return env.term.setCursorPos(x, y + 1)
 end
 
 override.term.getCursorPos = function()
 	local x, y = env.term.getCursorPos()
-	if not hideBar then
-		return x, y + 1
-	else
-		return x, y
-	end
+	return x, y + 1
 end
 
 override.term.getBackgroundColor = function()
@@ -845,9 +815,7 @@ override.term.clear = function()
 	local x, y = term.getCursorPos()
 	local oldbackground = override.term.getBackgroundColor()
 	local oldtext = override.term.getTextColor()
-	if not hideBar then 
-		clearPage(website, curbackground, true)
-	end
+	clearPage(website, curbackground)
 
 	term.setBackgroundColor(oldbackground)
 	term.setTextColor(oldtext)
@@ -860,9 +828,7 @@ override.term.scroll = function(n)
 	local oldtext = override.term.getTextColor()
 
 	env.term.scroll(n)
-	if not hideBar then 
-		clearPage(website, curbackground, true)
-	end
+	clearPage(website, curbackground, true)
 	term.setBackgroundColor(oldbackground)
 	term.setTextColor(oldtext)
 	term.setCursorPos(x, y)
