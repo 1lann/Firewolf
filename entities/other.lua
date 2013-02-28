@@ -779,7 +779,7 @@ end
 
 override.term.getCursorPos = function()
 	local x, y = env.term.getCursorPos()
-	return x, y + 1
+	return x, y - 1
 end
 
 override.term.getBackgroundColor = function()
@@ -848,7 +848,7 @@ override.os.pullEvent = function(data)
 		if e == event_exitWebsite or e == "terminate" then
 			error()
 		elseif e == "mouse_click" then
-			return e, p1, p2, p3+1
+			return e, p1, p2, p3-1
 		end
 
 		if data then 
