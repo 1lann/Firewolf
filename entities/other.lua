@@ -732,7 +732,7 @@ api.lWrite = function(text) api.leftWrite(text) end
 api.rPrint = function(text) api.rightPrint(text) end
 api.rWrite = function(text) api.rightWrite(text) end
 
-local hideBar = false
+hideBar = false
 
 local pullevent = function(data)
 	while true do
