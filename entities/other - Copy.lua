@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 7
+local build = 9001
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -732,7 +732,7 @@ api.lWrite = function(text) api.leftWrite(text) end
 api.rPrint = function(text) api.rightPrint(text) end
 api.rWrite = function(text) api.rightWrite(text) end
 
-hideBar = false
+local hideBar = false
 
 local pullevent = function(data)
 	while true do
@@ -740,7 +740,7 @@ local pullevent = function(data)
 		if e == event_exitWebsite or e == "terminate" then
 			error()
 		elseif e == "mouse_click" then
-			if not hideBar then
+			if hideBar ~= true then 
 				return p1, p2, p3+1
 			else
 				return p1, p2, p3
@@ -783,7 +783,7 @@ end
 override.term.getSize = function()
 
 	local a, b = env.term.getSize()
-	if not hideBar then
+	if hideBar ~= true then 
 		return a, b - 1
 	else
 		return a, b
@@ -791,7 +791,7 @@ override.term.getSize = function()
 end
 
 override.term.setCursorPos = function(x, y)
-	if not hideBar then
+	if hideBar ~= true then 
 		return env.term.setCursorPos(x, y + 1)
 	else
 		return env.term.setCursorPos(x,y)
@@ -800,7 +800,7 @@ end
 
 override.term.getCursorPos = function()
 	local x, y = env.term.getCursorPos()
-	if not hideBar then
+	if hideBar ~= true then 
 		return x, y + 1
 	else
 		return x, y
@@ -845,8 +845,10 @@ override.term.clear = function()
 	local x, y = term.getCursorPos()
 	local oldbackground = override.term.getBackgroundColor()
 	local oldtext = override.term.getTextColor()
-	if not hideBar then 
-		clearPage(website, curbackground, true)
+	debugLog("Bara:", hideBar)
+	if hideBar ~= true then 
+		debugLog("Truea")
+		exClearPage(website, curbackground, true)
 	end
 
 	term.setBackgroundColor(oldbackground)
@@ -860,8 +862,10 @@ override.term.scroll = function(n)
 	local oldtext = override.term.getTextColor()
 
 	env.term.scroll(n)
-	if not hideBar then 
-		clearPage(website, curbackground, true)
+	debugLog("Bar:", hideBar)
+	if hideBar ~= true then 
+		debugLog("True")
+		exClearPage(website, curbackground, true)
 	end
 	term.setBackgroundColor(oldbackground)
 	term.setTextColor(oldtext)

@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 6
+local build = 7
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -737,6 +737,8 @@ local pullevent = function(data)
 		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
 		if e == event_exitWebsite or e == "terminate" then
 			error()
+		elseif e == "mouse_click" then
+			return e, p1, p2, p3+1
 		end
 
 		if data ~= "" and e == data then return e, p1, p2, p3, p4, p5
@@ -769,7 +771,11 @@ override.term.getSize = function()
 end
 
 override.term.setCursorPos = function(x, y)
-	return env.term.setCursorPos(x, y + 1)
+	if y < 1 then
+		return env.term.setCursorPos(x, 1)
+	else
+		return env.term.setCursorPos(x, y + 1)
+	end
 end
 
 override.term.getCursorPos = function()
