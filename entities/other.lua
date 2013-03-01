@@ -914,6 +914,7 @@ override.hideBar = function()
 	for k,v in pairs(safeTerm) do
 		term[k] = v
 	end
+	return safeTerm
 end
 
 
