@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 20
+local build = 21
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -921,7 +921,7 @@ override.hideBar = function()
 	for k,v in pairs(safeTerm) do
 		dTerm[k] = v
 	end
-	return os.pullEvent, derm
+	return os.pullEvent, dTerm
 end
 
 
