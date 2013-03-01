@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 13
+local build = 14
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -876,22 +876,8 @@ end
 
 
 local barTerm = {}
-barTerm.getCursorPos = function()
-	local x, y = env.term.getCursorPos()
-	return x, y - 1
-end
-
-barTerm.setCursorPos = function(x, y)
-	if y < 1 then
-		return env.term.setCursorPos(x, 2)
-	else
-		return env.term.setCursorPos(x, y+1)
-	end
-end
-
-barTerm.getSize = function()
-	local a, b = env.term.getSize()
-	return a, b - 1
+for k,v in pairs(override.term) do
+	barTerm[k] = v
 end
 
 barTerm.clear = override.term.clear
@@ -903,18 +889,21 @@ for k,v in pairs(term) do
 end
 
 override.showBar = function()
-	term.clear = barTerm.clear
-	term.scroll = barTerm.scroll
-	term.getSize = barTerm.getSize
-	term.setCursorPos = barTerm.setCursorPos
-	term.getCursorPos = barTerm.getCursorPos
+	os.pullEvent = override.os.pullEvent
+	local returnTerm = {}
+	for k,v in pairs(barTerm) do
+		returnTerm[k] = v
+	end
+	return (term = returnTerm)
 end
 
 override.hideBar = function()
+	os.pullEvent = pullevent
+	local returnTerm = {}
 	for k,v in pairs(safeTerm) do
-		term[k] = v
+		returnTerm[k] = v
 	end
-	return safeTerm
+	return (term = returnTerm)
 end
 
 
