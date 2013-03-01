@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 12
+local build = 13
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -847,13 +847,13 @@ override.os.pullEvent = function(data)
 		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
 		if e == event_exitWebsite or e == "terminate" then
 			error()
-		elseif e == "mouse_click" or(e == "mouse_drag") and not(data) then
+		elseif e == "mouse_click" or(e == "mouse_drag") and not(data) and hideBar ~= true then
 			debugLog("click", p3)
 			return e, p1, p2, p3-1
-		elseif e == "mouse_click" and data == "mouse_click" then
+		elseif e == "mouse_click" and data == "mouse_click" and hideBar ~= true then
 			debugLog("click", p3)
 			return e, p1, p2, p3-1
-		elseif e == "mouse_drag" and data == "mouse_drag" then
+		elseif e == "mouse_drag" and data == "mouse_drag" and hideBar ~= true then
 			return e, p1, p2, p3-1
 		end
 		if data then 
@@ -875,6 +875,48 @@ override.scrollingPrompt = function(list, x, y, len, width)
 end
 
 
+local barTerm = {}
+barTerm.getCursorPos = function()
+	local x, y = env.term.getCursorPos()
+	return x, y - 1
+end
+
+barTerm.setCursorPos = function(x, y)
+	if y < 1 then
+		return env.term.setCursorPos(x, 2)
+	else
+		return env.term.setCursorPos(x, y+1)
+	end
+end
+
+barTerm.getSize = function()
+	local a, b = env.term.getSize()
+	return a, b - 1
+end
+
+barTerm.clear = override.term.clear
+barTerm.scroll = override.term.scroll
+
+local safeTerm = {}
+for k,v in pairs(term) do
+	safeTerm[k] = v
+end
+
+override.showBar = function()
+	term.clear = barTerm.clear
+	term.scroll = barTerm.scroll
+	term.getSize = barTerm.getSize
+	term.setCursorPos = barTerm.setCursorPos
+	term.getCursorPos = barTerm.getCursorPos
+end
+
+override.hideBar = function()
+	for k,v in pairs(safeTerm) do
+		term[k] = v
+	end
+end
+
+
 --  -------- Antivirus System
 
 -- Overrides
@@ -882,9 +924,9 @@ local antivirusOverrides = {
 	["Run Files"] = {"shell.run", "os.run"}, 
 	["Modify System"] = {"shell.setAlias", "shell.clearAlias", "os.setComputerLabel", "shell.setDir", 
 		"shell.setPath"},
-	["Modify Filesystem"] = {"fs.makeDir", "fs.move", "fs.copy", "fs.delete", "fs.open",
+	["Modify Files"] = {"fs.makeDir", "fs.move", "fs.copy", "fs.delete", "fs.open",
 		"io.open", "io.write", "io.read", "io.close"},
-	["Shutdown Computer"] = {"os.shutdown", "os.reboot", "shell.exit"},
+	["Shutdown PC"] = {"os.shutdown", "os.reboot", "shell.exit"},
 	["Use pcall"] = {"pcall"},
 	["View Environment"] = {"getfenv"}
 }
