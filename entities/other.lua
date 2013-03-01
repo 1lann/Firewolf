@@ -850,7 +850,7 @@ override.os.pullEvent = function(data)
 		elseif e == "mouse_click" or e == "mouse_drag" and not(data) then
 			debugLog("click", p3)
 			return e, p1, p2, p3-1
-		elseif e == "mouse_click" or e == "mouse_drag" and(data == "mouse_click" or data == "mouse_drag" then
+		elseif e == "mouse_click" or e == "mouse_drag" and(data == "mouse_click" or data == "mouse_drag") then
 			debugLog("click", p3)
 			return e, p1, p2, p3-1
 		end
