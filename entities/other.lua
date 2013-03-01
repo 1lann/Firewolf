@@ -906,10 +906,12 @@ end
 
 override.showBar = function()
 	clickableAddressBar = true
-	setfenv(1, override)
-	clickableAddressBar = true
 	os.pullEvent = overridePullEvent
-	return os.pullEvent
+	local dTerm = {}
+	for k,v in pairs(barTerm) do
+		dTerm[k] = v
+	end
+	return os.pullEvent, dTerm
 end
 
 override.hideBar = function()
@@ -919,7 +921,7 @@ override.hideBar = function()
 	for k,v in pairs(safeTerm) do
 		dTerm[k] = v
 	end
-	return os.pullEvent, term
+	return os.pullEvent, derm
 end
 
 
