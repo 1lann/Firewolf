@@ -905,6 +905,7 @@ for k,v in pairs(term) do
 end
 
 override.showBar = function()
+	clickableAddressBar = true
 	setfenv(1, override)
 	clickableAddressBar = true
 	os.pullEvent = overridePullEvent
@@ -912,14 +913,12 @@ override.showBar = function()
 end
 
 override.hideBar = function()
-	setfenv(1, override)
 	clickableAddressBar = false
-	os.pullEvent = safePullEvent
-	local returnTerm = {}
+	override.os.pullEvent = safePullEvent
+	override.term = {}
 	for k,v in pairs(safeTerm) do
-		returnTerm[k] = v
+		override.term[k] = v
 	end
-	term = returnTerm
 	return
 end
 
