@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 18
+local build = 19
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -909,17 +909,17 @@ override.showBar = function()
 	setfenv(1, override)
 	clickableAddressBar = true
 	os.pullEvent = overridePullEvent
-	return 
+	return os.pullEvent
 end
 
 override.hideBar = function()
 	clickableAddressBar = false
 	os.pullEvent = safePullEvent
-	term = {}
+	local dTerm = {}
 	for k,v in pairs(safeTerm) do
-		term[k] = v
+		dTerm[k] = v
 	end
-	return
+	return os.pullEvent, term
 end
 
 
