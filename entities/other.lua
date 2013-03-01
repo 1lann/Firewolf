@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 15
+local build = 16
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -559,6 +559,7 @@ end
 
 -- Prompt Software
 api.prompt = function(list, dir, style)
+	local os.pullEvent = oldpullevent
 	if isAdvanced() then
 		for _, v in pairs(list) do
 			if v.bg then term.setBackgroundColor(v.bg) end
