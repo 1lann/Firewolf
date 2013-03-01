@@ -894,7 +894,8 @@ override.showBar = function()
 	for k,v in pairs(barTerm) do
 		returnTerm[k] = v
 	end
-	return (term = returnTerm)
+	term = returnTerm
+	return returnTerm
 end
 
 override.hideBar = function()
@@ -903,7 +904,8 @@ override.hideBar = function()
 	for k,v in pairs(safeTerm) do
 		returnTerm[k] = v
 	end
-	return (term = returnTerm)
+	term = returnTerm
+	return returnTerm
 end
 
 
