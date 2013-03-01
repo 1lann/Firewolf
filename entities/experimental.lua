@@ -13,12 +13,13 @@
 
 -- Version
 local version = "3.0"
+local build = 9001
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
 
 -- Server Identification
-local serverID = "other"
+local serverID = "experimental"
 local serverList = {experimental = "Experimental", other = "Other"}
 
 -- HTTP
@@ -27,7 +28,7 @@ local httpServerURL = "http://firewolf.dyndns.org:8080/firewolf"
 
 -- Updating
 local autoupdate = "true"
-local noInternet = false
+local noInternet = true
 
 -- Resources
 local graphics = {}
@@ -61,9 +62,10 @@ local errorPages = {}
 
 local website = ""
 local homepage = ""
-local timeout = 0.08
+local timeout = 0.2
 local loadingRate = 0
 local openAddressBar = true
+local clickableAddressBar = true
 local menuBarOpen = false
 
 -- Protocols
@@ -84,6 +86,7 @@ local firewolfURL = "https://raw.github.com/1lann/firewolf/master/entities/" .. 
 local a = "release"
 if serverID == "experimental" then a = "experimental" end
 local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-" .. a .. ".lua"
+local buildURL = "https://raw.github.com/1lann/firewolf/master/build"
 
 -- Data Locations
 local rootFolder = "/.Firewolf_Data"
@@ -311,14 +314,13 @@ local function clearPage(site, color, redraw, tcolor)
 		end
 
 		term.setBackgroundColor(color or colors.black)
-		if tcolor then term.setTextColor(tcolor)
-		else term.setTextColor(colors.white) end
+		term.setTextColor(tcolor or colors.white)
 	else
 		term.setCursorPos(1, 1)
 		term.setBackgroundColor(colors[theme["top-box"]])
 		term.setTextColor(colors[theme["text-color"]])
 		term.clearLine()
-		write("> [- Exit Firewolf -] [- Incorrect Website -]      ")
+		write("> [- Exit Firewolf -]                              ")
 	end
 
 	print("")
@@ -352,7 +354,7 @@ api.leftWrite = function(text)
 	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
 		term.setCursorPos(1, y)
-		write(text)
+		write(t)
 	end)
 end
 
@@ -364,8 +366,8 @@ end
 api.rightWrite = function(text)
 	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
-		term.setCursorPos(w - text:len() + 1, y)
-		write(text)
+		term.setCursorPos(w - t:len() + 1, y)
+		write(t)
 	end)
 end
 
@@ -407,7 +409,7 @@ api.loadImageFromServer = function(path)
 		f:close()
 
 		local image = paintutils.loadImage(rootFolder .. "/temp_file")
-		env.fs.delete(f:close())
+		env.fs.delete("/temp_file")
 		return image
 	end
 	return nil
@@ -465,7 +467,7 @@ api.saveFileToUserComputer = function(content)
 	rightPrint("The website: ")
 	rightPrint(website .. " ")
 	rightPrint("Is requesting to save a file ")
-	rightPrint("to your comptuer. ")
+	rightPrint("to your computer. ")
 
 	local ret = nil
 	local opt = prompt({{"Save File", w - 16, 12}, {"Cancel", w - 13, 13}}, "vertical")
@@ -560,7 +562,7 @@ api.themeColour = function(tag, default)
 end
 
 -- Prompt Software
-api.prompt = function(list, dir)
+api.prompt = function(list, dir, style)
 	if isAdvanced() then
 		for _, v in pairs(list) do
 			if v.bg then term.setBackgroundColor(v.bg) end
@@ -568,16 +570,21 @@ api.prompt = function(list, dir)
 			if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 6)/2) end
 
 			term.setCursorPos(v[2], v[3])
-			write("[- " .. v[1])
+			if style == true then write("[" .. v[1])
+			else write("[- " .. v[1]) end
 			term.setCursorPos(v[2] + v[1]:len() + 3, v[3])
-			write(" -]")
+			if style == true then write("]")
+			else write(" -]") end
 		end
+
+		local addition = 5
+		if style then addition = 1 end
 
 		while true do
 			local e, but, x, y = os.pullEvent()
 			if e == "mouse_click" then
 				for _, v in pairs(list) do
-					if x >= v[2] and x <= v[2] + v[1]:len() + 5 and y == v[3] then
+					if x >= v[2] and x <= v[2] + v[1]:len() + addition and y == v[3] then
 						return v[1]
 					end
 				end
@@ -741,7 +748,8 @@ local pullevent = function(data)
 			error()
 		end
 
-		if data ~= "" and e == data then return e, p1, p2, p3, p4, p5
+		if data then 
+		if e == data then return e, p1, p2, p3, p4, p5 end
 		else return e, p1, p2, p3, p4, p5 end
 	end
 end
@@ -764,6 +772,8 @@ for k, v in pairs(env) do override[k] = v end
 local curtext, curbackground = colors.white, colors.black
 override.term = {}
 for k, v in pairs(env.term) do override.term[k] = v end
+override.os = {}
+for k, v in pairs(env.os) do override.os[k] = v end
 
 override.term.getSize = function()
 	local a, b = env.term.getSize()
@@ -771,12 +781,16 @@ override.term.getSize = function()
 end
 
 override.term.setCursorPos = function(x, y)
-	return env.term.setCursorPos(x, y + 1)
+	if y < 1 then
+		return env.term.setCursorPos(x, 2)
+	else
+		return env.term.setCursorPos(x, y+1)
+	end
 end
 
 override.term.getCursorPos = function()
 	local x, y = env.term.getCursorPos()
-	return x, y + 1
+	return x, y - 1
 end
 
 override.term.getBackgroundColor = function()
@@ -839,6 +853,25 @@ end
 override.term.isColor = function() return isAdvanced() end
 override.term.isColour = function() return override.term.isColor() end
 
+override.os.pullEvent = function(data)
+	while true do
+		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
+		if e == event_exitWebsite or e == "terminate" then
+			error()
+		elseif (e == "mouse_click" or e == "mouse_drag") and not data then
+			return e, p1, p2, p3 - 1
+		elseif e == "mouse_click" and data == "mouse_click" then
+			return e, p1, p2, p3 - 1
+		elseif e == "mouse_drag" and data == "mouse_drag" then
+			return e, p1, p2, p3 - 1
+		end
+
+		if data then 
+			if e == data then return e, p1, p2, p3, p4, p5 end
+		else return e, p1, p2, p3, p4, p5 end
+	end
+end
+
 override.prompt = function(list, dir) 
 	local a = {}
 	for k, v in pairs(list) do
@@ -851,6 +884,21 @@ override.scrollingPrompt = function(list, x, y, len, width)
 	return env.scrollingPrompt(list, x, y + 1, len, width)
 end
 
+override.showBar = function()
+	setfenv(1, override)
+	term.clear()
+	term.setCursorPos(1, 1)
+	clickableAddressBar = true
+end
+
+override.hideBar = function()
+	os.pullEvent = pullevent
+	term = env.term
+	term.clear()
+	term.setCursorPos(1, 1)
+	clickableAddressBar = false
+end
+
 
 --  -------- Antivirus System
 
@@ -859,11 +907,10 @@ local antivirusOverrides = {
 	["Run Files"] = {"shell.run", "os.run"}, 
 	["Modify System"] = {"shell.setAlias", "shell.clearAlias", "os.setComputerLabel", "shell.setDir", 
 		"shell.setPath"},
-	["Modify Filesystem"] = {"fs.makeDir", "fs.move", "fs.copy", "fs.delete", "fs.open",
+	["Modify Files"] = {"fs.makeDir", "fs.move", "fs.copy", "fs.delete", "fs.open",
 		"io.open", "io.write", "io.read", "io.close"},
-	["Shutdown Computer"] = {"os.shutdown", "os.reboot", "shell.exit"},
-	["Use pcall"] = {"pcall"},
-	["View Environment"] = {"getfenv"}
+	["Shutdown PC"] = {"os.shutdown", "os.reboot", "shell.exit"},
+	["Use pcall"] = {"pcall"}
 }
 
 local antivirusDestroy = {
@@ -883,7 +930,7 @@ local function triggerAntivirus(offence, onlyCancel)
 	write("Request: " .. offence)
 	local a = {{"Allow", w - 24, 1}, {"Cancel", w - 12, 1}}
 	if onlyCancel == true then a = {{"Cancel", w - 12, 1}} end
-	local opt = prompt(a, "horizontal")
+	local opt = prompt(a, "horizontal", true)
 
 	clearPage(website, nil, true)
 	term.setTextColor(colors.white)
@@ -1064,31 +1111,53 @@ local function download(url, path)
 		end
 	end
 
-	return false
+	return false  
 end
 
 local function updateClient()
-	local ret = false
-	local source = nil
-	http.request(firewolfURL)
-	local a = os.startTimer(15)
-	while true do
-		local e, url, handle = os.pullEvent()
-		if e == "http_success" then
-			source = handle
-			ret = true
-			break
-		elseif e == "http_failure" or (e == "timer" and url == a) then
-			ret = false
-			break
+	local skipNormal = false
+	if serverID ~= "experimental" then
+		http.request(buildURL)
+		local a = os.startTimer(10)
+		while true do
+			local e, url, handle = os.pullEvent()
+			if e == "http_success" then
+				if tonumber(handle.readAll()) > build then break
+				else return false end
+			elseif e == "http_failure" or (e == "timer" and url == a) then
+				skipNormal = true
+				break
+			end
 		end
 	end
 
-	if not ret then
+	local source = nil
+
+	if not skipNormal then
+		local _, y = term.getCursorPos()
+		term.setCursorPos(1, y - 2)
+		rightWrite(string.rep(" ", 32))
+		rightWrite("Updating Firewolf... ")
+
+		http.request(firewolfURL)
+		local a = os.startTimer(10)
+		while true do
+			local e, url, handle = os.pullEvent()
+			if e == "http_success" then
+				source = handle
+				break
+			elseif e == "http_failure" or (e == "timer" and url == a) then
+				break
+			end
+		end
+	end
+
+	if not source then
 		if isAdvanced() then
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["background"]])
 			term.clear()
+			if not fs.exists(rootFolder) then fs.makeDir(rootFolder) end
 			local f = io.open(rootFolder .. "/temp_file", "w")
 			f:write(graphics.githubImage)
 			f:close()
@@ -1120,7 +1189,6 @@ local function updateClient()
 			write("        Click to exit...        ")
 			term.setCursorPos(19, 15)
 			write(string.rep(" ", 32))
-			os.pullEvent("mouse_click")
 		else
 			term.clear()
 			term.setCursorPos(1, 1)
@@ -1135,10 +1203,14 @@ local function updateClient()
 			centerPrint("http://status.github.com")
 			print("")
 			centerPrint("Press any key to exit...")
-			os.pullEvent("key")
 		end
 
-		return true
+		while true do
+			local e = oldpullevent()
+			if e == "mouse_click" or e == "key" then break end
+		end
+
+		return false
 	elseif source and autoupdate == "true" then
 		local b = io.open(firewolfLocation, "r")
 		local new = source.readAll()
@@ -1151,7 +1223,6 @@ local function updateClient()
 			local f = io.open(firewolfLocation, "w")
 			f:write(new)
 			f:close()
-			shell.run(firewolfLocation)
 			return true
 		else
 			return false
@@ -1377,46 +1448,11 @@ end
 
 protocols.http.getSearchResults = function()
 	dnsDatabase = {[1] = {}, [2] = {}}
-	local res = http.post(httpServerURL .. "/search.php", 
-		"password=" .. textutils.urlEncode(h3t59qc1fo2))
-	if res then
-		local a = res.readAll()
-		res.close()
-		if a:find("true") then
-			local b = textutils.unserialize(a:gsub("true\n", ""))
-			for _, v in pairs(b) do
-				table.insert(dnsDatabase[1], v.url)
-				table.insert(dnsDatabase[2], v.siteid)
-			end
-		end
-	end
-
 	return dnsDatabase[1]
 end
 
 protocols.http.getWebsite = function()
-	local id, content, status = nil, nil, nil
-
-	if site:sub(-1, -1) == "/" then site = site:sub(1, -2):gsub("http://", "") end
-	local url, page = "", "home"
-	if site:find("/") then
-		url = site:sub(1, site:find("/") - 1)
-		page = site:sub(site:find("/") + 1, -1)
-	end
-
-	local res = http.post(httpServerURL .. "/get.php",
-		"password=" .. textutils.urlEncode(h3t59qc1fo2) .. "&" ..
-		"url=" .. textutils.urlEncode(url) .. "&" .. 
-		"page=" .. textutils.urlEncode(page))
-	if res then
-		local a = res.readAll()
-		res.close()
-		if a:find("true\n") then
-			id, content, status = -1, a:sub(11, -5), "safe"
-		end
-	end
-
-	return id, content, status
+	return nil, nil, nil
 end
 
 
@@ -1441,11 +1477,11 @@ pages["firewolf"] = function(site)
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	rightPrint(string.rep(" ", 42))
 	rightPrint("  News:                       [- Sites -] ")
-	rightPrint("       Firewolf 3.0 is out! It introduces ")
-	rightPrint("   the very long awaited HTTP Support! :D ")
+	rightPrint("    Firewolf 2.4 is out! It cuts out 1500 ")
+	rightPrint("   lines, and contains many improvements! ")
 	rightPrint(string.rep(" ", 42))
-	rightPrint("         1lann and I have no clue what to ")
-	rightPrint("                         add/make next... ")
+	rightPrint("   Firewolf 3.0 will be out soon! It will ")
+	rightPrint("     bring the long awaited HTTP support! ")
 	rightPrint(string.rep(" ", 42))
 
 	while true do
@@ -1499,131 +1535,6 @@ pages["sites"] = function(site) redirect("firewolf/sites") end
 
 
 --  -------- Server Management
-
-local httpTesting = false
-local username, password = "", ""
-
-local function validateCredentials(username, password)
-	if not(httpTesting) then
-		local res = http.post(httpServerURL .. "/verify.php",
-			"username=" .. textutils.urlEncode(username) .. "&" ..
-			"password=" .. textutils.urlEncode(password .. h3t59qc1fo2))
-		if res then
-			local a = res.readAll()
-			res.close()
-			return a
-		else
-			return "Failed to Connect"
-		end
-	else
-		return "true"
-	end
-end
-
-local function registerAccount(username, password, repeatedPassword)
-	if not(httpTesting) then
-		local res = http.post(httpServerURL .. "/register.php",
-			"username=" .. textutils.urlEncode(username) .. "&" ..
-			"password=" .. textutils.urlEncode(password .. h3t59qc1fo2) .. "&" .. 
-			"repeatedpassword=" .. textutils.urlEncode(repeatedPassword))
-		if res then
-			local a = res.readAll()
-			res.close()
-			return a
-		else
-			return "Failed to Connect"
-		end
-	else
-		return "true"
-	end
-end
-
-local function sitesForAccount(username, password)
-	if not(httpTesting) then
-		local res = http.post(httpServerURL .. "/account_sites.php",
-			"username=" .. textutils.urlEncode(username) .. "&" ..
-			"password=" .. textutils.urlEncode(password .. h3t59qc1fo2))
-		if res then
-			local a = res.readAll()
-			res.close()
-			if a:find("true") then
-				return textutils.unserialize(a:gsub("true\n", ""))
-			else
-				return a
-			end
-		else
-			return "Failed to Connect"
-		end
-	else
-		return {{url = "www.httptest.com", owner = username, siteid = 0, online = "true"}}
-	end
-end
-
-local function pagesForSite(username, password, url)
-	if not(httpTesting) then
-
-	else
-		return {{url = "www.httptest.com", pageid = 0, name = "test", content = "print(\"hai\")\n"}}
-	end
-end
-
-local function downloadSite(username, password, loc, url, id)
-	if not(httpTesting) then
-
-	else
-		return "true"
-	end
-end
-
-local function createSite(username, password, url)
-	if not(httpTesting) then
-		local res = http.post(httpServerURL .. "/upload_site.php",
-			"username=" .. textutils.urlEncode(username) .. "&" ..
-			"password=" .. textutils.urlEncode(password .. h3t59qc1fo2) .. "&" .. 
-			"url=" .. textutils.urlEncode(url))
-		if res then
-			local a = res.readAll()
-			res.close()
-			return a
-		else
-			return "Failed to Connect"
-		end
-	else
-		return "true"
-	end
-end
-
-local function deletePages(username, password, url)
-	if not(httpTesting) then
-
-	else
-		return "true"
-	end
-end
-
-local function updateSite(username, password, url, dataloc)
-	if not(httpTesting) then
-		
-	else
-		return "true"
-	end
-end
-
-local function deleteSite(username, password, url, id)
-	if not(httpTesting) then
-
-	else
-		return "true"
-	end
-end
-
-local function setOnline(username, password, id, flag)
-	if not(httpTesting) then
-
-	else
-		return "true"
-	end
-end
 
 local function manageServers(site, protocol, functionList, startServerName)
 	local servers = functionList["reload servers"]()
@@ -2376,7 +2287,7 @@ pages["settings/themes"] = function(site)
 					else
 						rightWrite("Theme File is Corrupt! D: ")
 					end
-				elseif not(fs.exists(n)) then
+				elseif not fs.exists(n) then
 					rightWrite("File does not exist! ")
 				elseif fs.isDir(n) then
 					rightWrite("File is a directory! ")
@@ -2986,7 +2897,9 @@ local function addressbarcoroutine()
 		local e, but, x, y = oldpullevent()
 		if (e == "key" and (but == 29 or but == 157)) or
 				(e == "mouse_click" and y == 1) then
-			if openAddressBar then
+			local a = true
+			if e == "mouse_click" then a = clickableAddressBar end
+			if openAddressBar and a == true then
 				if e == "key" then x = -1 end
 				if x == w then
 					-- Open menu bar
@@ -3100,7 +3013,18 @@ local function main()
 	rightPrint(string.rep(" ", 32))
 	rightPrint("        Checking for Updates... ")
 	rightPrint(string.rep(" ", 32))
-	if not noInternet then if updateClient() then return end end
+	setfenv(updateClient, env)
+	if not noInternet then 
+		if updateClient() then
+			if debugFile then debugFile:close() end
+
+			-- Reset Environment
+			setfenv(1, oldEnv)
+			os.pullEvent = oldpullevent
+			shell.run(firewolfLocation)
+			error()
+		end 
+	end
 
 	-- Download Files
 	local x, y = term.getCursorPos()
@@ -3156,10 +3080,10 @@ local function startup()
 	if turtle then
 		term.clear()
 		term.setCursorPos(1, 2)
-		api.centerPrint("Advanced Comptuer Required!")
+		api.centerPrint("Advanced computer Required!")
 		print("\n")
 		api.centerPrint("  This version of Firewolf requires  ")
-		api.centerPrint("  an Advanced Comptuer to run!       ")
+		api.centerPrint("  an Advanced computer to run!       ")
 		print("")
 		api.centerPrint("  Turtles may not be used to run     ")
 		api.centerPrint("  Firewolf! :(                       ")
