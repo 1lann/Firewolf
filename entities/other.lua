@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 17
+local build = 18
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -905,31 +905,22 @@ for k,v in pairs(term) do
 end
 
 override.showBar = function()
+	setfenv(1, override)
 	clickableAddressBar = true
-	override.os.pullEvent = overridePullEvent
 	os.pullEvent = overridePullEvent
-	local returnTerm = {}
-	for k,v in pairs(barTerm) do
-		returnTerm[k] = v
-	end
-	term = returnTerm
-	term.clear()
-	term.setCursorPos(1,1)
-	return os.pullEvent
+	return 
 end
 
 override.hideBar = function()
+	setfenv(1, override)
 	clickableAddressBar = false
-	override.os.pullEvent = safePullEvent
 	os.pullEvent = safePullEvent
 	local returnTerm = {}
 	for k,v in pairs(safeTerm) do
 		returnTerm[k] = v
 	end
 	term = returnTerm
-	term.clear()
-	term.setCursorPos(1,1)
-	return os.pullEvent
+	return
 end
 
 
