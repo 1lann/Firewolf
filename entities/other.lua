@@ -897,6 +897,8 @@ override.showBar = function()
 		returnTerm[k] = v
 	end
 	term = returnTerm
+	term.clear()
+	term.setCursorPos(1,1)
 	return returnTerm
 end
 
@@ -908,6 +910,8 @@ override.hideBar = function()
 		returnTerm[k] = v
 	end
 	term = returnTerm
+	term.clear()
+	term.setCursorPos(1,1)
 	return returnTerm
 end
 
