@@ -322,7 +322,7 @@ local function clearPage(site, color, redraw, tcolor)
 
 	print("")
 end
-3
+
 local function printWithType(t, func)
 	if type(t) == "table" then
 		for k, v in pairs(t) do
