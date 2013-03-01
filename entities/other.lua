@@ -746,6 +746,19 @@ local pullevent = function(data)
 	end
 end
 
+local safePullEvent = function(data)
+	while true do
+		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
+		if e == event_exitWebsite or e == "terminate" then
+			error()
+		end
+
+		if data then 
+		if e == data then return e, p1, p2, p3, p4, p5 end
+		else return e, p1, p2, p3, p4, p5 end
+	end
+end
+
 -- Set Environment
 for k, v in pairs(getfenv(0)) do env[k] = v end
 for k, v in pairs(getfenv(1)) do env[k] = v end
@@ -904,7 +917,7 @@ end
 
 override.hideBar = function()
 	clickableAddressBar = false
-	os.pullEvent = pullevent
+	os.pullEvent = safePullEvent
 	local returnTerm = {}
 	for k,v in pairs(safeTerm) do
 		returnTerm[k] = v
