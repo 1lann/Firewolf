@@ -855,6 +855,7 @@ override.os.pullEvent = function(data)
 			return e, p1, p2, p3-1
 		elseif e == "mouse_drag" and data == "mouse_drag" then
 			return e, p1, p2, p3-1
+		end
 		if data then 
 		if e == data then return e, p1, p2, p3, p4, p5 end
 		else return e, p1, p2, p3, p4, p5 end
