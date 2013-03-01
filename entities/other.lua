@@ -310,8 +310,7 @@ local function clearPage(site, color, redraw, tcolor)
 		end
 
 		term.setBackgroundColor(color or colors.black)
-		if tcolor then term.setTextColor(tcolor)
-		else term.setTextColor(colors.white) end
+		term.setTextColor(tcolor or colors.white)
 	else
 		term.setCursorPos(1, 1)
 		term.setBackgroundColor(colors[theme["top-box"]])
@@ -559,7 +558,7 @@ api.themeColour = function(tag, default)
 end
 
 -- Prompt Software
-api.prompt = function(list, dir)
+api.prompt = function(list, dir, style)
 	if isAdvanced() then
 		for _, v in pairs(list) do
 			if v.bg then term.setBackgroundColor(v.bg) end
@@ -567,16 +566,21 @@ api.prompt = function(list, dir)
 			if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 6)/2) end
 
 			term.setCursorPos(v[2], v[3])
-			write("[- " .. v[1])
+			if style == true then write("[" .. v[1])
+			else write("[- " .. v[1]) end
 			term.setCursorPos(v[2] + v[1]:len() + 3, v[3])
-			write(" -]")
+			if style == true then write("]")
+			else write(" -]") end
 		end
+
+		local addition = 5
+		if style then addition = 1 end
 
 		while true do
 			local e, but, x, y = os.pullEvent()
 			if e == "mouse_click" then
 				for _, v in pairs(list) do
-					if x >= v[2] and x <= v[2] + v[1]:len() + 5 and y == v[3] then
+					if x >= v[2] and x <= v[2] + v[1]:len() + addition and y == v[3] then
 						return v[1]
 					end
 				end
@@ -849,16 +853,14 @@ override.os.pullEvent = function(data)
 		if e == event_exitWebsite or e == "terminate" then
 			error()
 		elseif e == "mouse_click" or(e == "mouse_drag") and not(data) and hideBar ~= true then
-			debugLog("click", p3)
-			return e, p1, p2, p3-1
+			return e, p1, p2, p3 - 1
 		elseif e == "mouse_click" and data == "mouse_click" and hideBar ~= true then
-			debugLog("click", p3)
-			return e, p1, p2, p3-1
+			return e, p1, p2, p3 - 1
 		elseif e == "mouse_drag" and data == "mouse_drag" and hideBar ~= true then
-			return e, p1, p2, p3-1
+			return e, p1, p2, p3 - 1
 		end
 		if data then 
-		if e == data then return e, p1, p2, p3, p4, p5 end
+			if e == data then return e, p1, p2, p3, p4, p5 end
 		else return e, p1, p2, p3, p4, p5 end
 	end
 end
@@ -877,7 +879,7 @@ end
 
 
 local barTerm = {}
-for k,v in pairs(override.term) do
+for k, v in pairs(override.term) do
 	barTerm[k] = v
 end
 
@@ -885,7 +887,7 @@ barTerm.clear = override.term.clear
 barTerm.scroll = override.term.scroll
 
 local safeTerm = {}
-for k,v in pairs(term) do
+for k, v in pairs(term) do
 	safeTerm[k] = v
 end
 
@@ -904,7 +906,7 @@ override.hideBar = function()
 	clickableAddressBar = false
 	os.pullEvent = pullevent
 	local returnTerm = {}
-	for k,v in pairs(safeTerm) do
+	for k, v in pairs(safeTerm) do
 		returnTerm[k] = v
 	end
 	term = returnTerm
@@ -922,8 +924,7 @@ local antivirusOverrides = {
 	["Modify Files"] = {"fs.makeDir", "fs.move", "fs.copy", "fs.delete", "fs.open",
 		"io.open", "io.write", "io.read", "io.close"},
 	["Shutdown PC"] = {"os.shutdown", "os.reboot", "shell.exit"},
-	["Use pcall"] = {"pcall"},
-	["View Environment"] = {"getfenv"}
+	["Use pcall"] = {"pcall"}
 }
 
 local antivirusDestroy = {
@@ -943,7 +944,7 @@ local function triggerAntivirus(offence, onlyCancel)
 	write("Request: " .. offence)
 	local a = {{"Allow", w - 24, 1}, {"Cancel", w - 12, 1}}
 	if onlyCancel == true then a = {{"Cancel", w - 12, 1}} end
-	local opt = prompt(a, "horizontal")
+	local opt = prompt(a, "horizontal", true)
 
 	clearPage(website, nil, true)
 	term.setTextColor(colors.white)
