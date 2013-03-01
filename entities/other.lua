@@ -915,7 +915,7 @@ override.showBar = function()
 	term = returnTerm
 	term.clear()
 	term.setCursorPos(1,1)
-	return returnTerm
+	return os.pullEvent
 end
 
 override.hideBar = function()
@@ -929,7 +929,7 @@ override.hideBar = function()
 	term = returnTerm
 	term.clear()
 	term.setCursorPos(1,1)
-	return returnTerm
+	return os.pullEvent
 end
 
 
