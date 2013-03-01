@@ -771,7 +771,7 @@ end
 
 override.term.setCursorPos = function(x, y)
 	if y < 1 then
-		return env.term.setCursorPos(x, 1)
+		return env.term.setCursorPos(x, 2)
 	else
 		return env.term.setCursorPos(x, y+1)
 	end
@@ -850,11 +850,11 @@ override.os.pullEvent = function(data)
 		elseif e == "mouse_click" or(e == "mouse_drag") and not(data) then
 			debugLog("click", p3)
 			return e, p1, p2, p3-1
-		elseif e == "mouse_click" or(e == "mouse_drag") and(data == "mouse_click" or data == "mouse_drag") then
+		elseif e == "mouse_click" anddata == "mouse_click" then
 			debugLog("click", p3)
 			return e, p1, p2, p3-1
-		end
-
+		elseif e == "mouse_drag" and data == "mouse_drag" then
+			return e, p1, p2, p3-1
 		if data then 
 		if e == data then return e, p1, p2, p3, p4, p5 end
 		else return e, p1, p2, p3, p4, p5 end
