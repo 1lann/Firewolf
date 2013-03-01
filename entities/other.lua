@@ -61,6 +61,7 @@ local homepage = ""
 local timeout = 0.2
 local loadingRate = 0
 local openAddressBar = true
+local clickableAddressBar = true
 local menuBarOpen = false
 
 -- Protocols
@@ -321,7 +322,7 @@ local function clearPage(site, color, redraw, tcolor)
 
 	print("")
 end
-
+3
 local function printWithType(t, func)
 	if type(t) == "table" then
 		for k, v in pairs(t) do
@@ -889,6 +890,7 @@ for k,v in pairs(term) do
 end
 
 override.showBar = function()
+	clickableAddressBar = true
 	os.pullEvent = override.os.pullEvent
 	local returnTerm = {}
 	for k,v in pairs(barTerm) do
@@ -899,6 +901,7 @@ override.showBar = function()
 end
 
 override.hideBar = function()
+	clickableAddressBar = false
 	os.pullEvent = pullevent
 	local returnTerm = {}
 	for k,v in pairs(safeTerm) do
@@ -2783,7 +2786,7 @@ local function addressbarcoroutine()
 	while true do
 		local e, but, x, y = oldpullevent()
 		if (e == "key" and (but == 29 or but == 157)) or
-				(e == "mouse_click" and y == 1) then
+				(e == "mouse_click" and y == 1 and clickableAddressBar) then
 			if openAddressBar then
 				if e == "key" then x = -1 end
 				if x == w then
