@@ -914,10 +914,10 @@ end
 
 override.hideBar = function()
 	clickableAddressBar = false
-	override.os.pullEvent = safePullEvent
-	override.term = {}
+	os.pullEvent = safePullEvent
+	term = {}
 	for k,v in pairs(safeTerm) do
-		override.term[k] = v
+		term[k] = v
 	end
 	return
 end
