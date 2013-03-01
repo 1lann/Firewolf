@@ -559,7 +559,6 @@ end
 
 -- Prompt Software
 api.prompt = function(list, dir, style)
-	local os["pullEvent"] = pullevent
 	if isAdvanced() then
 		for _, v in pairs(list) do
 			if v.bg then term.setBackgroundColor(v.bg) end
@@ -578,7 +577,7 @@ api.prompt = function(list, dir, style)
 		if style then addition = 1 end
 
 		while true do
-			local e, but, x, y = os.pullEvent()
+			local e, but, x, y = pullevent()
 			if e == "mouse_click" then
 				for _, v in pairs(list) do
 					if x >= v[2] and x <= v[2] + v[1]:len() + addition and y == v[3] then
@@ -609,7 +608,7 @@ api.prompt = function(list, dir, style)
 		write("]")
 
 		while true do
-			local e, key = os.pullEvent()
+			local e, key = pullevent()
 			term.setCursorPos(list[curSel][2], list[curSel][3])
 			write(" ")
 			term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
