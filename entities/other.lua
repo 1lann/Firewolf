@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 16
+local build = 17
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -310,13 +310,14 @@ local function clearPage(site, color, redraw, tcolor)
 		end
 
 		term.setBackgroundColor(color or colors.black)
-		term.setTextColor(tcolor or colors.white)
+		if tcolor then term.setTextColor(tcolor)
+		else term.setTextColor(colors.white) end
 	else
 		term.setCursorPos(1, 1)
 		term.setBackgroundColor(colors[theme["top-box"]])
 		term.setTextColor(colors[theme["text-color"]])
 		term.clearLine()
-		write("> [- Exit Firewolf -]                              ")
+		write("> [- Exit Firewolf -] [- Incorrect Website -]      ")
 	end
 
 	print("")
@@ -350,7 +351,7 @@ api.leftWrite = function(text)
 	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
 		term.setCursorPos(1, y)
-		write(t)
+		write(text)
 	end)
 end
 
@@ -362,8 +363,8 @@ end
 api.rightWrite = function(text)
 	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
-		term.setCursorPos(w - t:len() + 1, y)
-		write(t)
+		term.setCursorPos(w - text:len() + 1, y)
+		write(text)
 	end)
 end
 
@@ -558,7 +559,7 @@ api.themeColour = function(tag, default)
 end
 
 -- Prompt Software
-api.prompt = function(list, dir, style)
+api.prompt = function(list, dir)
 	if isAdvanced() then
 		for _, v in pairs(list) do
 			if v.bg then term.setBackgroundColor(v.bg) end
@@ -566,21 +567,16 @@ api.prompt = function(list, dir, style)
 			if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 6)/2) end
 
 			term.setCursorPos(v[2], v[3])
-			if style == true then write("[" .. v[1])
-			else write("[- " .. v[1]) end
+			write("[- " .. v[1])
 			term.setCursorPos(v[2] + v[1]:len() + 3, v[3])
-			if style == true then write("]")
-			else write(" -]") end
+			write(" -]")
 		end
 
-		local addition = 5
-		if style then addition = 1 end
-
 		while true do
-			local e, but, x, y = pullevent()
+			local e, but, x, y = os.pullEvent()
 			if e == "mouse_click" then
 				for _, v in pairs(list) do
-					if x >= v[2] and x <= v[2] + v[1]:len() + addition and y == v[3] then
+					if x >= v[2] and x <= v[2] + v[1]:len() + 5 and y == v[3] then
 						return v[1]
 					end
 				end
@@ -608,7 +604,7 @@ api.prompt = function(list, dir, style)
 		write("]")
 
 		while true do
-			local e, key = pullevent()
+			local e, key = os.pullEvent()
 			term.setCursorPos(list[curSel][2], list[curSel][3])
 			write(" ")
 			term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
@@ -768,8 +764,6 @@ for k, v in pairs(env) do override[k] = v end
 local curtext, curbackground = colors.white, colors.black
 override.term = {}
 for k, v in pairs(env.term) do override.term[k] = v end
-override.os = {}
-for k, v in pairs(env.os) do override.os[k] = v end
 
 override.term.getSize = function()
 	local a, b = env.term.getSize()
@@ -854,16 +848,17 @@ override.os.pullEvent = function(data)
 		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
 		if e == event_exitWebsite or e == "terminate" then
 			error()
-		elseif (e == "mouse_click" or e == "mouse_drag") and not data then
-			return e, p1, p2, p3 - 1
-		elseif e == "mouse_click" and data == "mouse_click" then
-			return e, p1, p2, p3 - 1
-		elseif e == "mouse_drag" and data == "mouse_drag" then
-			return e, p1, p2, p3 - 1
+		elseif e == "mouse_click" or(e == "mouse_drag") and not(data) and hideBar ~= true then
+			debugLog("click", p3)
+			return e, p1, p2, p3-1
+		elseif e == "mouse_click" and data == "mouse_click" and hideBar ~= true then
+			debugLog("click", p3)
+			return e, p1, p2, p3-1
+		elseif e == "mouse_drag" and data == "mouse_drag" and hideBar ~= true then
+			return e, p1, p2, p3-1
 		end
-
 		if data then 
-			if e == data then return e, p1, p2, p3, p4, p5 end
+		if e == data then return e, p1, p2, p3, p4, p5 end
 		else return e, p1, p2, p3, p4, p5 end
 	end
 end
@@ -880,19 +875,40 @@ override.scrollingPrompt = function(list, x, y, len, width)
 	return env.scrollingPrompt(list, x, y + 1, len, width)
 end
 
+
+local barTerm = {}
+for k,v in pairs(override.term) do
+	barTerm[k] = v
+end
+
+barTerm.clear = override.term.clear
+barTerm.scroll = override.term.scroll
+
+local safeTerm = {}
+for k,v in pairs(term) do
+	safeTerm[k] = v
+end
+
 override.showBar = function()
-	setfenv(1, override)
-	term.clear()
-	term.setCursorPos(1, 1)
 	clickableAddressBar = true
+	os.pullEvent = override.os.pullEvent
+	local returnTerm = {}
+	for k,v in pairs(barTerm) do
+		returnTerm[k] = v
+	end
+	term = returnTerm
+	return returnTerm
 end
 
 override.hideBar = function()
-	os.pullEvent = pullevent
-	term = env.term
-	term.clear()
-	term.setCursorPos(1, 1)
 	clickableAddressBar = false
+	os.pullEvent = pullevent
+	local returnTerm = {}
+	for k,v in pairs(safeTerm) do
+		returnTerm[k] = v
+	end
+	term = returnTerm
+	return returnTerm
 end
 
 
@@ -906,7 +922,8 @@ local antivirusOverrides = {
 	["Modify Files"] = {"fs.makeDir", "fs.move", "fs.copy", "fs.delete", "fs.open",
 		"io.open", "io.write", "io.read", "io.close"},
 	["Shutdown PC"] = {"os.shutdown", "os.reboot", "shell.exit"},
-	["Use pcall"] = {"pcall"}
+	["Use pcall"] = {"pcall"},
+	["View Environment"] = {"getfenv"}
 }
 
 local antivirusDestroy = {
@@ -926,7 +943,7 @@ local function triggerAntivirus(offence, onlyCancel)
 	write("Request: " .. offence)
 	local a = {{"Allow", w - 24, 1}, {"Cancel", w - 12, 1}}
 	if onlyCancel == true then a = {{"Cancel", w - 12, 1}} end
-	local opt = prompt(a, "horizontal", true)
+	local opt = prompt(a, "horizontal")
 
 	clearPage(website, nil, true)
 	term.setTextColor(colors.white)
@@ -2160,7 +2177,7 @@ pages["settings/themes"] = function(site)
 					else
 						rightWrite("Theme File is Corrupt! D: ")
 					end
-				elseif not fs.exists(n) then
+				elseif not(fs.exists(n)) then
 					rightWrite("File does not exist! ")
 				elseif fs.isDir(n) then
 					rightWrite("File is a directory! ")
@@ -2769,10 +2786,8 @@ local function addressbarcoroutine()
 	while true do
 		local e, but, x, y = oldpullevent()
 		if (e == "key" and (but == 29 or but == 157)) or
-				(e == "mouse_click" and y == 1) then
-			local a = true
-			if e == "mouse_click" then a = clickableAddressBar end
-			if openAddressBar and a == true then
+				(e == "mouse_click" and y == 1 and clickableAddressBar) then
+			if openAddressBar then
 				if e == "key" then x = -1 end
 				if x == w then
 					-- Open menu bar
@@ -2887,17 +2902,15 @@ local function main()
 	rightPrint("        Checking for Updates... ")
 	rightPrint(string.rep(" ", 32))
 	setfenv(updateClient, env)
-	if not noInternet then 
-		if updateClient() then
-			if debugFile then debugFile:close() end
+	if not noInternet then if updateClient(rightWrite) then
+	if debugFile then debugFile:close() end
 
-			-- Reset Environment
-			setfenv(1, oldEnv)
-			os.pullEvent = oldpullevent
-			shell.run(firewolfLocation)
-			error()
-		end 
-	end
+	-- Reset Environment
+	setfenv(1, oldEnv)
+	os.pullEvent = oldpullevent
+	shell.run(firewolfLocation)
+	error()
+	end end
 
 	-- Download Files
 	local x, y = term.getCursorPos()
