@@ -876,6 +876,8 @@ override.os.pullEvent = function(data)
 	end
 end
 
+local overridePullEvent = override.os.pullEvent
+
 override.prompt = function(list, dir) 
 	local a = {}
 	for k, v in pairs(list) do
@@ -904,7 +906,8 @@ end
 
 override.showBar = function()
 	clickableAddressBar = true
-	os.pullEvent = override.os.pullEvent
+	override.os.pullEvent = overridePullEvent
+	os.pullEvent = overridePullEvent
 	local returnTerm = {}
 	for k,v in pairs(barTerm) do
 		returnTerm[k] = v
@@ -917,6 +920,7 @@ end
 
 override.hideBar = function()
 	clickableAddressBar = false
+	override.os.pullEvent = safePullEvent
 	os.pullEvent = safePullEvent
 	local returnTerm = {}
 	for k,v in pairs(safeTerm) do
