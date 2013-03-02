@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 21
+local build = 22
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -317,7 +317,7 @@ local function clearPage(site, color, redraw, tcolor)
 		term.setBackgroundColor(colors[theme["top-box"]])
 		term.setTextColor(colors[theme["text-color"]])
 		term.clearLine()
-		write("> [- Exit Firewolf -] [- Incorrect Website -]      ")
+		write("> [- Exit Firewolf -]                              ")
 	end
 
 	print("")
@@ -335,42 +335,51 @@ end
 
 -- Drawing Functions
 api.centerWrite = function(text)
-	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
 		term.setCursorPos(math.ceil((w + 1)/2 - t:len()/2), y)
 		write(t)
 	end)
 end
 
 api.centerPrint = function(text)
-	api.centerWrite(text)
-	print()
+	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
+		term.setCursorPos(math.ceil((w + 1)/2 - t:len()/2), y)
+		print(t)
+	end)
 end
 
 api.leftWrite = function(text)
-	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
 		term.setCursorPos(1, y)
-		write(text)
+		write(t)
 	end)
 end
 
 api.leftPrint = function(text)
-	api.leftWrite(text)
-	print()
+	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
+		term.setCursorPos(1, y)
+		print(t)
+	end)
 end
 
 api.rightWrite = function(text)
-	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
-		term.setCursorPos(w - text:len() + 1, y)
-		write(text)
+		local x, y = term.getCursorPos()
+		term.setCursorPos(w - t:len() + 1, y)
+		write(t)
 	end)
 end
 
 api.rightPrint = function(text)
-	api.rightWrite(text)
-	print()
+	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
+		term.setCursorPos(w - t:len() + 1, y)
+		print(t)
+	end)
 end
 
 -- Server Interation Functions
@@ -746,19 +755,6 @@ local pullevent = function(data)
 	end
 end
 
-local safePullEvent = function(data)
-	while true do
-		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
-		if e == event_exitWebsite or e == "terminate" then
-			error()
-		end
-
-		if data then 
-		if e == data then return e, p1, p2, p3, p4, p5 end
-		else return e, p1, p2, p3, p4, p5 end
-	end
-end
-
 -- Set Environment
 for k, v in pairs(getfenv(0)) do env[k] = v end
 for k, v in pairs(getfenv(1)) do env[k] = v end
@@ -861,17 +857,15 @@ override.os.pullEvent = function(data)
 		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
 		if e == event_exitWebsite or e == "terminate" then
 			error()
-		elseif e == "mouse_click" or(e == "mouse_drag") and not(data) and hideBar ~= true then
-			debugLog("click", p3)
-			return e, p1, p2, p3-1
-		elseif e == "mouse_click" and data == "mouse_click" and hideBar ~= true then
-			debugLog("click", p3)
-			return e, p1, p2, p3-1
-		elseif e == "mouse_drag" and data == "mouse_drag" and hideBar ~= true then
-			return e, p1, p2, p3-1
+		elseif (e == "mouse_click" or e == "mouse_drag") and not data then
+			return e, p1, p2, p3 - 1
+		elseif e == "mouse_click" and data == "mouse_click" then
+			return e, p1, p2, p3 - 1
+		elseif e == "mouse_drag" and data == "mouse_drag" then
+			return e, p1, p2, p3 - 1
 		end
 		if data then 
-		if e == data then return e, p1, p2, p3, p4, p5 end
+			if e == data then return e, p1, p2, p3, p4, p5 end
 		else return e, p1, p2, p3, p4, p5 end
 	end
 end
@@ -892,36 +886,24 @@ end
 
 
 local barTerm = {}
-for k,v in pairs(override.term) do
-	barTerm[k] = v
-end
+for k, v in pairs(override.term) do barTerm[k] = v end
 
 barTerm.clear = override.term.clear
 barTerm.scroll = override.term.scroll
 
 local safeTerm = {}
-for k,v in pairs(term) do
-	safeTerm[k] = v
-end
+for k, v in pairs(term) do safeTerm[k] = v end
 
 override.showBar = function()
 	clickableAddressBar = true
 	os.pullEvent = overridePullEvent
-	local dTerm = {}
-	for k,v in pairs(barTerm) do
-		dTerm[k] = v
-	end
-	return os.pullEvent, dTerm
+	return os.pullEvent, barTerm
 end
 
 override.hideBar = function()
 	clickableAddressBar = false
-	os.pullEvent = safePullEvent
-	local dTerm = {}
-	for k,v in pairs(safeTerm) do
-		dTerm[k] = v
-	end
-	return os.pullEvent, dTerm
+	os.pullEvent = pullevent
+	return os.pullEvent, safeTerm
 end
 
 
@@ -934,9 +916,8 @@ local antivirusOverrides = {
 		"shell.setPath"},
 	["Modify Files"] = {"fs.makeDir", "fs.move", "fs.copy", "fs.delete", "fs.open",
 		"io.open", "io.write", "io.read", "io.close"},
-	["Shutdown PC"] = {"os.shutdown", "os.reboot", "shell.exit"},
+	["Shutdown Computer"] = {"os.shutdown", "os.reboot", "shell.exit"},
 	["Use pcall"] = {"pcall"},
-	["View Environment"] = {"getfenv"}
 }
 
 local antivirusDestroy = {
