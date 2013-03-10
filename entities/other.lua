@@ -1687,6 +1687,7 @@ local function manageServers(site, protocol, functionList, startServerName)
 		while true do
 			term.setBackgroundColor(colors[theme["background"]])
 			term.clear()
+			term.setCursorPos(1, 1)
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
 			print("")
@@ -1711,20 +1712,20 @@ local function manageServers(site, protocol, functionList, startServerName)
 				end
 				local opt = prompt(a, "vertical")
 				if opt == "Start" then
-					functionList["start"]()
+					functionList["start"](server)
 					servers = functionList["reload servers"]()
 				elseif opt == "Edit" then
-					functionList["edit"]()
-					servers = functionList["reload servers"]()
+					functionList["edit"](server)
+					servers = functionList["reload servers"](server)
 				elseif opt == "Run on Boot" and functionList["run on boot"] then
-					functionList["run on boot"]()
+					functionList["run on boot"](server)
 					term.setCursorPos(32, 16)
 					write("Will Run on Boot!")
 					openAddressBar = false
 					sleep(1.3)
 					openAddressBar = true
 				elseif opt == "Delete" then
-					functionList["delete"]()
+					functionList["delete"](server)
 					servers = functionList["reload servers"]()
 				end
 			end

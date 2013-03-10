@@ -1412,7 +1412,7 @@ protocols.rdnt.getSearchResults = function()
 			break
 		end
 	end
-	for k,v in pairs(conflict) do
+	for k, v in pairs(conflict) do
 		table.sort(v)
 		table.insert(dnsDatabase[1], k)
 		table.insert(dnsDatabase[2], v[1])
@@ -1905,8 +1905,8 @@ pages["server/http"] = function(site, auser, apass)
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		rightPrint(string.rep(" ", 34))
-		rightPrint("  Welcome to Firewolf HTTP Server ")
-		rightPrint("                      Management! ")
+		rightPrint("         Welcome to Firewolf HTTP ")
+		rightPrint("               Server Management! ")
 		for i = 1, 8 do rightPrint(string.rep(" ", 34)) end
 
 		local opt = prompt({{"Login", w - 13, 9}, {"Register", w - 16, 10}}, "horizontal")
@@ -1990,7 +1990,7 @@ pages["server/http"] = function(site, auser, apass)
 			if v.online == "true" then new = "false" newt = "Start" end
 			setOnline(username, password, v.id, new)
 			return newt
-		end, ["edit"] function(server)
+		end, ["edit"] = function(server)
 			local data = nil
 			for _, v in pairs(sites) do if v.url == url then data = v end end
 
@@ -2818,7 +2818,7 @@ local function searchresults()
 	local mod = true
 	if curProtocol == protocols.rdnt then
 		mod = false
-		for _, v in pairs(rs.getSides()) do if rednet.isOpen(v) then mod = true end end
+		for _, v in pairs(rs.getSides()) do if rednet.isOpen(v) then mod = true break end end
 	end
 	if mod then curProtocol.getSearchResults() end
 
@@ -2829,7 +2829,7 @@ local function searchresults()
 			mod = true
 			if curProtocol == protocols.rdnt then
 				mod = false
-				for _, v in pairs(rs.getSides()) do if rednet.isOpen(v) then mod = true end end
+				for _, v in pairs(rs.getSides()) do if rednet.isOpen(v) then mod = true break end end
 			end
 			if mod and os.clock() - lastCheck > 5 then
 				curProtocol.getSearchResults()
@@ -2933,6 +2933,18 @@ local function addressbarcoroutine()
 					os.queueEvent(event_exitWebsite)
 					os.queueEvent("terminate")
 					return
+				elseif x >= 2 and x <= 5 and not menuBarOpen then
+					-- Exit
+					os.queueEvent(event_exitWebsite)
+
+					-- Swap protocols
+					if curProtocol == protocols.rdnt then curProtocol = protocols.http
+					elseif curProtocol == protocols.http then curProtocol = protocols.rdnt end
+					curProtocol.getSearchResults()
+					
+					-- Load
+					website = homepage
+					os.queueEvent(event_loadWebsite)
 				elseif not menuBarOpen then
 					-- Exit website
 					os.queueEvent(event_exitWebsite)
