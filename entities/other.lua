@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 23
+local build = 24
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -1484,7 +1484,8 @@ pages["firewolf"] = function(site)
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	rightPrint(string.rep(" ", 42))
-	rightPrint("  News:                       [- Sites -] ")
+	if isAdvanced() then rightPrint("  News:                       [- Sites -] ")
+	else rightPrint("  News:                                   ") end
 	rightPrint("    Firewolf 2.4 is out! It cuts out 1500 ")
 	rightPrint("   lines, and contains many improvements! ")
 	rightPrint(string.rep(" ", 42))
@@ -1494,7 +1495,7 @@ pages["firewolf"] = function(site)
 
 	while true do
 		local e, but, x, y = os.pullEvent()
-		if e == "mouse_click" and x >= 40 and x <= 50 and y == 12 then
+		if isAdvanced() and e == "mouse_click" and x >= 40 and x <= 50 and y == 12 then
 			redirect("firewolf/sites")
 		end
 	end
@@ -1528,7 +1529,7 @@ pages["firewolf/sites"] = function(site)
 	local a = {"firewolf", "firewolf/sites", "server", "help", "settings", "credits", "exit"}
 	while true do
 		local e, but, x, y = os.pullEvent()
-		if e == "mouse_click" and x >= 14 and x <= 50 then
+		if isAdvanced() and e == "mouse_click" and x >= 14 and x <= 50 then
 			for i, v in ipairs(a) do
 				if y == sx + i + 1 then 
 					if v == "exit" then return true end
