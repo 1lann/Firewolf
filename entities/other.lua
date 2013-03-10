@@ -310,8 +310,7 @@ local function clearPage(site, color, redraw, tcolor)
 		end
 
 		term.setBackgroundColor(color or colors.black)
-		if tcolor then term.setTextColor(tcolor)
-		else term.setTextColor(colors.white) end
+		term.setTextColor(tcolor or colors.white)
 	else
 		term.setCursorPos(1, 1)
 		term.setBackgroundColor(colors[theme["top-box"]])
@@ -773,6 +772,8 @@ for k, v in pairs(env) do override[k] = v end
 local curtext, curbackground = colors.white, colors.black
 override.term = {}
 for k, v in pairs(env.term) do override.term[k] = v end
+override.os = {}
+for k, v in pairs(env.os) do override.os[k] = v end
 
 override.term.getSize = function()
 	local a, b = env.term.getSize()
@@ -883,7 +884,6 @@ end
 override.scrollingPrompt = function(list, x, y, len, width)
 	return env.scrollingPrompt(list, x, y + 1, len, width)
 end
-
 
 local barTerm = {}
 for k, v in pairs(override.term) do barTerm[k] = v end
@@ -2171,7 +2171,7 @@ pages["settings/themes"] = function(site)
 					else
 						rightWrite("Theme File is Corrupt! D: ")
 					end
-				elseif not(fs.exists(n)) then
+				elseif not fs.exists(n) then
 					rightWrite("File does not exist! ")
 				elseif fs.isDir(n) then
 					rightWrite("File is a directory! ")
@@ -2896,15 +2896,17 @@ local function main()
 	rightPrint("        Checking for Updates... ")
 	rightPrint(string.rep(" ", 32))
 	setfenv(updateClient, env)
-	if not noInternet then if updateClient(rightWrite) then
-	if debugFile then debugFile:close() end
+	if not noInternet then 
+		if updateClient() then
+			if debugFile then debugFile:close() end
 
-	-- Reset Environment
-	setfenv(1, oldEnv)
-	os.pullEvent = oldpullevent
-	shell.run(firewolfLocation)
-	error()
-	end end
+			-- Reset Environment
+			setfenv(1, oldEnv)
+			os.pullEvent = oldpullevent
+			shell.run(firewolfLocation)
+			error()
+		end 
+	end
 
 	-- Download Files
 	local x, y = term.getCursorPos()

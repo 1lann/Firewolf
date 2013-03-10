@@ -338,42 +338,51 @@ end
 
 -- Drawing Functions
 api.centerWrite = function(text)
-	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
 		term.setCursorPos(math.ceil((w + 1)/2 - t:len()/2), y)
 		write(t)
 	end)
 end
 
 api.centerPrint = function(text)
-	api.centerWrite(text)
-	print()
+	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
+		term.setCursorPos(math.ceil((w + 1)/2 - t:len()/2), y)
+		print(t)
+	end)
 end
 
 api.leftWrite = function(text)
-	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
 		term.setCursorPos(1, y)
 		write(t)
 	end)
 end
 
 api.leftPrint = function(text)
-	api.leftWrite(text)
-	print()
+	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
+		term.setCursorPos(1, y)
+		print(t)
+	end)
 end
 
 api.rightWrite = function(text)
-	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
 		term.setCursorPos(w - t:len() + 1, y)
 		write(t)
 	end)
 end
 
 api.rightPrint = function(text)
-	api.rightWrite(text)
-	print()
+	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
+		term.setCursorPos(w - t:len() + 1, y)
+		print(t)
+	end)
 end
 
 -- Server Interation Functions
@@ -884,19 +893,25 @@ override.scrollingPrompt = function(list, x, y, len, width)
 	return env.scrollingPrompt(list, x, y + 1, len, width)
 end
 
+local barTerm = {}
+for k, v in pairs(override.term) do barTerm[k] = v end
+
+barTerm.clear = override.term.clear
+barTerm.scroll = override.term.scroll
+
+local safeTerm = {}
+for k, v in pairs(term) do safeTerm[k] = v end
+
 override.showBar = function()
-	setfenv(1, override)
-	term.clear()
-	term.setCursorPos(1, 1)
 	clickableAddressBar = true
+	os.pullEvent = overridePullEvent
+	return os.pullEvent, barTerm
 end
 
 override.hideBar = function()
-	os.pullEvent = pullevent
-	term = env.term
-	term.clear()
-	term.setCursorPos(1, 1)
 	clickableAddressBar = false
+	os.pullEvent = pullevent
+	return os.pullEvent, safeTerm
 end
 
 
