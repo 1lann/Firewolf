@@ -1,4 +1,4 @@
-Copyright 2012 - Jason Chu (1lann) and Bennett Anderson (GravityScore)
+# Copyright 2012 - Jason Chu (1lann) and Bennett Anderson (GravityScore)
 
 Please abide by these rules, it would mean alot to us if you did :)
 We're not going to track/hunt you down if you don't:

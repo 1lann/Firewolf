@@ -1,9 +1,13 @@
-Welcome to Firewolf!
+# Welcome to Firewolf!
 
 Firewolf is a program for ComputerCraft that allows you to visit, create, host and share websites with others - creating a virtual internet.
 
+## Documentation
 
-Firewolf Licence:
+There is API documentation for developers and tutorials for users available on the wiki.
+
+
+## Firewolf Licence:
 
 Copyright 2012 - Jason Chu (1lann) and Bennett Anderson (GravityScore)
 
