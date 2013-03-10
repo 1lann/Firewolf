@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 22
+local build = 23
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -1040,6 +1040,7 @@ https://raw.github.com/1lann/firewolf/master/themes/original.txt| |Original
 https://raw.github.com/1lann/firewolf/master/themes/ocean.txt| |Ocean
 https://raw.github.com/1lann/firewolf/master/themes/forest.txt| |Forest
 https://raw.github.com/1lann/firewolf/master/themes/pinky.txt| |Pinky
+https://raw.github.com/1lann/firewolf/master/themes/azhftech.txt| |AzhfTech
 ]]
 
 files.newTheme = [[
