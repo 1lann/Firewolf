@@ -13,7 +13,11 @@
 
 -- Version
 local version = "2.4"
+<<<<<<< HEAD
 local build = 29
+=======
+local build = 26
+>>>>>>> Fixed the clicking in my one
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -24,7 +28,7 @@ local serverList = {experimental = "Experimental", other = "Other"}
 
 -- Updating
 local autoupdate = "true"
-local noInternet = false
+local noInternet = true
 
 -- Resources
 local graphics = {}
@@ -774,6 +778,7 @@ override.term = {}
 for k, v in pairs(env.term) do override.term[k] = v end
 override.os = {}
 for k, v in pairs(env.os) do override.os[k] = v end
+<<<<<<< HEAD
 
 override.write = function( sText )
 	local w,h = override.term.getSize()		
@@ -845,6 +850,8 @@ override.print = function( ... )
 	nLinesPrinted = nLinesPrinted + override.write( "\n" )
 	return nLinesPrinted
 end
+=======
+>>>>>>> Fixed the clicking in my one
 
 override.term.getSize = function()
 	local a, b = env.term.getSize()
