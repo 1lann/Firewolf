@@ -14,10 +14,14 @@
 -- Version
 local version = "2.4"
 <<<<<<< HEAD
+<<<<<<< HEAD
 local build = 29
 =======
 local build = 26
 >>>>>>> Fixed the clicking in my one
+=======
+local build = 27
+>>>>>>> People could queue terminate event
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -28,7 +32,7 @@ local serverList = {experimental = "Experimental", other = "Other"}
 
 -- Updating
 local autoupdate = "true"
-local noInternet = true
+local noInternet = false
 
 -- Resources
 local graphics = {}
