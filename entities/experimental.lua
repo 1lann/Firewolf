@@ -211,7 +211,7 @@ local fwConnect = function(cid, cdata)
 					end
 				end
 				if modems[1] then
-					for k,v in pairs(modems)
+					for k,v in pairs(modems) do
 						peripheral.call(v, "close", expectedChannel)
 					end
 				end
@@ -281,7 +281,7 @@ local fwConnect = function(cid, cdata)
 		end
 	end
 	if modems[1] then
-		for k,v in pairs(modems)
+		for k,v in pairs(modems) do
 			peripheral.call(v, "close", firewolfPort+os.getComputerID()+1)
 		end
 	end
