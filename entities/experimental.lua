@@ -1,4 +1,3 @@
-
 --  
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
@@ -228,7 +227,7 @@ local fwConnect = function(cid, cdata)
 			if e == "timer" and p1 == rTimer then
 				break
 			-- Proper system starts here
-			elseif (e == "modem_message") and (rChannel == firewolfPort+os.getComputerID()+1) and (rRChannel-firewolfPort-1 => 0) then
+			elseif (e == "modem_message") and (rChannel == firewolfPort+os.getComputerID()+1) and (rRChannel-firewolfPort-1 >= 0) then
 				if rMessage:sub(1, 14) == "firewolf-site:" then
 					local i = rMessage:sub(15, -1)
 					local id = rRChannel-firewolfPort-1 
@@ -301,21 +300,86 @@ local fwIsOpen = function(side)
 end
 
 --  -------- Utilities
-
-local function betterPrint(...)
-	local lArgs = {...}
-	for i = 1, #lArgs do
-		term.write(tostring(lArgs[i]))
-	end
-	term.write("\n")
-end
-
-local function betterWrite(...)
-	local lArgs = {...}
-	for i = 1, #lArgs do
-		term.write(tostring(lArgs[i]))
+local function newLine()
+	local wid, hi = term.getSize()
+	local x, y = term.getCursorPos()
+	if y == hi then
+		term.scroll(1)
+		term.setCursorPos(1, y)
+	else
+		term.setCursorPos(1, y+1)
 	end
 end
+
+local function betterWrite( sText )
+	local w,h = term.getSize()		
+	local x,y = term.getCursorPos()
+	
+	local nLinesPrinted = 0
+	local function newLine()
+		if y + 1 <= h then
+			term.setCursorPos(1, y + 1)
+		else
+			term.setCursorPos(1, h)
+			term.scroll(1)
+		end
+		x, y = term.getCursorPos()
+		nLinesPrinted = nLinesPrinted + 1
+	end
+	
+	-- Print the line with proper word wrapping
+	while string.len(sText) > 0 do
+		local whitespace = string.match( sText, "^[ \t]+" )
+		if whitespace then
+			-- Print whitespace
+			term.write( whitespace )
+			x,y = term.getCursorPos()
+			sText = string.sub( sText, string.len(whitespace) + 1 )
+		end
+		
+		local newline = string.match( sText, "^\n" )
+		if newline then
+			-- Print newlines
+			newLine()
+			sText = string.sub( sText, 2 )
+		end
+		
+		local text = string.match( sText, "^[^ \t\n]+" )
+		if text then
+			sText = string.sub( sText, string.len(text) + 1 )
+			if string.len(text) > w then
+				-- Print a multiline word				
+				while string.len( text ) > 0 do
+					if x > w then
+						newLine()
+					end
+					term.write( text )
+					text = string.sub( text, (w-x) + 2 )
+					x,y = term.getCursorPos()
+				end
+			else
+				-- Print a word normally
+				if x + string.len(text) - 1 > w then
+					newLine()
+				end
+				term.write( text )
+				x,y = term.getCursorPos()
+			end
+		end
+	end
+	
+	return nLinesPrinted
+end
+
+local function betterPrint( ... )
+	local nLinesPrinted = 0
+	for n,v in ipairs( { ... } ) do
+		nLinesPrinted = nLinesPrinted + betterWrite( tostring( v ) )
+	end
+	nLinesPrinted = nLinesPrinted + betterWrite( "\n" )
+	return nLinesPrinted
+end
+
 
 local function debugLog(n, ...)
 	local lArgs = {...}
@@ -1612,7 +1676,6 @@ end
 
 protocols.rdnt.getWebsite = function(site)
 	local id, content, status = nil, nil, nil
-	local clock = os.clock()
 	local websiteID = nil
 	for k, v in pairs(dnsDatabase[1]) do
 		local web = site:gsub("rdnt://", "")
@@ -1634,10 +1697,8 @@ protocols.rdnt.getWebsite = function(site)
 					-- Ignore
 				elseif wl then
 					status = "whitelist"
-					break
 				else
 					status = "safe"
-					break
 				end
 				else
 				return nil, nil, nil
