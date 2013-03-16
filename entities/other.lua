@@ -775,6 +775,77 @@ for k, v in pairs(env.term) do override.term[k] = v end
 override.os = {}
 for k, v in pairs(env.os) do override.os[k] = v end
 
+override.write = function( sText )
+	local w,h = override.term.getSize()		
+	local x,y = override.term.getCursorPos()
+	
+	local nLinesPrinted = 0
+	local function newLine()
+		if y + 1 <= h then
+			override.term.setCursorPos(1, y + 1)
+		else
+			override.term.setCursorPos(1, h)
+			override.term.scroll(1)
+		end
+		x, y = override.term.getCursorPos()
+		nLinesPrinted = nLinesPrinted + 1
+	end
+	
+	-- Print the line with proper word wrapping
+	while string.len(sText) > 0 do
+		local whitespace = string.match( sText, "^[ \t]+" )
+		if whitespace then
+			-- Print whitespace
+			term.write( whitespace )
+			x,y = override.term.getCursorPos()
+			sText = string.sub( sText, string.len(whitespace) + 1 )
+		end
+		
+		local newline = string.match( sText, "^\n" )
+		if newline then
+			-- Print newlines
+			newLine()
+			sText = string.sub( sText, 2 )
+		end
+		
+		local text = string.match( sText, "^[^ \t\n]+" )
+		if text then
+			sText = string.sub( sText, string.len(text) + 1 )
+			if string.len(text) > w then
+				-- Print a multiline word				
+				while string.len( text ) > 0 do
+					if x > w then
+						newLine()
+					end
+					term.write( text )
+					text = string.sub( text, (w-x) + 2 )
+					x,y = override.term.getCursorPos()
+				end
+			else
+				-- Print a word normally
+				if x + string.len(text) - 1 > w then
+					newLine()
+				end
+				term.write( text )
+				x,y = override.term.getCursorPos()
+			end
+		end
+	end
+	
+	return nLinesPrinted
+end
+
+
+
+override.print = function( ... )
+	local nLinesPrinted = 0
+	for n,v in ipairs( { ... } ) do
+		nLinesPrinted = nLinesPrinted + override.write( tostring( v ) )
+	end
+	nLinesPrinted = nLinesPrinted + override.write( "\n" )
+	return nLinesPrinted
+end
+
 override.term.getSize = function()
 	local a, b = env.term.getSize()
 	return a, b - 1
