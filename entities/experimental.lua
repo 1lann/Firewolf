@@ -96,6 +96,21 @@ local firewolfLocation = "/" .. shell.getRunningProgram()
 local userBlacklist = rootFolder .. "/user_blacklist"
 local userWhitelist = rootFolder .. "/user_whitelist"
 
+
+local function debugLog(n, ...)
+	local lArgs = {...}
+	if debugFile then
+		if n == nil then n = "" end
+		debugFile:write("\n" .. tostring(n) .. " : ")
+		for k, v in pairs(lArgs) do 
+			if type(v) == "string" or type(v) == "number" or type(v) == nil or 
+					type(v) == "boolean" then
+				debugFile:write(tostring(v) .. ", ")
+			else debugFile:write("type-" .. type(v) .. ", ") end
+		end
+	end
+end
+
 --  -------- Databases
 
 local function loadDatabases()
@@ -153,6 +168,7 @@ local dnsTimeout = 0.5
 local firewolfPort = 13126
 
 local fwConnect = function(cid, cdata)
+	debugLog("Connection started")
 	if cid then
 		debugLog("Getting specific ID...")
 		if not cdata then
@@ -323,20 +339,6 @@ local function newLine()
 		term.setCursorPos(1, y)
 	else
 		term.setCursorPos(1, y+1)
-	end
-end
-
-local function debugLog(n, ...)
-	local lArgs = {...}
-	if debugFile then
-		if n == nil then n = "" end
-		debugFile:write("\n" .. tostring(n) .. " : ")
-		for k, v in pairs(lArgs) do 
-			if type(v) == "string" or type(v) == "number" or type(v) == nil or 
-					type(v) == "boolean" then
-				debugFile:write(tostring(v) .. ", ")
-			else debugFile:write("type-" .. type(v) .. ", ") end
-		end
 	end
 end
 
