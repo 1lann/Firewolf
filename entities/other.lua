@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 28
+local build = 29
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -2864,6 +2864,7 @@ local function addressbarcoroutine()
 		local e, but, x, y = oldpullevent()
 		if (e == "key" and (but == 29 or but == 157)) or
 				(e == "mouse_click" and y == 1 and clickableAddressBar) then
+			clickableAddressBar = true
 			if openAddressBar then
 				if e == "key" then x = -1 end
 				if x == w then
