@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local serverID = "release"
+local serverID = "experimental"
 
 -- Prevent Control-T
 os.pullEvent = os.pullEventRaw
@@ -54,6 +54,8 @@ local totalRecordLines = {}
 local recordLines = {}
 local serverPassword = nil
 local serverLocked = false
+local modems = {}
+local firewolfPort = 13126
 
 -- Locations
 local rootFolder = "/.Firewolf_Data"
@@ -561,14 +563,21 @@ end
 local function checkForModem()
 	while true do
 		local present = false
-		for _, v in pairs(rs.getSides()) do
-			if peripheral.getType(v) == "modem" then
-				rednet.open(v)
-				present = true
-				break
+		modems = {}
+		for k,v in pairs(rs.getSides()) do
+			if peripheral.getType(v) == "modem" or peripheral.getType(v) == "wired_modem" or  peripheral.getType(v) == "wireless_modem" or  peripheral.getType(v) == "rednet_modem" then
+				table.insert(modems, v)
 			end
 		end
-
+		if modems[1] then
+			for k, v in pairs(modems) do
+				peripheral.call(v, "open", firewolfPort+os.getComputerID()+1)
+				peripheral.call(v, "open", firewolfPort)
+			end
+			present = true
+		else
+			present = false
+		end
 		if not present then
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["background"]])
@@ -624,8 +633,10 @@ local function record(text)
 	if enableRecording then clearPage(true) end
 	i = i + 1
 	term.setCursorPos(oldX, oldY)
+	if enableRecording then
 	term.setBackgroundColor(colors[theme["top-box"]])
 	term.setTextColor(colors[theme["text-color"]])
+	end
 end
 
 local function respondToEvents()
@@ -652,7 +663,7 @@ local function respondToEvents()
 			ignoreClock = os.clock()
 		end
 
-		local e, id, mes = os.pullEvent()
+		local e, side, port, id, mes, dist = os.pullEvent()
 
 		local ignore = false
 		for _, v in pairs(ignoreDatabase) do
@@ -661,11 +672,16 @@ local function respondToEvents()
 			if tostring(id) == v then ignore = true break end
 		end
 
-		if e == "rednet_message" and enableResponse == true and not ignore then
+		if e == "modem_message" and (port == firewolfPort+os.getComputerID()+1) and enableResponse == true and not ignore then
 			if mes == website or mes == website .. "/" or mes == website .. "/home" then
 				if suspected[tostring(id)] then suspected[tostring(id)] = suspected[tostring(id)] + 1
 				else suspected[tostring(id)] = 1 end
-				for i = 1, 3 do rednet.send(id, pages[dataLocation .. "/home"]) end
+				for i = 1, 3 do 
+				for k,v in pairs(modems) do 
+				peripheral.call(v, "open", firewolfPort+id+1)
+				peripheral.call(v, "transmit", firewolfPort+id+1, firewolfPort+id+1, pages[dataLocation .. "/home"])
+				peripheral.call(v, "close", firewolfPort+id+1)
+				end end
 				record("/home : " .. tostring(id))
 				visits = visits + 1
 
@@ -680,7 +696,12 @@ local function respondToEvents()
 					local c = b
 					if c:len() > 18 then c = c:sub(1, 15) .. "..." end
 					if pages[dataLocation .. b] and b ~= "/serverapi" then
-						for i = 1, 3 do rednet.send(id, pages[dataLocation .. b]) end
+						for i = 1, 3 do 
+				for k,v in pairs(modems) do 
+				peripheral.call(v, "open", firewolfPort+id+1)
+				peripheral.call(v, "transmit", firewolfPort+id+1, firewolfPort+id+1, pages[dataLocation .. b])
+				peripheral.call(v, "close", firewolfPort+id+1)
+				end end
 						record(c .. " : " .. id)
 						visits = visits + 1
 
@@ -690,10 +711,12 @@ local function respondToEvents()
 						if uponFailedRequest ~= nil then uponFailedRequest(b, id) end
 					end
 				end
-			elseif mes == "firewolf.broadcast.dns.list" then
+			elseif mes == "firewolf.broadcast.dns.list" and port == firewolfPort then
 				if suspected[tostring(id)] then suspected[tostring(id)] = suspected[tostring(id)] + 1
 				else suspected[tostring(id)] = 1 end
-				rednet.send(id, "firewolf-site:" .. website)
+				peripheral.call(v, "open", firewolfPort+id+1)
+				peripheral.call(v, "transmit", firewolfPort+id+1, firewolfPort+os.getComputerID()+1, "firewolf-site:" .. website)
+				peripheral.call(v, "close", firewolfPort+id+1)
 				searches = searches + 1
 			else
 				if uponAnyOtherMessage ~= nil then uponAnyOtherMessage(mes, id) end
@@ -1236,6 +1259,7 @@ centerPrint("Made by 1lann and GravityScore")
 term.setCursorPos(1, 3)
 
 -- Close Rednet
-for _, v in pairs(rs.getSides()) do 
-	if peripheral.getType(v) == "modem" then rednet.close(v) end
+for k, v in pairs(modems) do
+	peripheral.call(v, "close", firewolfPort+os.getComputerID()+1)
+	peripheral.call(v, "close", firewolfPort)
 end

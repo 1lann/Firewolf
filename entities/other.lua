@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.4"
-local build = 25
+local build = 27
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -310,14 +310,13 @@ local function clearPage(site, color, redraw, tcolor)
 		end
 
 		term.setBackgroundColor(color or colors.black)
-		if tcolor then term.setTextColor(tcolor)
-		else term.setTextColor(colors.white) end
+		term.setTextColor(tcolor or colors.white)
 	else
 		term.setCursorPos(1, 1)
 		term.setBackgroundColor(colors[theme["top-box"]])
 		term.setTextColor(colors[theme["text-color"]])
 		term.clearLine()
-		write("> [- Exit Firewolf -] [- Incorrect Website -]      ")
+		write("> [- Exit Firewolf -]                              ")
 	end
 
 	print("")
@@ -335,42 +334,51 @@ end
 
 -- Drawing Functions
 api.centerWrite = function(text)
-	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
 		term.setCursorPos(math.ceil((w + 1)/2 - t:len()/2), y)
 		write(t)
 	end)
 end
 
 api.centerPrint = function(text)
-	api.centerWrite(text)
-	print()
+	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
+		term.setCursorPos(math.ceil((w + 1)/2 - t:len()/2), y)
+		print(t)
+	end)
 end
 
 api.leftWrite = function(text)
-	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
 		term.setCursorPos(1, y)
-		write(text)
+		write(t)
 	end)
 end
 
 api.leftPrint = function(text)
-	api.leftWrite(text)
-	print()
+	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
+		term.setCursorPos(1, y)
+		print(t)
+	end)
 end
 
 api.rightWrite = function(text)
-	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
-		term.setCursorPos(w - text:len() + 1, y)
-		write(text)
+		local x, y = term.getCursorPos()
+		term.setCursorPos(w - t:len() + 1, y)
+		write(t)
 	end)
 end
 
 api.rightPrint = function(text)
-	api.rightWrite(text)
-	print()
+	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
+		term.setCursorPos(w - t:len() + 1, y)
+		print(t)
+	end)
 end
 
 -- Server Interation Functions
@@ -741,20 +749,7 @@ local pullevent = function(data)
 		end
 
 		if data then 
-		if e == data then return e, p1, p2, p3, p4, p5 end
-		else return e, p1, p2, p3, p4, p5 end
-	end
-end
-
-local safePullEvent = function(data)
-	while true do
-		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
-		if e == event_exitWebsite or e == "terminate" then
-			error()
-		end
-
-		if data then 
-		if e == data then return e, p1, p2, p3, p4, p5 end
+			if e == data then return e, p1, p2, p3, p4, p5 end
 		else return e, p1, p2, p3, p4, p5 end
 	end
 end
@@ -777,6 +772,8 @@ for k, v in pairs(env) do override[k] = v end
 local curtext, curbackground = colors.white, colors.black
 override.term = {}
 for k, v in pairs(env.term) do override.term[k] = v end
+override.os = {}
+for k, v in pairs(env.os) do override.os[k] = v end
 
 override.term.getSize = function()
 	local a, b = env.term.getSize()
@@ -856,22 +853,29 @@ end
 override.term.isColor = function() return isAdvanced() end
 override.term.isColour = function() return override.term.isColor() end
 
+override.os.queueEvent = function(event, ...)
+	if event == "terminate" or event == event_exitApp then
+		os.queueEvent(event_exitWebsite)
+	else
+		env.os.queueEvent(event, ...)
+	end
+end
+
 override.os.pullEvent = function(data)
 	while true do
 		local e, p1, p2, p3, p4, p5 = os.pullEventRaw()
 		if e == event_exitWebsite or e == "terminate" then
 			error()
-		elseif e == "mouse_click" or(e == "mouse_drag") and not(data) and hideBar ~= true then
-			debugLog("click", p3)
-			return e, p1, p2, p3-1
-		elseif e == "mouse_click" and data == "mouse_click" and hideBar ~= true then
-			debugLog("click", p3)
-			return e, p1, p2, p3-1
-		elseif e == "mouse_drag" and data == "mouse_drag" and hideBar ~= true then
-			return e, p1, p2, p3-1
+		elseif (e == "mouse_click" or e == "mouse_drag") and not data then
+			return e, p1, p2, p3 - 1
+		elseif e == "mouse_click" and data == "mouse_click" then
+			return e, p1, p2, p3 - 1
+		elseif e == "mouse_drag" and data == "mouse_drag" then
+			return e, p1, p2, p3 - 1
 		end
+		
 		if data then 
-		if e == data then return e, p1, p2, p3, p4, p5 end
+			if e == data then return e, p1, p2, p3, p4, p5 end
 		else return e, p1, p2, p3, p4, p5 end
 	end
 end
@@ -890,38 +894,25 @@ override.scrollingPrompt = function(list, x, y, len, width)
 	return env.scrollingPrompt(list, x, y + 1, len, width)
 end
 
-
 local barTerm = {}
-for k,v in pairs(override.term) do
-	barTerm[k] = v
-end
+for k, v in pairs(override.term) do barTerm[k] = v end
 
 barTerm.clear = override.term.clear
 barTerm.scroll = override.term.scroll
 
 local safeTerm = {}
-for k,v in pairs(term) do
-	safeTerm[k] = v
-end
+for k, v in pairs(term) do safeTerm[k] = v end
 
 override.showBar = function()
 	clickableAddressBar = true
 	os.pullEvent = overridePullEvent
-	local dTerm = {}
-	for k,v in pairs(barTerm) do
-		dTerm[k] = v
-	end
-	return os.pullEvent, dTerm
+	return os.pullEvent, barTerm
 end
 
 override.hideBar = function()
 	clickableAddressBar = false
-	os.pullEvent = safePullEvent
-	local dTerm = {}
-	for k,v in pairs(safeTerm) do
-		dTerm[k] = v
-	end
-	return os.pullEvent, dTerm
+	os.pullEvent = pullevent
+	return os.pullEvent, safeTerm
 end
 
 
@@ -934,9 +925,8 @@ local antivirusOverrides = {
 		"shell.setPath"},
 	["Modify Files"] = {"fs.makeDir", "fs.move", "fs.copy", "fs.delete", "fs.open",
 		"io.open", "io.write", "io.read", "io.close"},
-	["Shutdown PC"] = {"os.shutdown", "os.reboot", "shell.exit"},
+	["Shutdown Computer"] = {"os.shutdown", "os.reboot", "shell.exit"},
 	["Use pcall"] = {"pcall"},
-	["View Environment"] = {"getfenv"}
 }
 
 local antivirusDestroy = {
@@ -1059,6 +1049,7 @@ https://raw.github.com/1lann/firewolf/master/themes/original.txt| |Original
 https://raw.github.com/1lann/firewolf/master/themes/ocean.txt| |Ocean
 https://raw.github.com/1lann/firewolf/master/themes/forest.txt| |Forest
 https://raw.github.com/1lann/firewolf/master/themes/pinky.txt| |Pinky
+https://raw.github.com/1lann/firewolf/master/themes/azhftech.txt| |AzhfTech
 ]]
 
 files.newTheme = [[
@@ -1502,7 +1493,8 @@ pages["firewolf"] = function(site)
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	rightPrint(string.rep(" ", 42))
-	rightPrint("  News:                       [- Sites -] ")
+	if isAdvanced() then rightPrint("  News:                       [- Sites -] ")
+	else rightPrint("  News:                                   ") end
 	rightPrint("    Firewolf 2.4 is out! It cuts out 1500 ")
 	rightPrint("   lines, and contains many improvements! ")
 	rightPrint(string.rep(" ", 42))
@@ -1512,7 +1504,7 @@ pages["firewolf"] = function(site)
 
 	while true do
 		local e, but, x, y = os.pullEvent()
-		if e == "mouse_click" and x >= 40 and x <= 50 and y == 12 then
+		if isAdvanced() and e == "mouse_click" and x >= 40 and x <= 50 and y == 11 then
 			redirect("firewolf/sites")
 		end
 	end
@@ -1546,9 +1538,9 @@ pages["firewolf/sites"] = function(site)
 	local a = {"firewolf", "firewolf/sites", "server", "help", "settings", "credits", "exit"}
 	while true do
 		local e, but, x, y = os.pullEvent()
-		if e == "mouse_click" and x >= 14 and x <= 50 then
+		if isAdvanced() and e == "mouse_click" and x >= 14 and x <= 50 then
 			for i, v in ipairs(a) do
-				if y == sx + i + 1 then 
+				if y == sx + i then 
 					if v == "exit" then return true end
 					redirect(v)
 				end
@@ -1662,27 +1654,27 @@ local function manageServers(site, protocol, functionList, startServerName)
 					draw(disList, sel)
 				elseif e == "mouse_click" then
 					if x >= 4 and x <= 25 then
-						if y == 8 then
+						if y == 7 then
 							functionList["new server"]()
 							servers = functionList["reload servers"]()
 							break
 						elseif #servers > 0 then
 							for i, v in ipairs(disList) do
-								if y == i + 8 then 
+								if y == i + 7 then 
 									sel = i 
 									draw(disList, sel)
 								end
 							end
 						end
-					elseif x >= 30 and x <= 40 and y == 10 and #servers > 0 then
+					elseif x >= 30 and x <= 40 and y == 9 and #servers > 0 then
 						functionList["start"](disList[sel])
 						servers = functionList["reload servers"]()
 						break
-					elseif x >= 30 and x <= 39 and y == 12 and #servers > 0 then
+					elseif x >= 30 and x <= 39 and y == 11 and #servers > 0 then
 						functionList["edit"](disList[sel])
 						servers = functionList["reload servers"]()
 						break
-					elseif x >= 30 and x <= 46 and y == 14 and #servers > 0 and 
+					elseif x >= 30 and x <= 46 and y == 13 and #servers > 0 and 
 							functionList["run on boot"] then
 						functionList["run on boot"](disList[sel])
 						term.setBackgroundColor(colors[theme["bottom-box"]])
@@ -1694,7 +1686,7 @@ local function manageServers(site, protocol, functionList, startServerName)
 						term.setCursorPos(32, 15)
 						write(string.rep(" ", 18))
 						break
-					elseif x >= 30 and x <= 41 and y == 16 and #servers > 0 then
+					elseif x >= 30 and x <= 41 and y == 15 and #servers > 0 then
 						functionList["delete"](disList[sel])
 						servers = functionList["reload servers"]()
 						break
@@ -1706,6 +1698,7 @@ local function manageServers(site, protocol, functionList, startServerName)
 		while true do
 			term.setBackgroundColor(colors[theme["background"]])
 			term.clear()
+			term.setCursorPos(1, 1)
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
 			print("")
@@ -1730,20 +1723,20 @@ local function manageServers(site, protocol, functionList, startServerName)
 				end
 				local opt = prompt(a, "vertical")
 				if opt == "Start" then
-					functionList["start"]()
+					functionList["start"](server)
 					servers = functionList["reload servers"]()
 				elseif opt == "Edit" then
-					functionList["edit"]()
-					servers = functionList["reload servers"]()
+					functionList["edit"](server)
+					servers = functionList["reload servers"](server)
 				elseif opt == "Run on Boot" and functionList["run on boot"] then
-					functionList["run on boot"]()
+					functionList["run on boot"](server)
 					term.setCursorPos(32, 16)
 					write("Will Run on Boot!")
 					openAddressBar = false
 					sleep(1.3)
 					openAddressBar = true
 				elseif opt == "Delete" then
-					functionList["delete"]()
+					functionList["delete"](server)
 					servers = functionList["reload servers"]()
 				end
 			end
@@ -2190,7 +2183,7 @@ pages["settings/themes"] = function(site)
 					else
 						rightWrite("Theme File is Corrupt! D: ")
 					end
-				elseif not(fs.exists(n)) then
+				elseif not fs.exists(n) then
 					rightWrite("File does not exist! ")
 				elseif fs.isDir(n) then
 					rightWrite("File is a directory! ")
@@ -2915,15 +2908,17 @@ local function main()
 	rightPrint("        Checking for Updates... ")
 	rightPrint(string.rep(" ", 32))
 	setfenv(updateClient, env)
-	if not noInternet then if updateClient(rightWrite) then
-	if debugFile then debugFile:close() end
+	if not noInternet then 
+		if updateClient() then
+			if debugFile then debugFile:close() end
 
-	-- Reset Environment
-	setfenv(1, oldEnv)
-	os.pullEvent = oldpullevent
-	shell.run(firewolfLocation)
-	error()
-	end end
+			-- Reset Environment
+			setfenv(1, oldEnv)
+			os.pullEvent = oldpullevent
+			shell.run(firewolfLocation)
+			error()
+		end 
+	end
 
 	-- Download Files
 	local x, y = term.getCursorPos()
