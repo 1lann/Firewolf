@@ -154,6 +154,7 @@ local firewolfPort = 13126
 
 local fwConnect = function(cid, cdata)
 	if cid then
+		debugLog("Getting specific ID...")
 		if not cdata then
 			return false
 		end
@@ -161,6 +162,7 @@ local fwConnect = function(cid, cdata)
 	modems = {}
 	for k,v in pairs(rs.getSides()) do
 		if (peripheral.getType(v) == "modem") or (peripheral.getType(v) == "wired_modem") or (peripheral.getType(v) == "wireless_modem") or (peripheral.getType(v) == "rednet_modem") then
+			debugLog("Modem found1, adding", v)
 			table.insert(modems, v)
 		end
 	end
@@ -168,8 +170,10 @@ local fwConnect = function(cid, cdata)
 		for k, v in pairs(modems) do
 			peripheral.call(v, "open", firewolfPort+os.getComputerID()+1)
 			if cid then
+				debugLog("Opening modem", v)
 				peripheral.call(v, "open", firewolfPort+cid+1)
 			else
+				debugLog("Opening dns modem", v)
 				peripheral.call(v, "open", firewolfPort)
 			end
 		end
@@ -178,17 +182,20 @@ local fwConnect = function(cid, cdata)
 	end
 	local expectedChannel = firewolfPort
 	if cid then
+		debugLog("Transmitting info")
 		for k, v in pairs(modems) do
 			peripheral.call(v, "transmit", firewolfPort+cid+1, os.getComputerID(), cdata)
 		end
 		expectedChannel = firewolfPort+cid+1
 	else
+		debugLog("Transmitting dns")
 		for k, v in pairs(modems) do
 			peripheral.call(v, "transmit", firewolfPort, os.getComputerID(), "firewolf.broadcast.dns.list")
 		end
 		expectedChannel = firewolfPort
 	end
 	for k, v in pairs(modems) do
+			debugLog("Closing previous modem")
 			peripheral.call(v, "close", expectedChannel)
 		end
 	if not cid then
@@ -200,9 +207,11 @@ local fwConnect = function(cid, cdata)
 	-- The server ping system
 	if cid then
 		local rTimer = os.startTimer(timeout)
+		debugLog("Awaiting ping response")
 		while true do
 			e, rSide, rChannel, rRChannel, rMessage, rDistance = os.pullEventRaw()
 			if e == "timer" and p1 == rTimer then
+				debugLog("Failure, closing modems")
 				modems = {}
 				for k,v in pairs(rs.getSides()) do
 					if (peripheral.getType(v) == "modem") or (peripheral.getType(v) == "wired_modem") or (peripheral.getType(v) == "wireless_modem") or (peripheral.getType(v) == "rednet_modem") then
@@ -216,19 +225,24 @@ local fwConnect = function(cid, cdata)
 				end
 				return false
 			elseif (e == "modem_message") and (rChannel == rRChannel) and (rChannel == firewolfPort+os.getComputerID()+1) then
+				debugLog("Success!")
 				break
 			end
 		end
 	else
 		local rTimer = os.startTimer(dnsTimeout)
 		-- The DNS listing system
+		debugLog("Awaiting dns response")
 		while true do
 			e, rSide, rChannel, rRChannel, rMessage, rDistance = os.pullEventRaw()
 			if e == "timer" and p1 == rTimer then
+				debugLog("Timeout")
 				break
 			-- Proper system starts here
 			elseif (e == "modem_message") and (rChannel == firewolfPort+os.getComputerID()+1) and (rRChannel-firewolfPort-1 >= 0) then
+				debugLog("Validating")
 				if rMessage:sub(1, 14) == "firewolf-site:" then
+					debugLog("Valid!")
 					local i = rMessage:sub(15, -1)
 					local id = rRChannel-firewolfPort-1 
 					local bl, wl = verifyBlacklist(id), verifyWhitelist(id, i)
@@ -273,6 +287,7 @@ local fwConnect = function(cid, cdata)
 			table.insert(dnsDatabase[2], v[1])
 		end
 	end
+	debugLog("Finishing...")
 	modems = {}
 	for k,v in pairs(rs.getSides()) do
 		if peripheral.getType(v) == "modem" or peripheral.getType(v) == "wired_modem" or  peripheral.getType(v) == "wireless_modem" or  peripheral.getType(v) == "rednet_modem" then
@@ -310,76 +325,6 @@ local function newLine()
 		term.setCursorPos(1, y+1)
 	end
 end
-
-local function betterWrite( sText )
-	local w,h = term.getSize()		
-	local x,y = term.getCursorPos()
-	
-	local nLinesPrinted = 0
-	local function newLine()
-		if y + 1 <= h then
-			term.setCursorPos(1, y + 1)
-		else
-			term.setCursorPos(1, h)
-			term.scroll(1)
-		end
-		x, y = term.getCursorPos()
-		nLinesPrinted = nLinesPrinted + 1
-	end
-	
-	-- Print the line with proper word wrapping
-	while string.len(sText) > 0 do
-		local whitespace = string.match( sText, "^[ \t]+" )
-		if whitespace then
-			-- Print whitespace
-			term.write( whitespace )
-			x,y = term.getCursorPos()
-			sText = string.sub( sText, string.len(whitespace) + 1 )
-		end
-		
-		local newline = string.match( sText, "^\n" )
-		if newline then
-			-- Print newlines
-			newLine()
-			sText = string.sub( sText, 2 )
-		end
-		
-		local text = string.match( sText, "^[^ \t\n]+" )
-		if text then
-			sText = string.sub( sText, string.len(text) + 1 )
-			if string.len(text) > w then
-				-- Print a multiline word				
-				while string.len( text ) > 0 do
-					if x > w then
-						newLine()
-					end
-					term.write( text )
-					text = string.sub( text, (w-x) + 2 )
-					x,y = term.getCursorPos()
-				end
-			else
-				-- Print a word normally
-				if x + string.len(text) - 1 > w then
-					newLine()
-				end
-				term.write( text )
-				x,y = term.getCursorPos()
-			end
-		end
-	end
-	
-	return nLinesPrinted
-end
-
-local function betterPrint( ... )
-	local nLinesPrinted = 0
-	for n,v in ipairs( { ... } ) do
-		nLinesPrinted = nLinesPrinted + betterWrite( tostring( v ) )
-	end
-	nLinesPrinted = nLinesPrinted + betterWrite( "\n" )
-	return nLinesPrinted
-end
-
 
 local function debugLog(n, ...)
 	local lArgs = {...}
@@ -576,17 +521,17 @@ local function clearPage(site, color, redraw, tcolor)
 		term.clearLine()
 		local a = site
 		if a:len() > w - 10 then a = a:sub(1, 38) .. "..." end
-		if curProtocol == protocols.rdnt then betterWrite("rdnt://" .. a)
-		elseif curProtocol == protocols.http then betterWrite("http://" .. a) end
+		if curProtocol == protocols.rdnt then write("rdnt://" .. a)
+		elseif curProtocol == protocols.http then write("http://" .. a) end
 
 		if title ~= nil then
 			term.setCursorPos(w - title:len() - 1, 1)
-			betterWrite(title)
+			write(title)
 		end if isAdvanced() then
 			term.setCursorPos(w, 1)
 			term.setBackgroundColor(colors[theme["top-box"]])
 			term.setTextColor(colors[theme["text-color"]])
-			betterWrite("<")
+			write("<")
 		end
 
 		term.setBackgroundColor(color or colors.black)
@@ -597,7 +542,7 @@ local function clearPage(site, color, redraw, tcolor)
 		term.setBackgroundColor(colors[theme["top-box"]])
 		term.setTextColor(colors[theme["text-color"]])
 		term.clearLine()
-		betterWrite("> [- Exit Firewolf -] [- Incorrect Website -]      ")
+		write("> [- Exit Firewolf -] [- Incorrect Website -]      ")
 	end
 
 	print("")
@@ -618,7 +563,7 @@ api.centerWrite = function(text)
 	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
 		term.setCursorPos(math.ceil((w + 1)/2 - t:len()/2), y)
-		betterWrite(t)
+		write(t)
 	end)
 end
 
@@ -631,7 +576,7 @@ api.leftWrite = function(text)
 	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
 		term.setCursorPos(1, y)
-		betterWrite(text)
+		write(text)
 	end)
 end
 
@@ -644,13 +589,13 @@ api.rightWrite = function(text)
 	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
 		term.setCursorPos(w - text:len() + 1, y)
-		betterWrite(text)
+		write(text)
 	end)
 end
 
 api.rightPrint = function(text)
 	api.rightWrite(text)
-	betterPrint()
+	print()
 end
 
 -- Server Interation Functions
@@ -732,11 +677,11 @@ api.saveFileToUserComputer = function(content)
 	term.clear()
 	term.setCursorPos(1, 1)
 	term.setBackgroundColor(colors[theme["top-box"]])
-	betterPrint("")
+	print("")
 	leftPrint(string.rep(" ", 20))
 	leftPrint(" Save File Request  ")
 	leftPrint(string.rep(" ", 20))
-	betterPrint("")
+	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	for i = 1, 11 do rightPrint(string.rep(" ", 36)) end
@@ -753,7 +698,7 @@ api.saveFileToUserComputer = function(content)
 			term.setCursorPos(1, 15)
 			rightWrite(string.rep(" ", 36))
 			term.setCursorPos(w - 34, 15)
-		betterWrite("Path: /")
+		write("Path: /")
 			local p = read()
 
 			term.setCursorPos(1, 15)
@@ -847,9 +792,9 @@ api.prompt = function(list, dir)
 			if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 6)/2) end
 
 			term.setCursorPos(v[2], v[3])
-		betterWrite("[- " .. v[1])
+		write("[- " .. v[1])
 			term.setCursorPos(v[2] + v[1]:len() + 3, v[3])
-		betterWrite(" -]")
+		write(" -]")
 		end
 
 		while true do
@@ -869,9 +814,9 @@ api.prompt = function(list, dir)
 			if v[2] == -1 then v[2] = math.ceil((w + 1)/2 - (v[1]:len() + 4)/2) end
 
 			term.setCursorPos(v[2], v[3])
-		betterWrite("  " .. v[1])
+		write("  " .. v[1])
 			term.setCursorPos(v[2] + v[1]:len() + 2, v[3])
-		betterWrite("  ")
+		write("  ")
 		end
 
 		local key1, key2 = 200, 208
@@ -879,16 +824,16 @@ api.prompt = function(list, dir)
 
 		local curSel = 1
 		term.setCursorPos(list[curSel][2], list[curSel][3])
-		betterWrite("[")
+		write("[")
 		term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
-		betterWrite("]")
+		write("]")
 
 		while true do
 			local e, key = os.pullEvent()
 			term.setCursorPos(list[curSel][2], list[curSel][3])
-			betterWrite(" ")
+			write(" ")
 			term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
-			betterWrite(" ")
+			write(" ")
 			if e == "key" and key == key1 and curSel > 1 then
 				curSel = curSel - 1
 			elseif e == "key" and key == key2 and curSel < #list then
@@ -897,9 +842,9 @@ api.prompt = function(list, dir)
 				return list[curSel][1]
 			end
 			term.setCursorPos(list[curSel][2], list[curSel][3])
-			betterWrite("[")
+			write("[")
 			term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
-			betterWrite("]")
+			write("]")
 		end
 	end
 end
@@ -921,11 +866,11 @@ api.scrollingPrompt = function(list, x, y, len, width)
 		local function draw(a)
 			for i, v in ipairs(a) do
 				term.setCursorPos(x, y + i - 1)
-				betterWrite(string.rep(" ", wid))
+				write(string.rep(" ", wid))
 				term.setCursorPos(x, y + i - 1)
-				betterWrite("[ " .. v:sub(1, wid - 5))
+				write("[ " .. v:sub(1, wid - 5))
 				term.setCursorPos(wid + x - 2, y + i - 1)
-				betterWrite("  ]")
+				write("  ]")
 			end
 		end
 
@@ -963,9 +908,9 @@ api.scrollingPrompt = function(list, x, y, len, width)
 		local function draw(a)
 			for i, v in ipairs(a) do
 				term.setCursorPos(x, y + i - 1)
-				betterWrite(string.rep(" ", wid))
+				write(string.rep(" ", wid))
 				term.setCursorPos(x, y + i - 1)
-				betterWrite("[ ] " .. v:sub(1, wid - 5))
+				write("[ ] " .. v:sub(1, wid - 5))
 			end
 		end
 
@@ -974,12 +919,12 @@ api.scrollingPrompt = function(list, x, y, len, width)
 		local disList = updateDisplayList(list, loc, len)
 		draw(disList)
 		term.setCursorPos(x + 1, y + curSel - 1)
-		betterWrite("x")
+		write("x")
 
 		while true do
 			local e, key = os.pullEvent()
 			term.setCursorPos(x + 1, y + curSel - 1)
-			betterWrite(" ")
+			write(" ")
 			if e == "key" and key == 200 then
 				if curSel > 1 then
 					curSel = curSel - 1
@@ -1000,7 +945,7 @@ api.scrollingPrompt = function(list, x, y, len, width)
 				return list[curSel + loc - 1]
 			end
 			term.setCursorPos(x + 1, y + curSel - 1)
-			betterWrite("x")
+			write("x")
 		end
 	end
 end
@@ -1136,9 +1081,9 @@ end
 override.print = function( ... )
 	local nLinesPrinted = 0
 	for n,v in ipairs( { ... } ) do
-		nLinesPrinted = nLinesPrinted + betterWrite( tostring( v ) )
+		nLinesPrinted = nLinesPrinted + write( tostring( v ) )
 	end
-	nLinesPrinted = nLinesPrinted + betterWrite( "\n" )
+	nLinesPrinted = nLinesPrinted + write( "\n" )
 	return nLinesPrinted
 end
 
@@ -1211,10 +1156,10 @@ override.os.pullEvent = function(data)
 		if e == event_exitWebsite or e == "terminate" then
 			error()
 		elseif e == "mouse_click" or(e == "mouse_drag") and not(data) and hideBar ~= true then
-			debugLog("click", p3)
+			--debugLog("click", p3)
 			return e, p1, p2, p3-1
 		elseif e == "mouse_click" and data == "mouse_click" and hideBar ~= true then
-			debugLog("click", p3)
+			--debugLog("click", p3)
 			return e, p1, p2, p3-1
 		elseif e == "mouse_drag" and data == "mouse_drag" and hideBar ~= true then
 			return e, p1, p2, p3-1
@@ -1302,7 +1247,7 @@ local function triggerAntivirus(offence, onlyCancel)
 	term.setTextColor(colors[theme["address-bar-text"]])
 	term.setCursorPos(2, 1)
 	term.clearLine()
-	betterWrite("Request: " .. offence)
+	write("Request: " .. offence)
 	local a = {{"Allow", w - 24, 1}, {"Cancel", w - 12, 1}}
 	if onlyCancel == true then a = {{"Cancel", w - 12, 1}} end
 	local opt = prompt(a, "horizontal")
@@ -1542,41 +1487,41 @@ local function updateClient()
 
 			term.setCursorPos(19, 4)
 			term.setBackgroundColor(colors[theme["top-box"]])
-			betterWrite(string.rep(" ", 32))
+			write(string.rep(" ", 32))
 			term.setCursorPos(19, 5)
-			betterWrite("  Could Not Connect to GitHub!  ")
+			write("  Could Not Connect to GitHub!  ")
 			term.setCursorPos(19, 6)
-			betterWrite(string.rep(" ", 32))
+			write(string.rep(" ", 32))
 			term.setBackgroundColor(colors[theme["bottom-box"]])
 			term.setCursorPos(19, 8)
-			betterWrite(string.rep(" ", 32))
+			write(string.rep(" ", 32))
 			term.setCursorPos(19, 9)
-			betterWrite("    Sorry, Firewolf could not   ")
+			write("    Sorry, Firewolf could not   ")
 			term.setCursorPos(19, 10)
-			betterWrite(" connect to GitHub to download  ")
+			write(" connect to GitHub to download  ")
 			term.setCursorPos(19, 11)
-			betterWrite(" necessary files. Please check: ")
+			write(" necessary files. Please check: ")
 			term.setCursorPos(19, 12)
-			betterWrite("    http://status.github.com    ")
+			write("    http://status.github.com    ")
 			term.setCursorPos(19, 13)
-			betterWrite(string.rep(" ", 32))
+			write(string.rep(" ", 32))
 			term.setCursorPos(19, 14)
-			betterWrite("        Click to exit...        ")
+			write("        Click to exit...        ")
 			term.setCursorPos(19, 15)
-			betterWrite(string.rep(" ", 32))
+			write(string.rep(" ", 32))
 		else
 			term.clear()
 			term.setCursorPos(1, 1)
 			term.setBackgroundColor(colors.black)
 			term.setTextColor(colors.white)
-			betterPrint("\n")
+			print("\n")
 			centerPrint("Could not connect to GitHub!")
-			betterPrint("")
+			print("")
 			centerPrint("Sorry, Firewolf could not connect to")
 			centerPrint("GitHub to download necessary files.")
 			centerPrint("Please check:")
 			centerPrint("http://status.github.com")
-			betterPrint("")
+			print("")
 			centerPrint("Press any key to exit...")
 		end
 
@@ -1725,7 +1670,7 @@ pages["firewolf"] = function(site)
 	term.clear()
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
-	betterPrint("")
+	print("")
 	leftPrint(string.rep(" ", 42))
 	leftPrint([[        _,-='"-.__               /\_/\    ]])
 	leftPrint([[         -.}        =._,.-==-._.,  @ @._, ]])
@@ -1733,7 +1678,7 @@ pages["firewolf"] = function(site)
 	leftPrint([[ Firewolf ]] .. version .. string.rep(" ", 8 - version:len()) ..
 		[["    G..m-"^m m'        ]])
 	leftPrint(string.rep(" ", 42))
-	betterPrint("\n")
+	print("\n")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	rightPrint(string.rep(" ", 42))
@@ -1760,7 +1705,7 @@ pages["firewolf/sites"] = function(site)
 	term.clear()
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
-	betterPrint("\n")
+	print("\n")
 	leftPrint(string.rep(" ", 17))
 	leftPrint(" Built-In Sites  ")
 	leftPrint(string.rep(" ", 17))
@@ -1806,49 +1751,49 @@ local function manageServers(site, protocol, functionList, startServerName)
 		local function draw(l, sel)
 			term.setBackgroundColor(colors[theme["bottom-box"]])
 			term.setCursorPos(4, sy)
-			betterWrite("[- New Server -]")
+			write("[- New Server -]")
 			for i, v in ipairs(l) do
 				term.setCursorPos(3, i + sy)
-				betterWrite(string.rep(" ", 24))
+				write(string.rep(" ", 24))
 				term.setCursorPos(4, i + sy)
 				local nv = v
 				if nv:len() > 18 then nv = nv:sub(1, 15) .. "..." end
-				if i == sel then betterWrite("[ " .. nv .. " ]")
-				else betterWrite("  " .. nv) end
+				if i == sel then write("[ " .. nv .. " ]")
+				else write("  " .. nv) end
 			end
 			if #l < 1 then
 				term.setCursorPos(4, sy + 2)
-				betterWrite("A website is literally")
+				write("A website is literally")
 				term.setCursorPos(4, sy + 3)
-				betterWrite("just a lua script!")
+				write("just a lua script!")
 				term.setCursorPos(4, sy + 4)
-				betterWrite("Go ahead and make one!")
+				write("Go ahead and make one!")
 				term.setCursorPos(4, sy + 6)
-				betterWrite("Also, be sure to check")
+				write("Also, be sure to check")
 				term.setCursorPos(4, sy + 7)
-				betterWrite("out Firewolf's APIs to")
+				write("out Firewolf's APIs to")
 				term.setCursorPos(4, sy + 8)
-				betterWrite("help you make your")
+				write("help you make your")
 				term.setCursorPos(4, sy + 9)
-				betterWrite("site, at rdnt://help")
+				write("site, at rdnt://help")
 			end
 
 			term.setCursorPos(30, sy)
-			betterWrite(string.rep(" ", 19))
+			write(string.rep(" ", 19))
 			term.setCursorPos(30, sy)
 			if l[sel] then 
 				local nl = l[sel]
 				if nl:len() > 19 then nl = nl:sub(1, 16) .. "..." end
-				betterWrite(nl)
-			else betterWrite("No Server Selected!") end
+				write(nl)
+			else write("No Server Selected!") end
 			term.setCursorPos(30, sy + 2)
-			betterWrite("[- " .. startServerName .. " -]")
+			write("[- " .. startServerName .. " -]")
 			term.setCursorPos(30, sy + 4)
-			betterWrite("[- Edit -]")
+			write("[- Edit -]")
 			term.setCursorPos(30, sy + 6)
-			if functionList["run on boot"] then betterWrite("[- Run on Boot -]") end
+			if functionList["run on boot"] then write("[- Run on Boot -]") end
 			term.setCursorPos(30, sy + 8)
-			betterWrite("[- Delete -]")
+			write("[- Delete -]")
 		end
 
 		local function updateDisplayList(items, loc, len)
@@ -1865,18 +1810,18 @@ local function manageServers(site, protocol, functionList, startServerName)
 			term.setCursorPos(1, 1)
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
-			betterPrint("")
+			print("")
 			leftPrint(string.rep(" ", 27))
 			leftPrint(" Server Management - " .. protocol:upper() .. "  ")
 			leftPrint(string.rep(" ", 27))
-			betterPrint("")
+			print("")
 
 			term.setBackgroundColor(colors[theme["bottom-box"]])
 			for i = 1, 12 do
 				term.setCursorPos(3, i + sy - 2)
-				betterWrite(string.rep(" ", 24))
+				write(string.rep(" ", 24))
 				term.setCursorPos(29, i + sy - 2)
-				betterWrite(string.rep(" ", 21))
+				write(string.rep(" ", 21))
 			end
 
 			local sel = 1
@@ -1922,12 +1867,12 @@ local function manageServers(site, protocol, functionList, startServerName)
 						functionList["run on boot"](disList[sel])
 						term.setBackgroundColor(colors[theme["bottom-box"]])
 						term.setCursorPos(32, 15)
-						betterWrite("Will Run on Boot!")
+						write("Will Run on Boot!")
 						openAddressBar = false
 						sleep(1.3)
 						openAddressBar = true
 						term.setCursorPos(32, 15)
-						betterWrite(string.rep(" ", 18))
+						write(string.rep(" ", 18))
 						break
 					elseif x >= 30 and x <= 41 and y == 16 and #servers > 0 then
 						functionList["delete"](disList[sel])
@@ -1943,11 +1888,11 @@ local function manageServers(site, protocol, functionList, startServerName)
 			term.clear()
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
-			betterPrint("")
+			print("")
 			centerPrint(string.rep(" ", 27))
 			centerPrint(" Server Management - " .. protocol:upper() .. "  ")
 			centerPrint(string.rep(" ", 27))
-			betterPrint("")
+			print("")
 
 			local a = {"New Server"}
 			for _, v in pairs(servers) do table.insert(a, v) end
@@ -1957,7 +1902,7 @@ local function manageServers(site, protocol, functionList, startServerName)
 				servers = functionList["reload servers"]()
 			else
 				term.setCursorPos(30, 8)
-				betterWrite(server)
+				write(server)
 				local a = {{"Start", 30, 9}, {"Edit", 30, 11}, {"Run on Boot", 30, 12}, 
 					{"Delete", 30, 13}, {"Back", 30, 15}}
 				if not functionList["run on boot"] then
@@ -1973,7 +1918,7 @@ local function manageServers(site, protocol, functionList, startServerName)
 				elseif opt == "Run on Boot" and functionList["run on boot"] then
 					functionList["run on boot"]()
 					term.setCursorPos(32, 16)
-					betterWrite("Will Run on Boot!")
+					write("Will Run on Boot!")
 					openAddressBar = false
 					sleep(1.3)
 					openAddressBar = true
@@ -1993,11 +1938,11 @@ local function editPages(dir)
 	term.setTextColor(colors.white)
 	term.clear()
 	term.setCursorPos(1, 1)
-	betterPrint("")
-	betterPrint(" Server Shell Editing")
-	betterPrint(" Type 'exit' to return to Firewolf.")
-	betterPrint(" The 'home' file is the index of your site.")
-	betterPrint("")
+	print("")
+	print(" Server Shell Editing")
+	print(" Type 'exit' to return to Firewolf.")
+	print(" The 'home' file is the index of your site.")
+	print("")
 
 	local allowed = {"move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
 		"eject", "exit", "help", "id", "monitor", "rename", "alias", "clear",
@@ -2009,7 +1954,7 @@ local function editPages(dir)
 		term.setBackgroundColor(colors.black)
 		if isAdvanced() then term.setTextColor(colors.yellow)
 		else term.setTextColor(colors.white) end
-		betterWrite("> ")
+		write("> ")
 		term.setTextColor(colors.white)
 		local line = read(nil, commandHis)
 		table.insert(commandHis, line)
@@ -2035,7 +1980,7 @@ local function editPages(dir)
 				shell.run(com, unpack(words, 2))
 			else
 				term.setTextColor(colors.red)
-				betterPrint("Program Not Allowed!")
+				print("Program Not Allowed!")
 			end
 		end
 	end
@@ -2053,18 +1998,18 @@ local function newServer(onCreate)
 	term.setCursorPos(1, 7)
 	for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
 	term.setCursorPos(5, 8)
-	betterWrite("Name: ")
+	write("Name: ")
 	local name = modRead({refusePrint = "`", visibleLength = w - 4, textLength = 200})
 	term.setCursorPos(5, 10)
-	betterWrite("URL:")
+	write("URL:")
 	term.setCursorPos(8, 11)
-	betterWrite("rdnt://")
+	write("rdnt://")
 	local url = modRead({grantPrint = "abcdefghijklmnopqrstuvwxyz1234567890-_.+", 
 		visibleLength = w - 4, textLength = 200})
 	url = url:gsub(" ", "")
 	if name == "" or url == "" then
 		term.setCursorPos(5, 13)
-		betterWrite("URL or Name is Empty!")
+		write("URL or Name is Empty!")
 		openAddressBar = false
 		sleep(1.3)
 		openAddressBar = true
@@ -2073,11 +2018,11 @@ local function newServer(onCreate)
 
 		term.setCursorPos(5, 13)
 		if c and c == "true" then
-			betterWrite("Successfully Created Server!")
+			write("Successfully Created Server!")
 		elseif c == "false" or c == nil then
-			betterWrite("Server Creation Failed!")
+			write("Server Creation Failed!")
 		else
-			betterWrite(c)
+			write(c)
 		end
 		openAddressBar = false
 		sleep(1.3)
@@ -2140,7 +2085,7 @@ end
 pages["server/http"] = function(site)
 	term.setBackgroundColor(colors[theme["background"]])
 	term.clear()
-	betterPrint("\n\n")
+	print("\n\n")
 	term.setBackgroundColor(colors[theme["top-box"]])
 	centerPrint(string.rep(" ", 17))
 	centerPrint("  Comming Soon!  ")
@@ -2163,11 +2108,11 @@ pages["help"] = function(site)
 	term.clear()
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
-	betterPrint("")
+	print("")
 	leftPrint(string.rep(" ", 16))
 	leftPrint(" Firewolf Help  ")
 	leftPrint(string.rep(" ", 16))
-	betterPrint("")
+	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	for i = 1, 12 do rightPrint(string.rep(" ", 41)) end
@@ -2310,17 +2255,17 @@ pages["help"] = function(site)
 		term.setCursorPos(1, 1)
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["top-box"]])
-		betterPrint("")
+		print("")
 		leftPrint(string.rep(" ", page.title:len() + 3))
 		leftPrint(" " .. page.title .. "  ")
 		leftPrint(string.rep(" ", page.title:len() + 3))
-		betterPrint("")
+		print("")
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
-		for i = 1, 12 do betterPrint(string.rep(" ", w)) end
+		for i = 1, 12 do print(string.rep(" ", w)) end
 		for i, v in ipairs(page.content) do
 			term.setCursorPos(4, i + 7)
-			betterWrite(v)
+			write(v)
 		end
 	end
 
@@ -2357,11 +2302,11 @@ pages["settings/themes"] = function(site)
 	term.clear()
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
-	betterPrint("")
+	print("")
 	leftPrint(string.rep(" ", 17))
 	leftPrint(" Theme Settings  ")
 	leftPrint(string.rep(" ", 17))
-	betterPrint("")
+	print("")
 
 	if isAdvanced() then
 		term.setBackgroundColor(colors[theme["bottom-box"]])
@@ -2389,7 +2334,7 @@ pages["settings/themes"] = function(site)
 			redirect("settings")
 		elseif t == "New Theme" then
 			term.setCursorPos(w - 33, 17)
-			betterWrite("Path: /")
+			write("Path: /")
 			local n = modRead({visibleLength = w - 2, textLength = 100})
 			if n ~= "" and n ~= nil then
 				n = "/" .. n
@@ -2470,7 +2415,7 @@ pages["settings/themes"] = function(site)
 			end
 		end
 	else
-		betterPrint("")
+		print("")
 		rightPrint(string.rep(" ", 30))
 		rightPrint("  Themes are not available on ")
 		rightPrint("         normal computers! :( ")
@@ -2485,12 +2430,12 @@ pages["settings"] = function(site)
 	term.clear()
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
-	betterPrint("")
+	print("")
 	leftPrint(string.rep(" ", 17 + serverList[serverID]:len()))
 	leftPrint(" Firewolf Settings  " .. string.rep(" ", serverList[serverID]:len() - 3))
 	leftPrint(" Designed For: " .. serverList[serverID] .. "  ")
 	leftPrint(string.rep(" ", 17 + serverList[serverID]:len()))
-	betterPrint("\n")
+	print("\n")
 
 	local a = "Automatic Updating - On"
 	if autoupdate == "false" then a = "Automatic Updating - Off" end
@@ -2514,7 +2459,7 @@ pages["settings"] = function(site)
 	elseif opt == b then
 		if isAdvanced() then term.setCursorPos(w - 30, 14)
 		else term.setCursorPos(w - 30, 12) end
-		betterWrite("rdnt://")
+		write("rdnt://")
 		local a = read()
 		if a ~= "" then homepage = a end
 	elseif opt == "Reset Firewolf" then
@@ -2523,11 +2468,11 @@ pages["settings"] = function(site)
 		term.setCursorPos(1, 1)
 		term.setTextColor(colors[theme["text-color"]])
 		term.setBackgroundColor(colors[theme["top-box"]])
-		betterPrint("")
+		print("")
 		leftPrint(string.rep(" ", 17))
 		leftPrint(" Reset Firewolf  ")
 		leftPrint(string.rep(" ", 17))
-		betterPrint("\n")
+		print("\n")
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 11 do rightPrint(string.rep(" ", 26)) end
 		local opt = prompt({{"Reset History", w - 19, 8}, {"Reset Servers", w - 19, 9}, 
@@ -2561,11 +2506,11 @@ pages["settings"] = function(site)
 		term.clear()
 		term.setCursorPos(1, 1)
 		term.setBackgroundColor(colors[theme["top-box"]])
-		betterPrint("\n\n")
+		print("\n\n")
 		leftPrint(string.rep(" ", 17))
 		leftPrint(" Reset Firewolf  ")
 		leftPrint(string.rep(" ", 17))
-		betterPrint("")
+		print("")
 
 		term.setCursorPos(1, 10)
 		term.setBackgroundColor(colors[theme["bottom-box"]])
@@ -2596,13 +2541,13 @@ end
 pages["credits"] = function(site)
 	term.setBackgroundColor(colors[theme["background"]])
 	term.clear()
-	betterPrint("\n")
+	print("\n")
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	leftPrint(string.rep(" ", 19))
 	leftPrint(" Firewolf Credits  ")
 	leftPrint(string.rep(" ", 19))
-	betterPrint("\n")
+	print("\n")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	rightPrint(string.rep(" ", 38))
@@ -2619,13 +2564,13 @@ end
 
 errorPages["overspeed"] = function(site)
 	clearPage("overspeed", colors[theme["background"]])
-	betterPrint("")
+	print("")
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	leftPrint(string.rep(" ", 14))
 	leftPrint(" Warning! D:  ")
 	leftPrint(string.rep(" ", 14))
-	betterPrint("")
+	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	rightPrint(string.rep(" ", 40))
@@ -2653,13 +2598,13 @@ end
 
 errorPages["crash"] = function(error)
 	clearPage("crash", colors[theme["background"]])
-	betterPrint("")
+	print("")
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["top-box"]])
 	leftPrint(string.rep(" ", 30))
 	leftPrint(" The Website Has Crashed! D:  ")
 	leftPrint(string.rep(" ", 30))
-	betterPrint("")
+	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	rightPrint(string.rep(" ", 31))
@@ -2667,9 +2612,9 @@ errorPages["crash"] = function(error)
 	rightPrint("  Report this to the operator: ")
 	rightPrint(string.rep(" ", 31))
 	term.setBackgroundColor(colors[theme["background"]])
-	betterPrint("")
-	betterPrint(" " .. tostring(error))
-	betterPrint("")
+	print("")
+	print(" " .. tostring(error))
+	print("")
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	rightPrint(string.rep(" ", 31))
@@ -2686,7 +2631,7 @@ local function external(site)
 	term.setBackgroundColor(colors[theme["background"]])
 	term.clear()
 	term.setCursorPos(1, 1)
-	betterPrint("\n\n\n")
+	print("\n\n\n")
 	centerWrite("Connecting to Website...")
 	loadingRate = loadingRate + 1
 
@@ -2697,13 +2642,13 @@ local function external(site)
 			term.setBackgroundColor(colors[theme["background"]])
 			term.clear()
 			term.setCursorPos(1, 1)
-			betterPrint("\n")
+			print("\n")
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
 			leftPrint(string.rep(" ", 24))
 			leftPrint(" No Modem Attached! D:  ")
 			leftPrint(string.rep(" ", 24))
-			betterPrint("\n")
+			print("\n")
 
 			term.setBackgroundColor(colors[theme["bottom-box"]])
 			rightPrint(string.rep(" ", 40))
@@ -2752,7 +2697,7 @@ local function external(site)
 		if fs.exists(cacheLoc) and not fs.isDir(cacheLoc) then
 			term.clearLine()
 			centerPrint("Could Not Connect to Website!")
-			betterPrint("")
+			print("")
 			centerPrint("A Cached Version was Found.")
 			local opt = prompt({{"Load Cache", -1, 10}, {"Continue to Search Results", -1, 12}}, 
 				"vertical")
@@ -2800,7 +2745,7 @@ local function external(site)
 		term.clear()
 		term.setCursorPos(1, 1)
 		if #res > 0 then
-			betterPrint("")
+			print("")
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
 			local t = "1 Search Result"
@@ -2808,14 +2753,14 @@ local function external(site)
 			leftPrint(string.rep(" ", t:len() + 3))
 			leftPrint(" " .. t .. "  ")
 			leftPrint(string.rep(" ", t:len() + 3))
-			betterPrint("")
+			print("")
 
 			term.setBackgroundColor(colors[theme["bottom-box"]])
 			for i = 1, 12 do rightPrint(string.rep(" ", 42)) end
 			local opt = scrollingPrompt(res, w - 39, 7, 10, 38)
 			if opt then redirect(opt:gsub("rdnt://", ""):gsub("http://", "")) end
 		elseif site == "" and #res < 1 then
-			betterPrint("\n\n")
+			print("\n\n")
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
 			centerPrint(string.rep(" ", 47))
@@ -2829,13 +2774,13 @@ local function external(site)
 			centerPrint("Visit rdnt://server!")
 			centerPrint(string.rep(" ", 47))
 		else
-			betterPrint("")
+			print("")
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
 			leftPrint(string.rep(" ", 11))
 			leftPrint(" Oh Noes!  ")
 			leftPrint(string.rep(" ", 11))
-			betterPrint("\n")
+			print("\n")
 
 			term.setBackgroundColor(colors[theme["bottom-box"]])
 			rightPrint(string.rep(" ", 43))
@@ -2972,17 +2917,17 @@ local function addressbarread()
 			term.setTextColor(colors[theme["address-bar-text"]])
 			term.setBackgroundColor(colors[theme["address-bar-background"]])
 			term.setCursorPos(1, i + 1)
-			betterWrite(string.rep(" ", w))
+			write(string.rep(" ", w))
 		end
 		if theme["address-bar-base"] then term.setBackgroundColor(colors[theme["address-bar-base"]])
 		else term.setBackgroundColor(colors[theme["bottom-box"]]) end
 		term.setCursorPos(1, len + 2)
-		betterWrite(string.rep(" ", w))
+		write(string.rep(" ", w))
 		term.setBackgroundColor(colors[theme["address-bar-background"]])
 
 		for i, v in ipairs(l) do
 			term.setCursorPos(2, i + 1)
-			betterWrite(v)
+			write(v)
 		end
 		term.setCursorPos(ox, oy)
 	end
@@ -3043,7 +2988,7 @@ local function addressbarcoroutine()
 					term.setBackgroundColor(colors[theme["top-box"]])
 					term.setTextColor(colors[theme["text-color"]])
 					term.setCursorPos(1, 1)
-					betterWrite("> [- Exit Firewolf -]                              ")
+					write("> [- Exit Firewolf -]                              ")
 				elseif menuBarOpen and (x == 1 or (but == 29 or but == 157)) then
 					-- Close menu bar
 					menuBarOpen = false
@@ -3063,8 +3008,8 @@ local function addressbarcoroutine()
 					term.setTextColor(colors[theme["address-bar-text"]])
 					term.setCursorPos(2, 1)
 					term.clearLine()
-					if curProtocol == protocols.rdnt then betterWrite("rdnt://")
-					elseif curProtocol == protocols.http then betterWrite("http://") end
+					if curProtocol == protocols.rdnt then write("rdnt://")
+					elseif curProtocol == protocols.http then write("http://") end
 
 					-- Read
 					local oldWebsite = website
@@ -3125,7 +3070,7 @@ local function main()
 	leftPrint([[              | |/ |/ // /_/ // /___ / __/     ]])
 	leftPrint([[              |__/|__/ \____//_____//_/        ]])
 	leftPrint(string.rep(" ", 47))
-	betterPrint("\n")
+	print("\n")
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 
 	-- Load Settings
@@ -3162,7 +3107,7 @@ local function main()
 
 	-- Download Files
 	local x, y = term.getCursorPos()
-	term.setCursorPos(1, y - 2)
+	term.setCursorPos(1, y - 1)
 	rightWrite(string.rep(" ", 32))
 	rightWrite("  Downloading Required Files... ")
 
@@ -3188,7 +3133,7 @@ local function startup()
 		api.leftPrint(string.rep(" ", 24))
 		api.leftPrint(" HTTP API Not Enabled!  ")
 		api.leftPrint(string.rep(" ", 24))
-		betterPrint("")
+		print("")
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		api.rightPrint(string.rep(" ", 36))
@@ -3215,13 +3160,13 @@ local function startup()
 		term.clear()
 		term.setCursorPos(1, 2)
 		api.centerPrint("Advanced computer Required!")
-		betterPrint("\n")
+		print("\n")
 		api.centerPrint("  This version of Firewolf requires  ")
 		api.centerPrint("  an Advanced computer to run!       ")
-		betterPrint("")
+		print("")
 		api.centerPrint("  Turtles may not be used to run     ")
 		api.centerPrint("  Firewolf! :(                       ")
-		betterPrint("")
+		print("")
 		api.centerPrint("Press any key to exit...")
 
 		oldpullevent("key")
@@ -3241,11 +3186,11 @@ local function startup()
 		api.leftPrint(string.rep(" ", 27))
 		api.leftPrint(" Firewolf has Crashed! D:  ")
 		api.leftPrint(string.rep(" ", 27))
-		betterPrint("")
+		print("")
 		term.setBackgroundColor(colors[theme["background"]])
-		betterPrint("")
-		betterPrint("  " .. err)
-		betterPrint("")
+		print("")
+		print("  " .. err)
+		print("")
 
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		api.rightPrint(string.rep(" ", 41))
@@ -3278,11 +3223,11 @@ end
 
 -- Check If Read Only
 if fs.isReadOnly(firewolfLocation) or fs.isReadOnly(rootFolder) then
-	betterPrint("Firewolf cannot modify itself or its root folder!")
-	betterPrint("")
-	betterPrint("This cold be caused by Firewolf being placed in")
-	betterPrint("the rom folder, or another program may be")
-	betterPrint("preventing the modification of Firewolf.")
+	print("Firewolf cannot modify itself or its root folder!")
+	print("")
+	print("This cold be caused by Firewolf being placed in")
+	print("the rom folder, or another program may be")
+	print("preventing the modification of Firewolf.")
 
 	-- Reset Environment and Exit
 	setfenv(1, oldEnv)
@@ -3299,7 +3244,7 @@ end
 
 -- Debug File
 if #tArgs > 0 and tArgs[1] == "debug" then
-	betterPrint("Debug Mode Enabled!")
+	print("Debug Mode Enabled!")
 
 	if fs.exists(debugLogLocation) then debugFile = io.open(debugLogLocation, "a")
 	else debugFile = io.open(debugLogLocation, "w") end
