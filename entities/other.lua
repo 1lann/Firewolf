@@ -13,15 +13,7 @@
 
 -- Version
 local version = "2.4"
-<<<<<<< HEAD
-<<<<<<< HEAD
 local build = 29
-=======
-local build = 26
->>>>>>> Fixed the clicking in my one
-=======
-local build = 27
->>>>>>> People could queue terminate event
 local browserAgentTemplate = "Firewolf " .. version
 browserAgent = browserAgentTemplate
 local tArgs = {...}
@@ -782,7 +774,6 @@ override.term = {}
 for k, v in pairs(env.term) do override.term[k] = v end
 override.os = {}
 for k, v in pairs(env.os) do override.os[k] = v end
-<<<<<<< HEAD
 
 override.write = function( sText )
 	local w,h = override.term.getSize()		
@@ -844,8 +835,6 @@ override.write = function( sText )
 	return nLinesPrinted
 end
 
-
-
 override.print = function( ... )
 	local nLinesPrinted = 0
 	for n,v in ipairs( { ... } ) do
@@ -854,8 +843,6 @@ override.print = function( ... )
 	nLinesPrinted = nLinesPrinted + override.write( "\n" )
 	return nLinesPrinted
 end
-=======
->>>>>>> Fixed the clicking in my one
 
 override.term.getSize = function()
 	local a, b = env.term.getSize()
@@ -3161,7 +3148,6 @@ term.clear()
 term.setCursorPos(1, 1)
 api.centerPrint("Thank You for Using Firewolf " .. version)
 api.centerPrint("Made by 1lann and GravityScore")
-term.setCursorPos(1, 3)
 
 -- Close
 for _, v in pairs(rs.getSides()) do 
