@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.5"
-local build = 30
+local build = 31
 local browserAgent = "Firewolf " .. version
 local tArgs = {...}
 
@@ -1437,8 +1437,8 @@ pages["firewolf"] = function()
 	rightPrint(string.rep(" ", 42))
 	if isAdvanced() then rightPrint("  News:                       [- Sites -] ")
 	else rightPrint("  News:                                   ") end
-	rightPrint("    Firewolf 2.4 is out! It cuts out 1500 ")
-	rightPrint("   lines, and contains many improvements! ")
+	rightPrint("     Firewolf 2.5 is out! It rewrites the ")
+	rightPrint("    whole Firewolf's internals (again :P) ")
 	rightPrint(string.rep(" ", 42))
 	rightPrint("   Firewolf 3.0 will be out soon! It will ")
 	rightPrint("     bring the long awaited HTTP support! ")
