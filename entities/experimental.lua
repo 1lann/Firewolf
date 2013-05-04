@@ -1813,14 +1813,144 @@ pages["server/rdnt"] = function(site)
 end
 
 pages["server/http"] = function()
-	term.setTextColor(colors[theme["text-color"]])
-	term.setBackgroundColor(colors[theme["background"]])
-	term.clear()
-	print("\n\n")
-	term.setBackgroundColor(colors[theme["top-box"]])
-	centerPrint(string.rep(" ", 17))
-	centerPrint("  Comming Soon!  ")
-	centerPrint(string.rep(" ", 17))
+	if auser == nil or apass == nil then
+		term.setBackgroundColor(colors[theme["background"]])
+		term.clear()
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["top-box"]])
+		print("\n")
+		leftPrint(string.rep(" ", 27))
+		leftPrint(" Server Management - HTTP  ")
+		leftPrint(string.rep(" ", 27))
+		print("")
+
+		term.setBackgroundColor(colors[theme["bottom-box"]])
+		rightPrint(string.rep(" ", 34))
+		rightPrint("         Welcome to Firewolf HTTP ")
+		rightPrint("               Server Management! ")
+		for i = 1, 8 do rightPrint(string.rep(" ", 34)) end
+
+		local opt = prompt({{"Login", w - 13, 11}, {"Register", w - 16, 13}}, "vertical")
+		if opt == "Login" then
+			term.setCursorPos(1, 11)
+			rightWrite(string.rep(" ", 34))
+			term.setCursorPos(w - 32, 11)
+			write("Username: ")
+			local user = modRead({visibleLength = w - 2, textLength = 40})
+
+			term.setCursorPos(1, 13)
+			rightWrite(string.rep(" ", 34))
+			term.setCursorPos(w - 32, 13)
+			write("Password: ")
+			local pass = sha256(modRead({replaceChar = "*", visibleLength = w - 2, textLength = 40}))
+
+			local a = validateCredentials(user, pass)
+			term.setCursorPos(1, 15)
+			if a == "true" then
+				rightWrite("Login Successful! ")
+				openAddressBar = false
+				sleep(1.5)
+				openAddressBar = true
+				username, password = user, pass
+			else
+				if a == "false" then rightWrite("Invalid Credentials! ")
+				else rightWrite(tostring(a) .. " ") end
+				openAddressBar = false
+				sleep(1.5)
+				openAddressBar = true
+				redirect("server/http")
+			end
+		elseif opt == "Register" then
+			term.setCursorPos(1, 11)
+			rightWrite(string.rep(" ", 34))
+			term.setCursorPos(w - 32, 11)
+			write("New Username: ")
+			local nuser = modRead({visibleLength = w - 2, textLength = 40})
+
+			term.setCursorPos(1, 13)
+			rightWrite(string.rep(" ", 34))
+			term.setCursorPos(w - 32, 13)
+			write("New Password: ")
+			local npass = sha256(modRead({replaceChar = "*", visibleLength = w - 2, textLength = 40}))
+
+			term.setCursorPos(w - 32, 14)
+			write("Password Again: ")
+			local npassagain = sha256(modRead({replaceChar = "*", visibleLength = w - 2, 
+				textLength = 40}))
+
+			local a = registerAccount(nuser, npass, npassagain)
+			term.setCursorPos(1, 14)
+			if a == "true" then
+				rightWrite("Account Created Successfully! ")
+				openAddressBar = false
+				sleep(1.5)
+				openAddressBar = true
+				username, password = nuser, npass
+			else
+				if a == "false" then rightWrite("Account Creation Failed! ")
+				else rightWrite(tostring(a) .. " ") end
+				openAddressBar = false
+				sleep(1.3)
+				openAddressBar = true
+				redirect("server/http")
+			end
+		end
+	else username, password = auser, apass end
+
+	local sites = sitesForAccount(username, password)
+	if type(sites) == "table" then
+		local n = "Start"
+		if sites[1] and sites[1].online == "true" then n = "Stop" end
+		manageServers(site, "http", {["reload servers"] = function()
+			sites = sitesForAccount(username, password)
+			local a = {}
+			for _, v in pairs(sites) do table.insert(a, v.url) end
+			return a
+		end, function()
+			newServer(function(name, url)
+				return createSite(username, password, url)
+			end)
+		end, ["start"] = function(server)
+			local data = nil
+			for _, v in pairs(sites) do if v.url == url then data = v end end
+
+			local new = "true"
+			local newt = "Stop"
+			if v.online == "true" then new = "false" newt = "Start" end
+			setOnline(username, password, v.id, new)
+			return newt
+		end, ["edit"] = function(server)
+			local data = nil
+			for _, v in pairs(sites) do if v.url == url then data = v end end
+
+			fs.delete(rootFolder .. "/temp_dir")
+			fs.makeDir(rootFolder .. "/temp_dir")
+			local a = downloadSite(username, password, rootFolder .. "/temp_dir", v.url, v.id)
+			editPages(rootFolder .. "/temp_dir")
+			updateSite(username, password, server, rootFolder .. "/temp_dir")
+			fs.delete(rootFolder .. "/temp_dir")
+			openAddressBar = true
+		end, ["run on boot"] = nil, ["delete"] = function(server)
+			local data = nil
+			for _, v in pairs(sites) do if v.url == url then data = v end end
+			deleteSite(username, password, data.siteid)
+		end}, n)
+	else
+		term.setCursorPos(1, 6)
+		rightPrint(string.rep(" ", 33))
+		rightPrint("  A Server Error Has Occured! D: ")
+		rightPrint(string.rep(" ", 33))
+		print("")
+		rightPrint(tostring(sites) .. " ")
+		print("")
+		for i = 1, 3 do rightPrint(string.rep(" ", 33)) end
+
+		local opt = prompt({{"Try Again", w - 17, 12}}, "vertical")
+		if opt == "Try Again" then
+			pages["server/http"](site, username, password)
+			return
+		end
+	end
 end
 
 pages["server"] = function()
