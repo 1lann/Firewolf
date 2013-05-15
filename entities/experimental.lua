@@ -1,4 +1,3 @@
-
 --
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
@@ -7,7 +6,7 @@
 --  Original Concept From RednetExplorer 2.4.1
 --  RednetExplorer Made by ComputerCraftFan11
 --
-
+-- This is experimental
 
 --  -------- Variables
 
