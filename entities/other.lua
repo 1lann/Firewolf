@@ -1,4 +1,3 @@
-
 --
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
@@ -80,9 +79,9 @@ local event_error = "firewolf_siteErrorEvent"
 local event_exit = "firewolf_exitEvent"
 
 -- Download URLs
-local firewolfURL = "https://raw.github.com/1lann/firewolf/master/entities/" .. serverID .. ".lua"
-local a = serverID == "experimental" and "release" or "experimental"
-local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-" .. a .. ".lua"
+local firewolfURL = "https://raw.github.com/1lann/firewolf/master/entities/other.lua"
+local a = "other"
+local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-release.lua"
 local buildURL = "https://raw.github.com/1lann/firewolf/master/build"
 
 -- Data Locations
