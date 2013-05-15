@@ -12,8 +12,8 @@
 --  -------- Variables
 
 -- Version
-local version = "2.4"
-local serverID = "experimental"
+local version = "2.5"
+local serverID = "release"
 
 -- Prevent Control-T
 os.pullEvent = os.pullEventRaw
@@ -54,8 +54,6 @@ local totalRecordLines = {}
 local recordLines = {}
 local serverPassword = nil
 local serverLocked = false
-local modems = {}
-local firewolfPort = 13126
 
 -- Locations
 local rootFolder = "/.Firewolf_Data"
@@ -74,7 +72,7 @@ if #args >= 2 then
 	passwordDataLocation = rootFolder .. "/." .. website .. "_password"
 else
 	print("Invalid Arguments! D:")
-	return
+	error()
 end
 
 
@@ -86,7 +84,7 @@ local function isAdvanced()
 end
 
 local function oldPullEvent(ex)
-	event, p1, p2, p3, p4, p5 = os.pullEventRaw(ex)
+	local event, p1, p2, p3, p4, p5 = os.pullEventRaw(ex)
 	if event == "terminate" then
 		print("Terminated")
 		error()
@@ -95,57 +93,48 @@ local function oldPullEvent(ex)
 	end
 end
 
+--  Drawing
+
 local function printWithType(t, func)
 	if type(t) == "table" then
-		for k, v in pairs(t) do
-			env.pcall(function() printWithType(v, func) end)
-		end
-	else
-		func(tostring(t))
-	end
+		for _, v in pairs(t) do env.pcall(function() printWithType(v, func) end) end
+	else func(tostring(t)) end
 end
 
 local function centerWrite(text)
-	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
 		term.setCursorPos(math.ceil((w + 1)/2 - t:len()/2), y)
 		write(t)
 	end)
 end
 
 local function centerPrint(text)
-	centerWrite(text)
-	print()
-end
-
-local function leftWrite(text)
-	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
-		term.setCursorPos(1, y)
-		write(text)
+		local x, y = term.getCursorPos()
+		term.setCursorPos(math.ceil((w + 2)/2 - t:len()/2), y)
+		print(t)
 	end)
 end
 
 local function leftPrint(text)
-	leftWrite(text)
-	print()
-end
-
-local function rightWrite(text)
-	local x, y = term.getCursorPos()
 	printWithType(text, function(t)
-		term.setCursorPos(w - text:len() + 1, y)
-		write(text)
+		local x, y = term.getCursorPos()
+		term.setCursorPos(1, y)
+		print(t)
 	end)
 end
 
 local function rightPrint(text)
-	rightWrite(text)
-	print()
+	printWithType(text, function(t)
+		local x, y = term.getCursorPos()
+		term.setCursorPos(w - t:len() + 1, y)
+		print(t)
+	end)
 end
 
 local function clearPage(r)
-	-- Site titles
+	-- Site title
 	title = "Hosting: rdnt://" .. website
 
 	-- Address Bar
@@ -174,6 +163,9 @@ local function clearPage(r)
 	term.setTextColor(colors.white)
 	print("")
 end
+
+
+--  Prompt
 
 local function prompt(list)
 	if isAdvanced() then
@@ -210,19 +202,14 @@ local function prompt(list)
 			write("  ")
 		end
 
-		local key1 = 200
-		local key2 = 208
-		if dir == "horizontal" then
-			key1 = 203
-			key2 = 205
-		end
+		local key1 = dir == "horizontal" and 203 or 200
+		local key2 = dir == "horizontal" and 205 or 208
 
 		local curSel = 1
 		term.setCursorPos(list[curSel][2], list[curSel][3])
 		write("[")
 		term.setCursorPos(list[curSel][2] + list[curSel][1]:len() + 3, list[curSel][3])
 		write("]")
-
 		while true do
 			local e, key = os.pullEvent()
 			term.setCursorPos(list[curSel][2], list[curSel][3])
@@ -348,36 +335,40 @@ end
 
 --  -------- Themes
 
-local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
-	["address-bar-base"] = "lightGray", ["top-box"] = "red", ["bottom-box"] = "orange", 
-	["text-color"] = "white", ["background"] = "gray"}
-local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "black", 
-	["address-bar-base"] = "black", ["top-box"] = "black", ["bottom-box"] = "black", 
-	["text-color"] = "white", ["background"] = "black"}
+local defaultTheme = {
+	["address-bar-text"] = "white",
+	["address-bar-background"] = "gray",
+	["address-bar-base"] = "lightGray",
+	["top-box"] = "red",
+	["bottom-box"] = "orange",
+	["text-color"] = "white",
+	["background"] = "gray"
+} local originalTheme = {
+	["address-bar-text"] = "white",
+	["address-bar-background"] = "black",
+	["address-bar-base"] = "black",
+	["top-box"] = "black",
+	["bottom-box"] = "black",
+	["text-color"] = "white",
+	["background"] = "black"
+}
 
 local function loadTheme(path)
 	if fs.exists(path) and not fs.isDir(path) then
 		local a = {}
 		local f = io.open(path, "r")
 		local l = f:read("*l")
-		while l ~= nil do
+		while l do
 			l = l:gsub("^%s*(.-)%s*$", "%1")
-			if l ~= "" and l ~= nil and l ~= "\n" then
-				local b = l:find("=")
-				if a and b then
-					local c = l:sub(1, b - 1)
-					local d = l:sub(b + 1, -1)
-					if c == "" or d == "" then return nil
-					else a[c] = d end
+			if l and l ~= "" and l ~= "\n" and l:sub(1, 2) ~= "--" then
+				local k, v = string.match(l, "^(%a+)=(%a+)")
+				if k and v then a[k] = v
 				else return nil end
 			end
 			l = f:read("*l")
 		end
 		f:close()
-
 		return a
-	else
-		return nil
 	end
 end
 
@@ -442,7 +433,6 @@ local function updateClient()
 	local updateLocation = rootFolder .. "/server-update"
 	fs.delete(updateLocation)
 
-	-- Update
 	download(serverURL, updateLocation)
 	local a = io.open(updateLocation, "r")
 	local b = io.open(serverLocation, "r")
@@ -563,21 +553,14 @@ end
 local function checkForModem()
 	while true do
 		local present = false
-		modems = {}
-		for k,v in pairs(rs.getSides()) do
-			if peripheral.getType(v) == "modem" or peripheral.getType(v) == "wired_modem" or  peripheral.getType(v) == "wireless_modem" or  peripheral.getType(v) == "rednet_modem" then
-				table.insert(modems, v)
+		for _, v in pairs(rs.getSides()) do
+			if peripheral.getType(v) == "modem" then
+				rednet.open(v)
+				present = true
+				break
 			end
 		end
-		if modems[1] then
-			for k, v in pairs(modems) do
-				peripheral.call(v, "open", firewolfPort+os.getComputerID()+1)
-				peripheral.call(v, "open", firewolfPort)
-			end
-			present = true
-		else
-			present = false
-		end
+
 		if not present then
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["background"]])
@@ -663,7 +646,7 @@ local function respondToEvents()
 			ignoreClock = os.clock()
 		end
 
-		local e, side, port, id, mes, dist = os.pullEvent()
+		local e, id, mes = os.pullEvent()
 
 		local ignore = false
 		for _, v in pairs(ignoreDatabase) do
@@ -672,16 +655,11 @@ local function respondToEvents()
 			if tostring(id) == v then ignore = true break end
 		end
 
-		if e == "modem_message" and (port == firewolfPort+os.getComputerID()+1) and enableResponse == true and not ignore then
+		if e == "rednet_message" and enableResponse == true and not ignore then
 			if mes == website or mes == website .. "/" or mes == website .. "/home" then
 				if suspected[tostring(id)] then suspected[tostring(id)] = suspected[tostring(id)] + 1
 				else suspected[tostring(id)] = 1 end
-				for i = 1, 3 do 
-				for k,v in pairs(modems) do 
-				peripheral.call(v, "open", firewolfPort+id+1)
-				peripheral.call(v, "transmit", firewolfPort+id+1, firewolfPort+id+1, pages[dataLocation .. "/home"])
-				peripheral.call(v, "close", firewolfPort+id+1)
-				end end
+				for i = 1, 3 do rednet.send(id, pages[dataLocation .. "/home"]) end
 				record("/home : " .. tostring(id))
 				visits = visits + 1
 
@@ -696,12 +674,7 @@ local function respondToEvents()
 					local c = b
 					if c:len() > 18 then c = c:sub(1, 15) .. "..." end
 					if pages[dataLocation .. b] and b ~= "/serverapi" then
-						for i = 1, 3 do 
-				for k,v in pairs(modems) do 
-				peripheral.call(v, "open", firewolfPort+id+1)
-				peripheral.call(v, "transmit", firewolfPort+id+1, firewolfPort+id+1, pages[dataLocation .. b])
-				peripheral.call(v, "close", firewolfPort+id+1)
-				end end
+						for i = 1, 3 do rednet.send(id, pages[dataLocation .. b]) end
 						record(c .. " : " .. id)
 						visits = visits + 1
 
@@ -711,12 +684,10 @@ local function respondToEvents()
 						if uponFailedRequest ~= nil then uponFailedRequest(b, id) end
 					end
 				end
-			elseif mes == "firewolf.broadcast.dns.list" and port == firewolfPort then
+			elseif mes == "firewolf.broadcast.dns.list" then
 				if suspected[tostring(id)] then suspected[tostring(id)] = suspected[tostring(id)] + 1
 				else suspected[tostring(id)] = 1 end
-				peripheral.call(v, "open", firewolfPort+id+1)
-				peripheral.call(v, "transmit", firewolfPort+id+1, firewolfPort+os.getComputerID()+1, "firewolf-site:" .. website)
-				peripheral.call(v, "close", firewolfPort+id+1)
+				rednet.send(id, "firewolf-site:" .. website)
 				searches = searches + 1
 			else
 				if uponAnyOtherMessage ~= nil then uponAnyOtherMessage(mes, id) end
@@ -739,7 +710,7 @@ local function respondToEvents()
 end
 
 
---  -------- Interface
+--  -------- GUI
 
 local function edit()
 	openAddressBar = false
@@ -797,6 +768,165 @@ local function edit()
 		end
 	end
 	shell.setDir(oldLoc)
+end
+
+local function addLock()
+	clearPage()
+	term.setCursorPos(1, 8)
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["bottom-box"]])
+	for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+	term.setCursorPos(5, 9)
+	write("Enter a password to secure your")
+	term.setCursorPos(5, 10)
+	write("server from being managed by others:")
+	term.setCursorPos(5, 11)
+	write("> ")
+	local newPassword = read("*")
+	if newPassword == "" then return end
+	term.setCursorPos(5, 13)
+	write("Enter the password again:")
+	term.setCursorPos(5, 14)
+	write("> ")
+	local pass2 = read("*")
+	if pass2 == "" then return
+	elseif pass2 == newPassword then
+		serverPassword = newPassword
+		serverLocked = false
+		local f = io.open(passwordDataLocation, "w")
+		f:write(newPassword)
+		f:close()
+		term.setCursorPos(5, 16)
+		write("Password Set!")
+		sleep(1.3)
+	else
+		term.setCursorPos(5, 16)
+		print("Passwords did not match!")
+		sleep(1.3)
+	end
+end
+
+local function manageServer()
+	while true do
+		clearPage()
+		term.setCursorPos(1, 8)
+		term.setTextColor(colors[theme["text-color"]])
+		term.setBackgroundColor(colors[theme["bottom-box"]])
+		for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+
+		term.setCursorPos(5, 9)
+		write("Visits: " .. tostring(visits))
+		term.setCursorPos(5, 10)
+		write("Searches: " .. tostring(searches))
+		local opt = ""
+		if serverPassword then
+			opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Remove Password", 9, 13}, 
+				{"Delete Server", 9, 14}, {"Back", 9, 16}}, "vertical")
+		else
+			opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
+				{"Back", 9, 15}}, "vertical")
+		end
+		if opt == "Manage Blocked IDs" then
+			while true do
+				clearPage()
+				term.setCursorPos(1, 8)
+				term.setTextColor(colors[theme["text-color"]])
+				term.setBackgroundColor(colors[theme["bottom-box"]])
+				for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+
+				term.setCursorPos(5, 9)
+				if isAdvanced() then write("Blocked IDs: (Click to Unblock)")
+				else write("Blocked IDs: (Select to Unblock)") end
+				local a = {"Back", "Block New ID"}
+				for _, v in pairs(permantentIgnoreDatabase) do
+					table.insert(a, v)
+				end
+
+				local b = scrollingPrompt(a, 5, 11, 7, 43)
+				if b == "Back" then
+					break
+				elseif b == "Block New ID" then
+					term.setCursorPos(5, 10)
+					write("ID: ")
+					local c = read():gsub("^%s*(.-)%s*$", "%1")
+					local d = tonumber(c)
+					local found = false
+					for k, v in pairs(permantentIgnoreDatabase) do
+						if v == tostring(d) then found = true break end
+					end
+					if d == nil then
+						term.setCursorPos(1, 10)
+						centerWrite(string.rep(" ", 47))
+						term.setCursorPos(5, 10)
+						write("Not a Valid ID!")
+						sleep(1.1)
+					elseif found == true then
+						term.setCursorPos(1, 10)
+						centerWrite(string.rep(" ", 47))
+						term.setCursorPos(5, 10)
+						write("ID Already Exists!")
+						sleep(1.1)
+					else
+						term.setCursorPos(1, 10)
+						centerWrite(string.rep(" ", 47))
+						term.setCursorPos(5, 10)
+						write("Blocked ID: " .. c .. "!")
+						table.insert(permantentIgnoreDatabase, tostring(d))
+						sleep(1.1)
+					end
+				else
+					for i, v in ipairs(permantentIgnoreDatabase) do
+						if v == b then table.remove(permantentIgnoreDatabase, i) end
+					end
+				end
+			end
+		elseif opt == "Delete Server" then
+			clearPage()
+			term.setCursorPos(1, 8)
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
+			for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+			term.setCursorPos(9, 11)
+			centerPrint("Are you sure you want to delete the server?")
+			centerPrint("This cannot be undone!")
+			local opt = prompt({{"No", 11, 14}, {"Yes", 35, 14}}, "horizontal")
+			if opt == "Yes" then
+				fs.delete(dataLocation)
+				os.queueEvent(event_stopServer)
+				return
+			end
+		elseif opt == "Remove Password" then
+			clearPage()
+			term.setCursorPos(1, 8)
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["bottom-box"]])
+			for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
+			term.setCursorPos(9, 11)
+			print("Enter your old password:")
+			term.setCursorPos(9, 12)
+			write("> ")
+			local oldPass = read("*")
+			if oldPass == "" then
+			elseif oldPass == serverPassword then
+				fs.delete(passwordDataLocation)
+				serverPassword = nil
+				serverLocked = false
+				term.setCursorPos(9, 14)
+				print("Password Removed!")
+				sleep(1.3)
+				break
+			else
+				term.setCursorPos(9, 14)
+				print("Password incorrect! Locking server...")
+				os.pullEvent = os.pullEventRaw
+				serverLocked = true
+				sleep(1.3)
+				break
+			end
+		elseif opt == "Back" then
+			break
+		end
+	end
 end
 
 local function interface()
@@ -866,127 +996,8 @@ local function interface()
 		if opt == p1 then
 			enableResponse = not enableResponse
 		elseif opt == "Manage" then
-			while true do
-				enableRecording = false
-				clearPage()
-				term.setCursorPos(1, 8)
-				term.setTextColor(colors[theme["text-color"]])
-				term.setBackgroundColor(colors[theme["bottom-box"]])
-				for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
-
-				term.setCursorPos(5, 9)
-				write("Visits: " .. tostring(visits))
-				term.setCursorPos(5, 10)
-				write("Searches: " .. tostring(searches))
-				local opt = ""
-				if serverPassword then
-					opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Remove Password", 9, 13}, 
-						{"Delete Server", 9, 14}, {"Back", 9, 16}}, "vertical")
-				else
-					opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
-						{"Back", 9, 15}}, "vertical")
-				end
-				if opt == "Manage Blocked IDs" then
-					while true do
-						clearPage()
-						term.setCursorPos(1, 8)
-						term.setTextColor(colors[theme["text-color"]])
-						term.setBackgroundColor(colors[theme["bottom-box"]])
-						for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
-
-						term.setCursorPos(5, 9)
-						if isAdvanced() then write("Blocked IDs: (Click to Unblock)")
-						else write("Blocked IDs: (Select to Unblock)") end
-						local a = {"Back", "Block New ID"}
-						for _, v in pairs(permantentIgnoreDatabase) do
-							table.insert(a, v)
-						end
-
-						local b = scrollingPrompt(a, 5, 11, 7, 43)
-						if b == "Back" then
-							break
-						elseif b == "Block New ID" then
-							term.setCursorPos(5, 10)
-							write("ID: ")
-							local c = read():gsub("^%s*(.-)%s*$", "%1")
-							local d = tonumber(c)
-							local found = false
-							for k, v in pairs(permantentIgnoreDatabase) do
-								if v == tostring(d) then found = true break end
-							end
-							if d == nil then
-								term.setCursorPos(1, 10)
-								centerWrite(string.rep(" ", 47))
-								term.setCursorPos(5, 10)
-								write("Not a Valid ID!")
-								sleep(1.1)
-							elseif found == true then
-								term.setCursorPos(1, 10)
-								centerWrite(string.rep(" ", 47))
-								term.setCursorPos(5, 10)
-								write("ID Already Exists!")
-								sleep(1.1)
-							else
-								term.setCursorPos(1, 10)
-								centerWrite(string.rep(" ", 47))
-								term.setCursorPos(5, 10)
-								write("Blocked ID: " .. c .. "!")
-								table.insert(permantentIgnoreDatabase, tostring(d))
-								sleep(1.1)
-							end
-						else
-							for i, v in ipairs(permantentIgnoreDatabase) do
-								if v == b then table.remove(permantentIgnoreDatabase, i) end
-							end
-						end
-					end
-				elseif opt == "Delete Server" then
-					clearPage()
-					term.setCursorPos(1, 8)
-					term.setTextColor(colors[theme["text-color"]])
-					term.setBackgroundColor(colors[theme["bottom-box"]])
-					for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
-					term.setCursorPos(9, 11)
-					centerPrint("Are you sure you want to delete the server?")
-					centerPrint("This cannot be undone!")
-					local opt = prompt({{"No", 11, 14}, {"Yes", 35, 14}}, "horizontal")
-					if opt == "Yes" then
-						fs.delete(dataLocation)
-						os.queueEvent(event_stopServer)
-						return
-					end
-				elseif opt == "Remove Password" then
-					clearPage()
-					term.setCursorPos(1, 8)
-					term.setTextColor(colors[theme["text-color"]])
-					term.setBackgroundColor(colors[theme["bottom-box"]])
-					for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
-					term.setCursorPos(9, 11)
-					print("Enter your old password:")
-					term.setCursorPos(9, 12)
-					write("> ")
-					local oldPass = read("*")
-					if oldPass == serverPassword then
-						fs.delete(passwordDataLocation)
-						serverPassword = nil
-						serverLocked = false
-						term.setCursorPos(9, 14)
-						print("Password Removed!")
-						sleep(1.3)
-						break
-					else
-						term.setCursorPos(9, 14)
-						print("Password incorrect! Locking server...")
-						os.pullEvent = os.pullEventRaw
-						serverLocked = true
-						sleep(1.3)
-						break
-					end
-				elseif opt == "Back" then
-					break
-				end
-			end
-			
+			enableRecording = false
+			manageServer()
 			enableRecording = true
 		elseif opt == "Edit" then
 			enableRecording = false
@@ -1011,50 +1022,20 @@ local function interface()
 			enableRecording = true
 		elseif opt == "Add Lock" then
 			enableRecording = false
-			clearPage()
-			term.setCursorPos(1, 8)
-			term.setTextColor(colors[theme["text-color"]])
-			term.setBackgroundColor(colors[theme["bottom-box"]])
-			for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
-			term.setCursorPos(5, 9)
-			write("Enter a password to secure your")
-			term.setCursorPos(5, 10)
-			write("server from being managed by others:")
-			term.setCursorPos(5, 11)
-			write("> ")
-			local newPassword = read("*")
-			term.setCursorPos(5, 13)
-			write("Enter the password again:")
-			term.setCursorPos(5, 14)
-			write("> ")
-			if read("*") == newPassword then
-				serverPassword = newPassword
-				serverLocked = false
-				local f = io.open(passwordDataLocation, "w")
-				f:write(newPassword)
-				f:close()
-				term.setCursorPos(5, 16)
-				write("Password Set!")
-				sleep(1.3)
-			else
-				term.setCursorPos(5, 16)
-				print("Passwords did not match!")
-				sleep(1.3)
-			end
+			addLock()
 			enableRecording = false
 		elseif opt == "Lock Server" then
-				os.pullEvent = os.pullEventRaw
-				serverLocked = true
-				term.setCursorPos(1, 2)
-				print("")
-				term.setTextColor(colors[theme["text-color"]])
-				term.setBackgroundColor(colors[theme["top-box"]])
-				for i = 1, 4 do centerPrint(string.rep(" ", 47)) end
-				term.setCursorPos(5, 4)
-				print("Server Locked!")
-				sleep(2)
+			os.pullEvent = os.pullEventRaw
+			serverLocked = true
+			term.setCursorPos(1, 2)
+			print("")
+			term.setTextColor(colors[theme["text-color"]])
+			term.setBackgroundColor(colors[theme["top-box"]])
+			for i = 1, 4 do centerPrint(string.rep(" ", 47)) end
+			term.setCursorPos(5, 4)
+			print("Server Locked!")
+			sleep(2)
 		elseif opt == "Stop" then
-			-- Stop server
 			os.queueEvent(event_stopServer)
 			return
 		end
@@ -1256,10 +1237,8 @@ term.clear()
 term.setCursorPos(1, 1)
 centerPrint("Thank You for Using Firewolf Server " .. version)
 centerPrint("Made by 1lann and GravityScore")
-term.setCursorPos(1, 3)
 
 -- Close Rednet
-for k, v in pairs(modems) do
-	peripheral.call(v, "close", firewolfPort+os.getComputerID()+1)
-	peripheral.call(v, "close", firewolfPort)
+for _, v in pairs(rs.getSides()) do 
+	if peripheral.getType(v) == "modem" then rednet.close(v) end
 end
