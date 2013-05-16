@@ -852,7 +852,7 @@ local antivirusOverrides = {
 }
 
 local antivirusDestroy = {
-	"rawset", "rawget", "setfenv", "loadfile", "loadstring", "dofile"
+	"rawset", "rawget", "setfenv", "loadfile", "loadstring", "dofile", "getfenv"
 }
 
 local function triggerAntivirus(offence, onlyCancel)
