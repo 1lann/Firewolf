@@ -1,16 +1,18 @@
-# Copyright 2012 - Jason Chu (1lann) and Bennett Anderson (GravityScore)
+# Firewolf License
 
-Please abide by these rules, it would mean alot to us if you did :)
-We're not going to track/hunt you down if you don't:
+Copyright 2012 - Jason Chu (1lann) and Bennett Anderson (GravityScore)
 
-1. If you modify the source code of Firewolf and re-distrubute it, give visible notice that you modified the source code. 
+Please abide by these rules, it would mean a lot to us if you did :)
+We're not going to track or hunt you down if you don't:
+
+1. If you modify the source code of Firewolf and re-distrubute it, give visible notice of your modification.
 
 2. Ensure that anything under rdnt://credits is kept intact, and the
-credits given at the top of Firewolf's source is unmodified. Feel free to make additions to rdnt://credits, but make sure nothing is removed.
+credits at the top of Firewolf's source remain unmodified. Feel free to make additions to rdnt://credits, but ensure nothing is removed.
 
-3. You may freely distrubute (with or without our permission) unmodified versions (in terms of source code) of Firewolf that includes modified themes/settings/server data.
+3. You may freely distrubute (with or without our permission) unmodified versions (in terms of source code) of Firewolf, which may include modified themes, settings, or server data.
 
-4. If you would like to include Firewolf in a package or operating system, do so following the rules outlined in rules 1, 2 and 3
+4. If you would like to include Firewolf in a package or operating system, do so in accordance with these conditions.
 
 5. Firewolf is given "as is", without any warranties or conditions.
 
