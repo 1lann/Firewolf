@@ -12,7 +12,7 @@
 
 -- Version
 local version = "2.5"
-local build = 32
+local build = 33
 local browserAgent = "Firewolf " .. version
 local tArgs = {...}
 
@@ -1174,7 +1174,7 @@ local function checkForModem(display)
 		end
 
 		if not present and type(display) == "function" then display() os.pullEvent("peripheral")
-		else return true end
+		elseif not present then graphic.nomodem() os.pullEvent("peripheral") else return true end
 	end
 end
 
