@@ -12,7 +12,7 @@
 
 -- Version
 local version = "2.5"
-local build = 34
+local build = 35
 local browserAgent = "Firewolf " .. version
 local tArgs = {...}
 
@@ -1063,6 +1063,7 @@ local function updateClient()
 			f:close()
 			local a = paintutils.loadImage(rootFolder .. "/temp_file")
 			paintutils.drawImage(a, 5, 5)
+			sleep(0.2)
 			fs.delete(rootFolder .. "/temp_file")
 
 			term.setCursorPos(19, 4)
