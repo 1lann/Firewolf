@@ -1023,8 +1023,8 @@ local function updateClient()
 		while true do
 			local e, url, handle = os.pullEvent()
 			if e == "http_success" then
-				local b = tonumber(handle.readAll():gsub("^%s*(.-)%s*$", "%1"))
-				if not b or b > build then break
+				local b = handle.readAll():gsub("^%s*(.-)%s*$", "%1")
+				if not tonumber(b) or tonumber(b) > build then break
 				else return false end
 			elseif e == "http_failure" or (e == "timer" and url == a) then
 				skipNormal = true
