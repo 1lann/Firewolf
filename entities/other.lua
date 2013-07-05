@@ -980,9 +980,9 @@ local function loadTheme(path)
 		local f = io.open(path, "r")
 		local l = f:read("*l")
 		while l do
-			l = l:gsub("^%s*(.-)%s*$", "%1")
+			l = string.gsub(l, "^%s*(.-)%s*$", "%1")
 			if l and l ~= "" and l ~= "\n" and l:sub(1, 2) ~= "--" then
-				local k, v = string.match(l, "^(%a+)=(%a+)")
+				local k, v = string.match(l, "(.+)=(.+)")
 				if k and v then a[k] = v
 				else return nil end
 			end
