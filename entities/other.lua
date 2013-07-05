@@ -13,7 +13,7 @@
 
 -- Version
 local version = "2.5"
-local build = 35
+local build = 36
 local browserAgent = "Firewolf " .. version
 local tArgs = {...}
 
