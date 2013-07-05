@@ -1301,15 +1301,14 @@ graphics.nosearchresults = function()
 end
 
 files.availableThemes = [[
-https://raw.github.com/1lann/firewolf/master/themes/default.txt| |Fire (default)
-https://raw.github.com/1lann/firewolf/master/themes/ice.txt| |Ice
-https://raw.github.com/1lann/firewolf/master/themes/carbon.txt| |Carbon
-https://raw.github.com/1lann/firewolf/master/themes/christmas.txt| |Christmas
-https://raw.github.com/1lann/firewolf/master/themes/original.txt| |Original
-https://raw.github.com/1lann/firewolf/master/themes/ocean.txt| |Ocean
-https://raw.github.com/1lann/firewolf/master/themes/forest.txt| |Forest
-https://raw.github.com/1lann/firewolf/master/themes/pinky.txt| |Pinky
-https://raw.github.com/1lann/firewolf/master/themes/azhftech.txt| |AzhfTech
+https://raw.github.com/1lann/Firewolf/master/themes/default.txt| |Fire (default)
+https://raw.github.com/1lann/Firewolf/master/themes/ice.txt| |Ice
+https://raw.github.com/1lann/Firewolf/master/themes/carbon.txt| |Carbon
+https://raw.github.com/1lann/Firewolf/master/themes/christmas.txt| |Christmas
+https://raw.github.com/1lann/Firewolf/master/themes/original.txt| |Original
+https://raw.github.com/1lann/Firewolf/master/themes/ocean.txt| |Ocean
+https://raw.github.com/1lann/Firewolf/master/themes/forest.txt| |Forest
+https://raw.github.com/1lann/Firewolf/master/themes/pinky.txt| |Pinky
 ]]
 
 files.newTheme = [[
@@ -2453,7 +2452,7 @@ local function loadexternal(site)
 		else
 			func = graphics.nosearchresults
 		end
-	elseif a == "false" or a == "cache" then
+	else
 		func = graphics.nonexistantwebpage
 	end
 

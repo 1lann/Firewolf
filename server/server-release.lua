@@ -902,7 +902,7 @@ local function manageServer()
 			term.setBackgroundColor(colors[theme["bottom-box"]])
 			for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
 			term.setCursorPos(9, 11)
-			print("Enter your old password:")
+			print("Enter your password:")
 			term.setCursorPos(9, 12)
 			write("> ")
 			local oldPass = read("*")
@@ -917,7 +917,7 @@ local function manageServer()
 				break
 			else
 				term.setCursorPos(9, 14)
-				print("Password incorrect! Locking server...")
+				print("Password Incorrect! Locking Server...")
 				os.pullEvent = os.pullEventRaw
 				serverLocked = true
 				sleep(1.3)
