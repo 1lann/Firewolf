@@ -1,3 +1,4 @@
+
 --
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
@@ -45,7 +46,7 @@ local theme = {}
 -- Databases
 local blacklist = {}
 local whitelist = {}
-local dnsDatabase = {[1] = {}, [2] = {}}
+local dnsDatabase = {{}, {}}
 
 -- Website Loading
 local pages = {}
@@ -80,7 +81,6 @@ local event_exit = "firewolf_exitEvent"
 
 -- Download URLs
 local firewolfURL = "https://raw.github.com/1lann/firewolf/master/entities/other.lua"
-local a = "other"
 local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-release.lua"
 local buildURL = "https://raw.github.com/1lann/firewolf/master/build"
 
@@ -390,7 +390,7 @@ api.rWrite = function(text) api.rightWrite(text) end
 --  Server Interation
 
 api.loadFileFromServer = function(path)
-	if type(path) ~= "string" then error("loadFile: expected string") end
+	if type(path) ~= "string" then error("expected string", 2) end
 	sleep(0.05)
 	if path:sub(1, 1) == "/" then path = path:sub(2, -1) end
 	local id, content = curProtocol.getWebsite(website .. "/" .. path)
@@ -425,7 +425,7 @@ end
 
 api.writeDataFile = function(path, content)
 	if type(path) ~= "string" or type(content) ~= "string" then
-		error("writeDataFile: expected string, string") end
+		error("expected string, string", 2) end
 	if path:sub(1, 1) == "/" then path = path:sub(2, -1) end
 	local dataPath = websiteDataFolder .. "/" .. path:gsub("/", "$slazh$")
 
@@ -454,7 +454,7 @@ api.readDataFile = function(path)
 end
 
 api.saveFileToUserComputer = function(content)
-	if type(content) ~= "string" then error("saveFileToUserComputer: expected string") end
+	if type(content) ~= "string" then error("expected string", 2) end
 	local oldback, oldtext = override.term.getBackgroundColor(), override.term.getTextColor()
 	local ox, oy = term.getCursorPos()
 
@@ -523,7 +523,7 @@ api.saveFileToUserComputer = function(content)
 end
 
 api.urlDownload = function(url)
-	if type(url) ~= "string" then error("download: expected string") end
+	if type(url) ~= "string" then error("expected string", 2) end
 	local source = nil
 	http.request(url)
 	local a = os.startTimer(10)
@@ -844,8 +844,8 @@ setfenv(api.saveFileToUserComputer, override)
 
 local antivirusOverrides = {
 	["Run Files"] = {"shell.run", "os.run"},
-	["Modify System"] = {"shell.setAlias", "shell.clearAlias", "os.setComputerLabel", "shell.setDir",
-		"shell.setPath"},
+	["Modify System"] = {"shell.setAlias", "shell.clearAlias", "os.setComputerLabel", 
+		"shell.setDir", "shell.setPath"},
 	["Modify Files"] = {"fs.makeDir", "fs.move", "fs.copy", "fs.delete", "fs.open",
 		"io.open", "io.write", "io.read", "io.close"},
 	["Shutdown Computer"] = {"os.shutdown", "os.reboot", "shell.exit"}
@@ -991,6 +991,7 @@ local function loadTheme(path)
 		f:close()
 		return a
 	end
+	return nil
 end
 
 
@@ -1175,7 +1176,7 @@ local function checkForModem(display)
 		end
 
 		if not present and type(display) == "function" then display() os.pullEvent("peripheral")
-		elseif not present then graphics.nomodem() os.pullEvent("peripheral") else return true end
+		else return true end
 	end
 end
 
@@ -1283,6 +1284,20 @@ graphics.nonexistantwebpage = function()
 	rightPrint("  Could not connect to the website! It may ")
 	rightPrint("  be down, or not exist!                   ")
 	rightPrint(string.rep(" ", 43))
+end
+
+graphics.nosearchresults = function()
+	term.setBackgroundColor(colors[theme["background"]])
+	term.clear()
+	term.setCursorPos(1, 5)
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
+	centerPrint(string.rep(" ", 40))
+	centerPrint("  No Websites are Currently Online! D:  ")
+	centerPrint(string.rep(" ", 40))
+	centerPrint("       Why not make one yourself?       ")
+	centerPrint("          Visit rdnt://server!          ")
+	centerPrint(string.rep(" ", 40))
 end
 
 files.availableThemes = [[
@@ -1542,7 +1557,9 @@ local function manageServers(site, protocol, functionList, startServerName)
 
 		local function updateDisplayList(items, loc, len)
 			local ret = {}
-			for i = 1, len do if items[i + loc - 1] then table.insert(ret, items[i + loc - 1]) end end
+			for i = 1, len do
+				if items[i + loc - 1] then table.insert(ret, items[i + loc - 1]) end
+			end
 			return ret
 		end
 
@@ -2199,7 +2216,8 @@ pages["settings"] = function()
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 11 do rightPrint(string.rep(" ", 26)) end
 		local opt = prompt({{"Reset History", w - 19, 8}, {"Reset Servers", w - 19, 9},
-			{"Reset Theme", w - 17, 10}, {"Reset Cache", w - 17, 11}, {"Reset Databases", w - 21, 12},
+			{"Reset Theme", w - 17, 10}, {"Reset Cache", w - 17, 11}, 
+			{"Reset Databases", w - 21, 12},
 			{"Reset Settings", w - 20, 13}, {"Back", w - 10, 14}, {"Reset All", w - 15, 16}},
 			"vertical")
 
@@ -2433,21 +2451,9 @@ local function loadexternal(site)
 				if opt then redirect(opt:gsub("rdnt://", ""):gsub("http://", "")) end
 			end
 		else
-			func = function()
-				term.setBackgroundColor(colors[theme["background"]])
-				term.clear()
-				term.setCursorPos(1, 5)
-				term.setTextColor(colors[theme["text-color"]])
-				term.setBackgroundColor(colors[theme["top-box"]])
-				centerPrint(string.rep(" ", 40))
-				centerPrint("  No Websites are Currently Online! D:  ")
-				centerPrint(string.rep(" ", 40))
-				centerPrint("       Why not make one yourself?       ")
-				centerPrint("          Visit rdnt://server!          ")
-				centerPrint(string.rep(" ", 40))
-			end
+			func = graphics.nosearchresults
 		end
-	elseif a == "false" then
+	elseif a == "false" or a == "cache" then
 		func = graphics.nonexistantwebpage
 	end
 
@@ -2579,11 +2585,9 @@ local function searchresults()
 	local lastCheck = os.clock()
 	while true do
 		local e = os.pullEvent()
-		if e == event_loadWebsite then
-			if modemPresent() and os.clock() - lastCheck > 5 then
-				curProtocol.getSearchResults()
-				lastCheck = os.clock()
-			end
+		if e == event_load and modemPresent() and os.clock() - lastCheck > 5 then
+			curProtocol.getSearchResults()
+			lastCheck = os.clock()
 		end
 	end
 end
@@ -2651,7 +2655,8 @@ local function run()
 			if coroutine.status(tabs[currentTab]) == "suspended" then
 				if e == "mouse_click" and offsetclick then y = y - 1 end
 				if (filters[currentTab] or e) == e then
-					_, filters[currentTab] = coroutine.resume(tabs[currentTab], e, but, x, y, p4, p5)
+					_, filters[currentTab] = coroutine.resume(tabs[currentTab], e, but, x, y, 
+						p4, p5)
 				end
 			end
 
@@ -2860,5 +2865,7 @@ api.centerPrint("Thank You for Using Firewolf " .. version)
 api.centerPrint("Made by 1lann and GravityScore")
 
 -- Close
-for _, v in pairs(rs.getSides()) do if peripheral.getType(v) == "modem" then rednet.close(v) end end
+for _, v in pairs(rs.getSides()) do 
+	if peripheral.getType(v) == "modem" then rednet.close(v) end
+end
 if debugFile then debugFile:close() end
