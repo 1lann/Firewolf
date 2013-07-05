@@ -80,9 +80,9 @@ local event_error = "firewolf_siteErrorEvent"
 local event_exit = "firewolf_exitEvent"
 
 -- Download URLs
-local firewolfURL = "https://raw.github.com/1lann/firewolf/master/entities/other.lua"
-local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-release.lua"
-local buildURL = "https://raw.github.com/1lann/firewolf/master/build"
+local firewolfURL = "https://raw.github.com/1lann/Firewolf/master/entities/other.lua"
+local serverURL = "https://raw.github.com/1lann/Firewolf/master/server/server-release.lua"
+local buildURL = "https://raw.github.com/1lann/Firewolf/master/build"
 
 -- Data Locations
 local rootFolder = "/.Firewolf_Data"
@@ -1023,7 +1023,8 @@ local function updateClient()
 		while true do
 			local e, url, handle = os.pullEvent()
 			if e == "http_success" then
-				if tonumber(handle.readAll()) > build then break
+				local b = tonumber(handle.readAll():gsub("^%s*(.-)%s*$", "%1"))
+				if not b or b > build then break
 				else return false end
 			elseif e == "http_failure" or (e == "timer" and url == a) then
 				skipNormal = true
@@ -1033,7 +1034,6 @@ local function updateClient()
 	end
 
 	local source = nil
-
 	if not skipNormal then
 		local _, y = term.getCursorPos()
 		term.setCursorPos(1, y - 2)
