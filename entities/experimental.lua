@@ -1,3 +1,4 @@
+
 --
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
@@ -12,7 +13,7 @@
 
 -- Version
 local version = "2.5"
-local build = 35
+local build = 9000
 local browserAgent = "Firewolf " .. version
 local tArgs = {...}
 
@@ -79,10 +80,9 @@ local event_error = "firewolf_siteErrorEvent"
 local event_exit = "firewolf_exitEvent"
 
 -- Download URLs
-local firewolfURL = "https://raw.github.com/1lann/firewolf/master/entities/other.lua"
-local a = "other"
-local serverURL = "https://raw.github.com/1lann/firewolf/master/server/server-release.lua"
-local buildURL = "https://raw.github.com/1lann/firewolf/master/build"
+local firewolfURL = "https://raw.github.com/1lann/Firewolf/master/entities/other.lua"
+local serverURL = "https://raw.github.com/1lann/Firewolf/master/server/server-release.lua"
+local buildURL = "https://raw.github.com/1lann/Firewolf/master/build"
 
 -- Data Locations
 local rootFolder = "/.Firewolf_Data"
@@ -118,7 +118,8 @@ local function debugLog(n, ...)
 		if not n then return end
 		debugFile:write("\n" .. tostring(n) .. " : ")
 		for k, v in pairs(lArgs) do
-			if type(v) == "string" or type(v) == "number" or not type(v) or type(v) == "boolean" then
+			if type(v) == "string" or type(v) == "number" or not type(v) or 
+					type(v) == "boolean" then
 				debugFile:write(tostring(v) .. ", ")
 			else debugFile:write("type-" .. type(v) .. ", ") end
 		end
@@ -245,7 +246,9 @@ local function modRead(properties)
 						table.insert(canTypeKeys, tostring(v):sub(1, 1))
 					end
 				elseif type(properties.grantPrint) == "string" then
-					for char in properties.grantPrint:gmatch(".") do table.insert(canTypeKeys, char) end
+					for char in properties.grantPrint:gmatch(".") do
+						table.insert(canTypeKeys, char)
+					end
 				end
 				for _, v in pairs(canTypeKeys) do if but == v then canType = true end end
 			end
@@ -390,7 +393,7 @@ api.rWrite = function(text) api.rightWrite(text) end
 --  Server Interation
 
 api.loadFileFromServer = function(path)
-	if type(path) ~= "string" then error("loadFile: expected string") end
+	if type(path) ~= "string" then error("expected string", 2) end
 	sleep(0.05)
 	if path:sub(1, 1) == "/" then path = path:sub(2, -1) end
 	local id, content = curProtocol.getWebsite(website .. "/" .. path)
@@ -425,7 +428,7 @@ end
 
 api.writeDataFile = function(path, content)
 	if type(path) ~= "string" or type(content) ~= "string" then
-		error("writeDataFile: expected string, string") end
+		error("expected string, string", 2) end
 	if path:sub(1, 1) == "/" then path = path:sub(2, -1) end
 	local dataPath = websiteDataFolder .. "/" .. path:gsub("/", "$slazh$")
 
@@ -454,7 +457,7 @@ api.readDataFile = function(path)
 end
 
 api.saveFileToUserComputer = function(content)
-	if type(content) ~= "string" then error("saveFileToUserComputer: expected string") end
+	if type(content) ~= "string" then error("expected string", 2) end
 	local oldback, oldtext = override.term.getBackgroundColor(), override.term.getTextColor()
 	local ox, oy = term.getCursorPos()
 
@@ -523,7 +526,7 @@ api.saveFileToUserComputer = function(content)
 end
 
 api.urlDownload = function(url)
-	if type(url) ~= "string" then error("download: expected string") end
+	if type(url) ~= "string" then error("expected string", 2) end
 	local source = nil
 	http.request(url)
 	local a = os.startTimer(10)
@@ -585,7 +588,8 @@ api.prompt = function(list, dir)
 			local e, but, x, y = os.pullEvent()
 			if e == "mouse_click" then
 				for _, v in pairs(list) do
-					if x >= v[2] and x <= v[2] + v[1]:len() + 5 and y + (v.coffset or 0) == v[3] then
+					if x >= v[2] and x <= v[2] + v[1]:len() + 5 and 
+							y + (v.coffset or 0) == v[3] then
 						return v[1]
 					end
 				end
@@ -677,7 +681,9 @@ api.scrollingPrompt = function(list, x, y, len, width, coffset)
 				draw(disList)
 			elseif e == "mouse_click" then
 				for i, v in ipairs(disList) do
-					if clx >= x and clx <= x + wid and cly + coffset == i + y - 1 then return v end
+					if clx >= x and clx <= x + wid and cly + coffset == i + y - 1 then
+						return v
+					end
 				end
 			end
 		end
@@ -844,8 +850,8 @@ setfenv(api.saveFileToUserComputer, override)
 
 local antivirusOverrides = {
 	["Run Files"] = {"shell.run", "os.run"},
-	["Modify System"] = {"shell.setAlias", "shell.clearAlias", "os.setComputerLabel", "shell.setDir",
-		"shell.setPath"},
+	["Modify System"] = {"shell.setAlias", "shell.clearAlias", "os.setComputerLabel", 
+		"shell.setDir", "shell.setPath"},
 	["Modify Files"] = {"fs.makeDir", "fs.move", "fs.copy", "fs.delete", "fs.open",
 		"io.open", "io.write", "io.read", "io.close"},
 	["Shutdown Computer"] = {"os.shutdown", "os.reboot", "shell.exit"}
@@ -1022,7 +1028,8 @@ local function updateClient()
 		while true do
 			local e, url, handle = os.pullEvent()
 			if e == "http_success" then
-				if tonumber(handle.readAll()) > build then break
+				local b = handle.readAll():gsub("^%s*(.-)%s*$", "%1")
+				if not tonumber(b) or tonumber(b) > build then break
 				else return false end
 			elseif e == "http_failure" or (e == "timer" and url == a) then
 				skipNormal = true
@@ -1175,7 +1182,7 @@ local function checkForModem(display)
 		end
 
 		if not present and type(display) == "function" then display() os.pullEvent("peripheral")
-		elseif not present then graphics.nomodem() os.pullEvent("peripheral") else return true end
+		else return true end
 	end
 end
 
@@ -1285,16 +1292,29 @@ graphics.nonexistantwebpage = function()
 	rightPrint(string.rep(" ", 43))
 end
 
+graphics.nosearchresults = function()
+	term.setBackgroundColor(colors[theme["background"]])
+	term.clear()
+	term.setCursorPos(1, 5)
+	term.setTextColor(colors[theme["text-color"]])
+	term.setBackgroundColor(colors[theme["top-box"]])
+	centerPrint(string.rep(" ", 40))
+	centerPrint("  No Websites are Currently Online! D:  ")
+	centerPrint(string.rep(" ", 40))
+	centerPrint("       Why not make one yourself?       ")
+	centerPrint("          Visit rdnt://server!          ")
+	centerPrint(string.rep(" ", 40))
+end
+
 files.availableThemes = [[
-https://raw.github.com/1lann/firewolf/master/themes/default.txt| |Fire (default)
-https://raw.github.com/1lann/firewolf/master/themes/ice.txt| |Ice
-https://raw.github.com/1lann/firewolf/master/themes/carbon.txt| |Carbon
-https://raw.github.com/1lann/firewolf/master/themes/christmas.txt| |Christmas
-https://raw.github.com/1lann/firewolf/master/themes/original.txt| |Original
-https://raw.github.com/1lann/firewolf/master/themes/ocean.txt| |Ocean
-https://raw.github.com/1lann/firewolf/master/themes/forest.txt| |Forest
-https://raw.github.com/1lann/firewolf/master/themes/pinky.txt| |Pinky
-https://raw.github.com/1lann/firewolf/master/themes/azhftech.txt| |AzhfTech
+https://raw.github.com/1lann/Firewolf/master/themes/default.txt| |Fire (default)
+https://raw.github.com/1lann/Firewolf/master/themes/ice.txt| |Ice
+https://raw.github.com/1lann/Firewolf/master/themes/carbon.txt| |Carbon
+https://raw.github.com/1lann/Firewolf/master/themes/christmas.txt| |Christmas
+https://raw.github.com/1lann/Firewolf/master/themes/original.txt| |Original
+https://raw.github.com/1lann/Firewolf/master/themes/ocean.txt| |Ocean
+https://raw.github.com/1lann/Firewolf/master/themes/forest.txt| |Forest
+https://raw.github.com/1lann/Firewolf/master/themes/pinky.txt| |Pinky
 ]]
 
 files.newTheme = [[
@@ -1542,7 +1562,9 @@ local function manageServers(site, protocol, functionList, startServerName)
 
 		local function updateDisplayList(items, loc, len)
 			local ret = {}
-			for i = 1, len do if items[i + loc - 1] then table.insert(ret, items[i + loc - 1]) end end
+			for i = 1, len do
+				if items[i + loc - 1] then table.insert(ret, items[i + loc - 1]) end
+			end
 			return ret
 		end
 
@@ -1647,7 +1669,8 @@ local function manageServers(site, protocol, functionList, startServerName)
 				local a = {{"Start", 30, 9}, {"Edit", 30, 11}, {"Run on Boot", 30, 12},
 					{"Delete", 30, 13}, {"Back", 30, 15}}
 				if not functionList["run on boot"] then
-					a = {{"Start", 30, 9}, {"Edit", 30, 11}, {"Delete", 30, 13}, {"Back", 30, 15}}
+					a = {{"Start", 30, 9}, {"Edit", 30, 11}, {"Delete", 30, 13}, 
+						{"Back", 30, 15}}
 				end
 				local opt = prompt(a, "vertical")
 				if opt == "Start" then
@@ -2199,9 +2222,9 @@ pages["settings"] = function()
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 11 do rightPrint(string.rep(" ", 26)) end
 		local opt = prompt({{"Reset History", w - 19, 8}, {"Reset Servers", w - 19, 9},
-			{"Reset Theme", w - 17, 10}, {"Reset Cache", w - 17, 11}, {"Reset Databases", w - 21, 12},
-			{"Reset Settings", w - 20, 13}, {"Back", w - 10, 14}, {"Reset All", w - 15, 16}},
-			"vertical")
+			{"Reset Theme", w - 17, 10}, {"Reset Cache", w - 17, 11},
+			{"Reset Databases", w - 21, 12}, {"Reset Settings", w - 20, 13}, {"Back", w - 10, 14}, 
+			{"Reset All", w - 15, 16}}, "vertical")
 
 		openAddressBar = false
 		if opt == "Reset All" then
@@ -2433,19 +2456,7 @@ local function loadexternal(site)
 				if opt then redirect(opt:gsub("rdnt://", ""):gsub("http://", "")) end
 			end
 		else
-			func = function()
-				term.setBackgroundColor(colors[theme["background"]])
-				term.clear()
-				term.setCursorPos(1, 5)
-				term.setTextColor(colors[theme["text-color"]])
-				term.setBackgroundColor(colors[theme["top-box"]])
-				centerPrint(string.rep(" ", 40))
-				centerPrint("  No Websites are Currently Online! D:  ")
-				centerPrint(string.rep(" ", 40))
-				centerPrint("       Why not make one yourself?       ")
-				centerPrint("          Visit rdnt://server!          ")
-				centerPrint(string.rep(" ", 40))
-			end
+			func = graphics.nosearchresults
 		end
 	elseif a == "false" then
 		func = graphics.nonexistantwebpage
@@ -2541,8 +2552,8 @@ local function addressbarread()
 		if event == "char" or event == "history" or event == "delete" then
 			list = {}
 			for _, v in pairs(dnsDatabase[1]) do
-				if #list < len and
-						v:gsub("rdnt://", ""):gsub("http://", ""):find(line:lower(), 1, true) then
+				v = v:gsub("rdnt://", ""):gsub("http://", "")
+				if #list < len and v:find(line:lower(), 1, true) then
 					table.insert(list, v)
 				end
 			end
@@ -2557,7 +2568,9 @@ local function addressbarread()
 			return false
 		elseif event == "mouse_click" then
 			for i = 1, #list do
-				if y == i + 1 then return true, list[i]:gsub("rdnt://", ""):gsub("http://", "") end
+				if y == i + 1 then
+					return true, list[i]:gsub("rdnt://", ""):gsub("http://", "")
+				end
 			end
 		end
 	end
@@ -2578,12 +2591,10 @@ local function searchresults()
 	if modemPresent() then curProtocol.getSearchResults() end
 	local lastCheck = os.clock()
 	while true do
-		local e = os.pullEvent()
-		if e == event_loadWebsite then
-			if modemPresent() and os.clock() - lastCheck > 5 then
-				curProtocol.getSearchResults()
-				lastCheck = os.clock()
-			end
+		local e = os.pullEventRaw()
+		if e == event_load and modemPresent() and os.clock() - lastCheck > 5 then
+			curProtocol.getSearchResults()
+			lastCheck = os.clock()
 		end
 	end
 end
@@ -2651,7 +2662,8 @@ local function run()
 			if coroutine.status(tabs[currentTab]) == "suspended" then
 				if e == "mouse_click" and offsetclick then y = y - 1 end
 				if (filters[currentTab] or e) == e then
-					_, filters[currentTab] = coroutine.resume(tabs[currentTab], e, but, x, y, p4, p5)
+					_, filters[currentTab] = coroutine.resume(tabs[currentTab], e, but, x, y, 
+						p4, p5)
 				end
 			end
 
@@ -2699,6 +2711,7 @@ local function main()
 	curProtocol = protocols.rdnt
 
 	-- Update
+	--[[
 	rightPrint(string.rep(" ", 32))
 	rightPrint("        Checking for Updates... ")
 	rightPrint(string.rep(" ", 32))
@@ -2710,6 +2723,7 @@ local function main()
 			error()
 		end
 	end
+	]]--
 
 	-- Download Files
 	local x, y = term.getCursorPos()
@@ -2860,5 +2874,7 @@ api.centerPrint("Thank You for Using Firewolf " .. version)
 api.centerPrint("Made by 1lann and GravityScore")
 
 -- Close
-for _, v in pairs(rs.getSides()) do if peripheral.getType(v) == "modem" then rednet.close(v) end end
+for _, v in pairs(rs.getSides()) do 
+	if peripheral.getType(v) == "modem" then rednet.close(v) end
+end
 if debugFile then debugFile:close() end
