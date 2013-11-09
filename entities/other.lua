@@ -1,4 +1,3 @@
-
 --
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
@@ -13,7 +12,7 @@
 
 -- Version
 local version = "2.5"
-local build = 36
+local build = 37
 local browserAgent = "Firewolf " .. version
 local tArgs = {...}
 
@@ -551,7 +550,7 @@ end
 
 api.redirect = function(url)
 	if type(url) ~= "string" then url = "home" end
-	os.queueEvent(event_redirect, url:gsub("rdnt://"):gsub("http://"))
+	os.queueEvent(event_redirect, url:gsub("rdnt://", ""):gsub("http://", ""))
 	error()
 end
 
