@@ -1,3 +1,4 @@
+
 --
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
@@ -12,7 +13,7 @@
 
 -- Version
 local version = "2.5"
-local build = 37
+local build = 38
 local browserAgent = "Firewolf " .. version
 local tArgs = {...}
 

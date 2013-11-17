@@ -655,6 +655,7 @@ local function respondToEvents()
 			if tostring(id) == v then ignore = true break end
 		end
 
+		mes = tostring(mes)
 		if e == "rednet_message" and enableResponse == true and not ignore then
 			if mes == website or mes == website .. "/" or mes == website .. "/home" then
 				if suspected[tostring(id)] then suspected[tostring(id)] = suspected[tostring(id)] + 1
