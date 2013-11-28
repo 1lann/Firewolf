@@ -1,4 +1,3 @@
-
 --
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
@@ -852,7 +851,7 @@ local antivirusOverrides = {
 }
 
 local antivirusDestroy = {
-	"rawset", "rawget", "setfenv", "loadfile", "loadstring", "dofile", "getfenv"
+	"_G", "rawset", "rawget", "setfenv", "loadfile", "loadstring", "dofile", "getfenv"
 }
 
 local function triggerAntivirus(offence, onlyCancel)
