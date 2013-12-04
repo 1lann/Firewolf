@@ -154,7 +154,7 @@ local function clearPage(r)
 	end
 	if r == true then
 		for i, v in ipairs(recordLines) do
-			term.setCursorPos(5, i + 8)
+			term.setCursorPos(math.ceil(w / 2) - 21, i + 8)
 			write(v)
 		end
 	end
@@ -777,17 +777,17 @@ local function addLock()
 	term.setTextColor(colors[theme["text-color"]])
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
-	term.setCursorPos(5, 9)
+	term.setCursorPos(math.ceil(w / 2) - 21, 9)
 	write("Enter a password to secure your")
-	term.setCursorPos(5, 10)
+	term.setCursorPos(math.ceil(w / 2) - 21, 10)
 	write("server from being managed by others:")
-	term.setCursorPos(5, 11)
+	term.setCursorPos(math.ceil(w / 2) - 21, 11)
 	write("> ")
 	local newPassword = read("*")
 	if newPassword == "" then return end
-	term.setCursorPos(5, 13)
+	term.setCursorPos(math.ceil(w / 2) - 21, 13)
 	write("Enter the password again:")
-	term.setCursorPos(5, 14)
+	term.setCursorPos(math.ceil(w / 2) - 21, 14)
 	write("> ")
 	local pass2 = read("*")
 	if pass2 == "" then return
@@ -797,11 +797,11 @@ local function addLock()
 		local f = io.open(passwordDataLocation, "w")
 		f:write(newPassword)
 		f:close()
-		term.setCursorPos(5, 16)
+		term.setCursorPos(math.ceil(w / 2) - 21, 16)
 		write("Password Set!")
 		sleep(1.3)
 	else
-		term.setCursorPos(5, 16)
+		term.setCursorPos(math.ceil(w / 2) - 21, 16)
 		print("Passwords did not match!")
 		sleep(1.3)
 	end
@@ -815,17 +815,17 @@ local function manageServer()
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
 
-		term.setCursorPos(5, 9)
+		term.setCursorPos(math.ceil(w / 2) - 21, 9)
 		write("Visits: " .. tostring(visits))
-		term.setCursorPos(5, 10)
+		term.setCursorPos(math.ceil(w / 2) - 21, 10)
 		write("Searches: " .. tostring(searches))
 		local opt = ""
 		if serverPassword then
-			opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Remove Password", 9, 13}, 
-				{"Delete Server", 9, 14}, {"Back", 9, 16}}, "vertical")
+			opt = prompt({{"Manage Blocked IDs", math.ceil(w / 2) - 17, 12}, {"Remove Password", math.ceil(w / 2) - 17, 13}, 
+				{"Delete Server", math.ceil(w / 2) - 17, 14}, {"Back", math.ceil(w / 2) - 17, 16}}, "vertical")
 		else
-			opt = prompt({{"Manage Blocked IDs", 9, 12}, {"Delete Server", 9, 13}, 
-				{"Back", 9, 15}}, "vertical")
+			opt = prompt({{"Manage Blocked IDs", math.ceil(w / 2) - 17, 12}, {"Delete Server", math.ceil(w / 2) - 17, 13}, 
+				{"Back", math.ceil(w / 2) - 17, 15}}, "vertical")
 		end
 		if opt == "Manage Blocked IDs" then
 			while true do
@@ -835,7 +835,7 @@ local function manageServer()
 				term.setBackgroundColor(colors[theme["bottom-box"]])
 				for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
 
-				term.setCursorPos(5, 9)
+				term.setCursorPos(math.ceil(w / 2) - 21, 9)
 				if isAdvanced() then write("Blocked IDs: (Click to Unblock)")
 				else write("Blocked IDs: (Select to Unblock)") end
 				local a = {"Back", "Block New ID"}
@@ -843,11 +843,11 @@ local function manageServer()
 					table.insert(a, v)
 				end
 
-				local b = scrollingPrompt(a, 5, 11, 7, 43)
+				local b = scrollingPrompt(a, math.ceil(w / 2) - 21, 11, 7, 43)
 				if b == "Back" then
 					break
 				elseif b == "Block New ID" then
-					term.setCursorPos(5, 10)
+					term.setCursorPos(math.ceil(w / 2) - 21, 10)
 					write("ID: ")
 					local c = read():gsub("^%s*(.-)%s*$", "%1")
 					local d = tonumber(c)
@@ -858,19 +858,19 @@ local function manageServer()
 					if d == nil then
 						term.setCursorPos(1, 10)
 						centerWrite(string.rep(" ", 47))
-						term.setCursorPos(5, 10)
+						term.setCursorPos(math.ceil(w / 2) - 21, 10)
 						write("Not a Valid ID!")
 						sleep(1.1)
 					elseif found == true then
 						term.setCursorPos(1, 10)
 						centerWrite(string.rep(" ", 47))
-						term.setCursorPos(5, 10)
+						term.setCursorPos(math.ceil(w / 2) - 21, 10)
 						write("ID Already Exists!")
 						sleep(1.1)
 					else
 						term.setCursorPos(1, 10)
 						centerWrite(string.rep(" ", 47))
-						term.setCursorPos(5, 10)
+						term.setCursorPos(math.ceil(w / 2) - 21, 10)
 						write("Blocked ID: " .. c .. "!")
 						table.insert(permantentIgnoreDatabase, tostring(d))
 						sleep(1.1)
@@ -890,7 +890,7 @@ local function manageServer()
 			term.setCursorPos(9, 11)
 			centerPrint("Are you sure you want to delete the server?")
 			centerPrint("This cannot be undone!")
-			local opt = prompt({{"No", 11, 14}, {"Yes", 35, 14}}, "horizontal")
+			local opt = prompt({{"No", math.ceil(w / 2) - 15, 14}, {"Yes", math.ceil(w / 2) + 9, 14}}, "horizontal")
 			if opt == "Yes" then
 				fs.delete(dataLocation)
 				os.queueEvent(event_stopServer)
@@ -902,9 +902,9 @@ local function manageServer()
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["bottom-box"]])
 			for i = 1, 11 do centerPrint(string.rep(" ", 47)) end
-			term.setCursorPos(9, 11)
+			term.setCursorPos(math.ceil(w / 2) - 17, 11)
 			print("Enter your password:")
-			term.setCursorPos(9, 12)
+			term.setCursorPos(math.ceil(w / 2) - 17, 12)
 			write("> ")
 			local oldPass = read("*")
 			if oldPass == "" then
@@ -912,12 +912,12 @@ local function manageServer()
 				fs.delete(passwordDataLocation)
 				serverPassword = nil
 				serverLocked = false
-				term.setCursorPos(9, 14)
+				term.setCursorPos(math.ceil(w / 2) - 17, 14)
 				print("Password Removed!")
 				sleep(1.3)
 				break
 			else
-				term.setCursorPos(9, 14)
+				term.setCursorPos(math.ceil(w / 2) - 17, 14)
 				print("Password Incorrect! Locking Server...")
 				os.pullEvent = os.pullEventRaw
 				serverLocked = true
@@ -950,11 +950,11 @@ local function interface()
 		term.setBackgroundColor(colors[theme["top-box"]])
 		if not serverLocked and not serverPassword then
 			os.pullEvent = oldPullEvent
-			opt = prompt({{"Add Lock", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
-				{"Stop", w - 13, 5}}, "vertical")
+			opt = prompt({{"Add Lock", math.ceil(w / 2) - 21, 4}, {"Edit", math.ceil(w / 2) - 21, 5}, {"Manage", math.ceil(w / 2) + 10, 4}, 
+				{"Stop", math.ceil(w / 2) + 12, 5}}, "vertical")
 		elseif not serverLocked and serverPassword then
-			opt = prompt({{"Lock Server", 5, 4}, {"Edit", 5, 5}, {"Manage", w - 15, 4}, 
-				{"Stop", w - 13, 5}}, "vertical")
+			opt = prompt({{"Lock Server", math.ceil(w / 2) - 21, 4}, {"Edit", math.ceil(w / 2) - 21, 5}, {"Manage", math.ceil(w / 2) + 10, 4}, 
+				{"Stop", math.ceil(w / 2) + 12, 5}}, "vertical")
 		elseif serverLocked then
 			while true do
 				enableRecording = true
@@ -963,9 +963,9 @@ local function interface()
 				term.setTextColor(colors[theme["text-color"]])
 				term.setBackgroundColor(colors[theme["top-box"]])
 				for i = 1, 4 do centerPrint(string.rep(" ", 47)) end
-				term.setCursorPos(5, 4)
+				term.setCursorPos(math.ceil(w / 2) - 21, 4)
 				print("Enter Password:")
-				term.setCursorPos(5, 5)
+				term.setCursorPos(math.ceil(w / 2) - 21, 5)
 				write("> ")
 				local enteredPassword = read("*")
 				if enteredPassword == serverPassword then
@@ -974,7 +974,7 @@ local function interface()
 					term.setTextColor(colors[theme["text-color"]])
 					term.setBackgroundColor(colors[theme["top-box"]])
 					for i = 1, 4 do centerPrint(string.rep(" ", 47)) end
-					term.setCursorPos(5, 4)
+					term.setCursorPos(math.ceil(w / 2) - 21, 4)
 					write("Password Accepted!")
 					opt = ""
 					serverLocked = false
@@ -987,7 +987,7 @@ local function interface()
 					term.setTextColor(colors[theme["text-color"]])
 					term.setBackgroundColor(colors[theme["top-box"]])
 					for i = 1, 4 do centerPrint(string.rep(" ", 47)) end
-					term.setCursorPos(5, 4)
+					term.setCursorPos(math.ceil(w / 2) - 21, 4)
 					write("Password Incorrect!")
 					sleep(1.3)
 				end
@@ -1033,7 +1033,7 @@ local function interface()
 			term.setTextColor(colors[theme["text-color"]])
 			term.setBackgroundColor(colors[theme["top-box"]])
 			for i = 1, 4 do centerPrint(string.rep(" ", 47)) end
-			term.setCursorPos(5, 4)
+			term.setCursorPos(math.ceil(w / 2) - 21, 4)
 			print("Server Locked!")
 			sleep(2)
 		elseif opt == "Stop" then
