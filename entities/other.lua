@@ -2592,6 +2592,7 @@ end
 
 local function run()
 	loadingClock = os.clock()
+	os.sleep(0)
 	loadsite(homepage)
 	while true do
 		local e, but, x, y, p4, p5 = os.pullEvent()
@@ -2699,7 +2700,7 @@ local function main()
 		local a = textutils.unserialize(f:read("*l"))
 		if type(a) == "table" then autoupdate, incognito, homepage = a.auto, a.incog, a.home end
 		f:close()
-	else autoupdate, incognito, homepage = "true", "true", "firewolf" end
+	else autoupdate, incognito, homepage = "true", "false", "firewolf" end
 	curProtocol = protocols.rdnt
 
 	-- Update
