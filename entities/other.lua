@@ -953,6 +953,8 @@ antivirus.pcall = function(...)
 	return suc, err
 end
 
+antivirus._G = antivirus
+
 
 --  -------- Themes
 
