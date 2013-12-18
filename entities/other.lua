@@ -166,7 +166,7 @@ local function clear(site, background, drawmenu)
 		term.setBackgroundColor(colors[theme["top-box"]])
 		term.setTextColor(colors[theme["text-color"]])
 		term.clearLine()
-		write("> [- Exit Firewolf -]                              ")
+		write("> [- Exit Firewolf -]")
 	end
 
 	print("")
@@ -1461,7 +1461,7 @@ pages["firewolf"] = function()
 
 	while true do
 		local e, but, x, y = os.pullEvent()
-		if e == "mouse_click" and x >= 40 and x <= 50 and y == 11 then redirect("sites") end
+		if e == "mouse_click" and x >= w - 11 and x <= w - 1 and y == 11 then redirect("sites") end
 	end
 end
 
@@ -1491,7 +1491,7 @@ pages["sites"] = function()
 	local a = {"firewolf", "sites", "server", "help", "settings", "credits", "exit"}
 	while true do
 		local e, but, x, y = os.pullEvent()
-		if e == "mouse_click" and x >= 14 and x <= 50 then
+		if e == "mouse_click" and x >= 14 and x <= w - 1 then
 			for i, v in ipairs(a) do if y == sx + i and v ~= "exit" then redirect(v) end end
 		end
 	end
@@ -1623,12 +1623,12 @@ local function manageServers(site, protocol, functionList, startServerName)
 							functionList["run on boot"] then
 						functionList["run on boot"](disList[sel])
 						term.setBackgroundColor(colors[theme["bottom-box"]])
-						term.setCursorPos(32, 15)
+						term.setCursorPos(30, 13)
 						write("Will Run on Boot!")
 						openAddressBar = false
 						sleep(1.3)
 						openAddressBar = true
-						term.setCursorPos(32, 15)
+						term.setCursorPos(30, 13)
 						write(string.rep(" ", 18))
 						break
 					elseif x >= 30 and x <= 41 and y == 15 and #servers > 0 then
@@ -1752,18 +1752,18 @@ local function newServer(onCreate)
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	term.setCursorPos(1, 7)
 	for i = 1, 8 do centerPrint(string.rep(" ", 47)) end
-	term.setCursorPos(5, 8)
+	term.setCursorPos(math.ceil(w / 2) - 21, 8)
 	write("Name: ")
 	local name = modRead({refusePrint = "`", visibleLength = w - 4, textLength = 200})
-	term.setCursorPos(5, 10)
+	term.setCursorPos(math.ceil(w / 2) - 21, 10)
 	write("URL:")
-	term.setCursorPos(8, 11)
+	term.setCursorPos(math.ceil(w / 2) - 18, 11)
 	write("rdnt://")
 	local url = modRead({grantPrint = "abcdefghijklmnopqrstuvwxyz1234567890-_.+",
 		visibleLength = w - 4, textLength = 200})
 	url = url:gsub(" ", "")
 	if name == "" or url == "" then
-		term.setCursorPos(5, 13)
+		term.setCursorPos(math.ceil(w / 2) - 21, 13)
 		write("URL or Name is Empty!")
 		openAddressBar = false
 		sleep(1.3)
@@ -1771,7 +1771,7 @@ local function newServer(onCreate)
 	else
 		local c = onCreate(name, url)
 
-		term.setCursorPos(5, 13)
+		term.setCursorPos(math.ceil(w / 2) - 21, 13)
 		if c and c == "true" then write("Successfully Created Server!")
 		elseif c == "false" or not c then write("Server Creation Failed!")
 		else write(c) end
@@ -2594,6 +2594,7 @@ end
 
 local function run()
 	loadingClock = os.clock()
+	os.sleep(0)
 	loadsite(homepage)
 	while true do
 		local e, but, x, y, p4, p5 = os.pullEvent()
@@ -2606,7 +2607,8 @@ local function run()
 				term.setBackgroundColor(colors[theme["top-box"]])
 				term.setTextColor(colors[theme["address-bar-text"]])
 				term.setCursorPos(1, 1)
-				write("> [- Exit Firewolf -]                              ")
+				term.clearLine()
+				write("> [- Exit Firewolf -]")
 			elseif menuBarOpen and (x == 1 or (but == 29 or but == 157)) then
 				-- Close menu bar
 				menuBarOpen = false
