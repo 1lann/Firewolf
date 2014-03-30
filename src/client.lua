@@ -67,9 +67,9 @@ local theme = {
 }
 
 
-local buildURL = "http://github.com/GravityScore/Firewolf/build.txt"
-local firewolfURL = "http://github.com/GravityScore/Firewolf/browser.lua"
-local serverURL = "http://github.com/GravityScore/Firewolf/server.lua"
+local buildURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/build.txt"
+local firewolfURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/client.lua"
+local serverURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/server.lua"
 
 local firewolfLocation = "/" .. shell.getRunningProgram()
 
@@ -422,7 +422,7 @@ local download = function(url)
 		if (event == "timer" and fetchedURL == timeoutID) or event == "http_failure" then
 			return false
 		elseif event == "http_success" and fetchedURL == url then
-			return response.readAll():gsub("^%s*(.-)%s*$", "%1")
+			return response.readAll()
 		end
 	end
 end
@@ -535,7 +535,7 @@ builtInSites["display"]["server"] = function()
 	center("Press space to download")
 	center("Firewolf Server to:")
 	print("")
-	center("/fw-server")
+	center("/fwserver")
 
 	while true do
 		local event, key = os.pullEvent()
@@ -544,7 +544,7 @@ builtInSites["display"]["server"] = function()
 			term.setCursorPos(1, 9)
 			center("Downloading...")
 
-			local err = downloadAndSave(serverURL, "/fw-server")
+			local err = downloadAndSave(serverURL, "/fwserver")
 
 			fill(1, 9, w, 4, theme.background)
 			term.setCursorPos(1, 9)
