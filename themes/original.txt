@@ -1,7 +1,0 @@
-address-bar-text=white
-address-bar-background=black
-address-bar-base=black
-top-box=black
-bottom-box=black
-background=black
-text-color=white

@@ -1,12 +1,4 @@
-#Firewolf
 
-Firewolf is a program for ComputerCraft that allows you to visit, create, host and share websites with others. A virtual internet in Minecraft.
-
-###License
-
-Firewolf is licensed under the MIT license, reproduced below.
-
-```
 The MIT License (MIT)
 
 Copyright (c) 2014 Ben Anderson (aka GravityScore) and Jason Chu (aka 1lann)
@@ -28,4 +20,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
