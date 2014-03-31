@@ -29,6 +29,9 @@ local DNSRequestTag = "--@!FIREWOLF-LIST!@--"
 local DNSResponseTag = "--@!FIREWOLF-DNSRESP!@--"
 local connectTag = "--@!FIREWOLF-CONNECT!@--"
 local disconnectTag = "--@!FIREWOLF-DISCONNECT!@--"
+local receiveTag = "--@!FIREWOLF-RECEIVE!@--"
+local initiateTag = "--@!FIREWOLF-INITIATE!@--"
+local protocolTag = "--@!FIREWOLF-REDNET-PROTOCOL!@--"
 
 local initiatePattern = "^%-%-@!FIREWOLF%-INITIATE!@%-%-(.+)"
 local retrievePattern = "^%-%-@!FIREWOLF%-FETCH!@%-%-(.+)"
@@ -363,6 +366,9 @@ local backend = function(serverURL, onEvent, onMessage)
 	modem.open(publicDnsChannel)
 	modem.open(serverChannel)
 
+	rednet.open(side)
+	rednet.host(initiateTag..serverURL,initiateTag..serverURL)
+
 	onMessage("Hosting rdnt://" .. serverURL)
 	onMessage("Listening for incoming requests...")
 
@@ -435,6 +441,11 @@ local backend = function(serverURL, onEvent, onMessage)
 					modem.close(givenChannel)
 					onMessage("Connection closed: " .. givenChannel)
 				end
+			end
+		-- event, givenSide (id), givenChannel(message), givenID(protocol), givenMessage, givenDistance = unpack(eventArgs)
+		elseif event == "rednet_message" then
+			if givenID == DNSRequestTag -- Other stuff then
+				-- TODO: COMPLETE
 			end
 		end
 

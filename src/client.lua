@@ -48,9 +48,11 @@ local listToken = "--@!FIREWOLF-LIST!@--"
 local initiateToken = "--@!FIREWOLF-INITIATE!@--"
 local fetchToken = "--@!FIREWOLF-FETCH!@--"
 local disconnectToken = "--@!FIREWOLF-DISCONNECT!@--"
+local protocolToken = "--@!FIREWOLF-REDNET-PROTOCOL!@--"
 
 local connectToken = "^%-%-@!FIREWOLF%-CONNECT!@%-%-(.+)"
 local DNSToken = "^%-%-@!FIREWOLF%-DNSRESP!@%-%-(.+)"
+local receiveToken = "^%-%-@!FIREWOLF%-RECEIVE!@%-%-(.+)"
 
 local websiteErrorEvent = "firewolf_websiteErrorEvent"
 local redirectEvent = "firewolf_redirectEvent"
