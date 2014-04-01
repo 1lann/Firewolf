@@ -730,6 +730,7 @@ end
 
 --    RDNT Protocol
 
+local allowUnencryptedConnections = true
 
 protocols["rdnt"] = {}
 
@@ -800,6 +801,11 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 	modem.open(publicResponseChannel)
 	modem.open(publicDNSChannel)
 
+	if allowUnencryptedConnections then
+		rednet.open(side)
+		rednet.broadcast(listToken, listToken)
+	end
+
 	modem.transmit(publicDNSChannel, responseID, listToken)
 	modem.close(publicDNSChannel)
 
@@ -813,12 +819,16 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 					results[msg:match(DNSToken)] = distance
 				end
 			end
+		elseif event == "rednet_message" and channel == listToken and allowUnencryptedConnections then
+			if connectionSide:match(DNSToken) and #connectionSide:match(DNSToken) >= 4 and #connectionSide:match(DNSToken) <= 30 then
+				results[connectionSide:match(DNSToken)] = -1
+			end
 		elseif event == "timer" and connectionSide == timer then
 			local finalResult = {}
 			for k, v in pairs(results) do
 				local shouldDelete = false
 				for b, n in pairs(toDelete) do
-					if tostring(n) == tostring(v) then
+					if v > 0 and tostring(n) == tostring(v) then
 						shouldDelete = true
 					end
 				end
@@ -827,7 +837,9 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 					table.insert(finalResult, k:lower())
 				end
 			end
-
+			if allowUnencryptedConnections then
+				rednet.close(side)
+			end
 			modem.close(publicResponseChannel)
 			return finalResult
 		end
@@ -838,15 +850,71 @@ end
 protocols["rdnt"]["fetchConnectionObject"] = function(url)
 	local channel = calculateChannel(url)
 	local results = {}
+	local unencryptedResults = {}
 
 	local checkDuplicate = function(distance)
 		for k, v in pairs(results) do
-			if v == distance then
+			if v.dist == distance then
 				return true
 			end
 		end
 
 		return false
+	end
+
+	local checkRednetDuplicate = function(id)
+		for k, v in pairs(unencryptedResults) do
+			if v.id == id then
+				return true
+			end
+		end
+
+		return false
+	end
+
+	if allowUnencryptedConnections then
+		rednet.open(side)
+		local ret = {rednet.lookup(protocolToken .. url, initiateToken .. url)}
+		for k,v in pairs(ret) do
+			table.insert(unencryptedResults, {
+				dist = v,
+				channel = -1,
+				url = url,
+				encrypted = false,
+				id = v,
+
+				fetchPage = function(page)
+					if not rednet.isOpen(side) then
+						rednet.open(side)
+					end
+
+					local fetchTimer = os.startTimer(fetchTimeout)
+					rednet.send(v, crypt(fetchToken .. url .. page, url .. tostring(os.getComputerID())), protocolToken .. url)
+					
+					while true do
+						local event, fetchId, fetchMessage, fetchProtocol = os.pullEvent()
+						if event == "rednet_message" and fetchId == v and fetchProtocol == (protocolToken .. url) then
+							local data = crypt(textutils.unserialize(fetchMessage),url .. tostring(os.getComputerID())):match(receiveToken)
+							if data then
+								rednet.close(side)
+								return data
+							end
+						elseif event == "timer" and fetchId == fetchTimer then
+							rednet.close(side)
+							return nil
+						end
+					end
+				end,
+
+				close = function()
+					if not(rednet.isOpen(side)) then
+						rednet.open(side)
+					end
+					rednet.send(v, crypt(disconnectToken, url .. tostring(os.getComputerID())), protocolToken .. url)
+					rednet.close(side)
+				end
+			})
+		end
 	end
 
 	modem.closeAll()
@@ -865,6 +933,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 					dist = distance,
 					channel = calculatedChannel,
 					url = url,
+					encrypted = true,
 
 					fetchPage = function(page)
 						if not modem.isOpen(calculatedChannel) then
@@ -879,8 +948,11 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 							
 							if event == "modem_message" and fetchSide == side and fetchChannel == calculatedChannel and 
 									fetchVerify == responseID and fetchDistance == distance then
-								modem.close(calculatedChannel)
-								return crypt(textutils.unserialize(fetchMessage), url .. tostring(fetchDistance))
+								local data = crypt(textutils.unserialize(fetchMessage), url .. tostring(fetchDistance)):match(receiveToken)
+								if data then
+									modem.close(calculatedChannel)
+									return data
+								end
 							elseif event == "timer" and fetchSide == fetchTimer then
 								modem.close(calculatedChannel)
 								return nil
@@ -901,7 +973,15 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 			modem.close(channel)
 
 			if #results == 0 then
-				return nil
+				if #unencryptedResults == 0 then
+					return nil
+				elseif #unencryptedResults == 1 then
+					return unencryptedResults[1]
+				else
+					local finalResult = {multipleServers = true, servers = unencryptedResults}
+					return finalResult
+				end
+			end
 			elseif #results == 1 then
 				return results[1]
 			else
@@ -910,8 +990,6 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 			end
 		end
 	end
-end
-
 
 
 --    Fetching Raw Data

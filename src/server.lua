@@ -367,7 +367,7 @@ local backend = function(serverURL, onEvent, onMessage)
 	modem.open(serverChannel)
 
 	rednet.open(side)
-	rednet.host(initiateTag..serverURL,initiateTag..serverURL)
+	rednet.host(protocolTag..serverURL,initiateTag..serverURL)
 
 	onMessage("Hosting rdnt://" .. serverURL)
 	onMessage("Listening for incoming requests...")
@@ -378,7 +378,7 @@ local backend = function(serverURL, onEvent, onMessage)
 
 		if event == "modem_message" and givenSide == side and givenID == responseID then
 			if givenChannel == publicDnsChannel and givenMessage == DNSRequestTag then
-				onMessage("Responding to DNS request")
+				onMessage("[DIRECT] Responding to DNS request")
 
 				modem.open(publicRespChannel)
 				modem.transmit(publicRespChannel, responseID, DNSResponseTag .. serverURL)
@@ -402,17 +402,17 @@ local backend = function(serverURL, onEvent, onMessage)
 
 				local userChannel = calculateChannel(serverURL, givenDistance)
 				if not isInSessions then
-					onMessage("Starting encrypted connection: " .. userChannel)
+					onMessage("[DIRECT] Starting encrypted connection: " .. userChannel)
 
 					table.insert(sessions, {givenDistance, userChannel})
 					modem.open(userChannel)
 				elseif not modem.isOpen(userChannel) then
-					onMessage("Refreshing encrypted connection: " .. userChannel)
+					onMessage("[DIRECT] Refreshing encrypted connection: " .. userChannel)
 
 					modem.open(userChannel)
 				end
 			elseif isSession(sessions, givenChannel, givenDistance) then
-				onMessage("Request from active session")
+				onMessage("[DIRECT] Request from active session")
 
 				local request = crypt(textutils.unserialize(givenMessage), serverURL .. tostring(givenDistance))
 				local domain = request:match(retrievePattern)
@@ -422,14 +422,14 @@ local backend = function(serverURL, onEvent, onMessage)
 						page = "index"
 					end
 
-					onMessage("Requested: /" .. page)
+					onMessage("[DIRECT] Requested: /" .. page)
 
 					local contents = fetchPage(serverURL, page)
 					if not contents then
 						contents = fetch404(serverURL)
 					end
 
-					modem.transmit(givenChannel, responseID, crypt(contents, serverURL .. tostring(givenDistance)))
+					modem.transmit(givenChannel, responseID, crypt(receiveTag..contents, serverURL .. tostring(givenDistance)))
 				elseif request == disconnectTag then
 					for k, v in pairs(sessions) do
 						if v[2] == givenChannel then
@@ -439,13 +439,32 @@ local backend = function(serverURL, onEvent, onMessage)
 					end
 
 					modem.close(givenChannel)
-					onMessage("Connection closed: " .. givenChannel)
+					onMessage("[DIRECT] Connection closed: " .. givenChannel)
 				end
 			end
 		-- event, givenSide (id), givenChannel(message), givenID(protocol), givenMessage, givenDistance = unpack(eventArgs)
 		elseif event == "rednet_message" then
-			if givenID == DNSRequestTag -- Other stuff then
-				-- TODO: COMPLETE
+			if givenID == DNSRequestTag and givenChannel == DNSRequestTag then
+				onMessage("[REDNET] Responding to DNS request")
+				rednet.send(givenSide, DNSResponseTag..serverURL, DNSRequestTag)
+			elseif givenID == protocolTag..serverURL then
+				local id = givenSide
+				local domain = crypt(textutils.unserialize(givenChannel), serverURL..id):match(retrievePattern)
+				if domain then
+					local page = domain:match("^[^/]+/(.+)")
+					if not page then
+						page = "index"
+					end
+
+					onMessage("[REDNET] Requested: /" .. page .." from "..id)
+
+					local contents = fetchPage(serverURL, page)
+					if not contents then
+						contents = fetch404(serverURL)
+					end
+
+					rednet.send(id, crypt(receiveTag..contents, serverURL .. id), protocolTag .. id)
+				end
 			end
 		end
 
@@ -581,6 +600,8 @@ if err and not err:lower():find("terminate") then
 end
 
 if modem then
+	rednet.unhost(protocolTag..serverURL,initiateTag..serverURL)
+	rednet.close(side)
 	modem.closeAll()
 end
 
