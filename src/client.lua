@@ -18,6 +18,8 @@ local isUpdateAvailable = false
 local isMenubarOpen = true
 local menubarWindow = nil
 
+local allowUnencryptedConnections = true
+
 local currentWebsiteURL = ""
 local builtInSites = {}
 
@@ -744,7 +746,6 @@ end
 
 --    RDNT Protocol
 
-local allowUnencryptedConnections = true
 
 protocols["rdnt"] = {}
 
@@ -914,6 +915,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 		end
 
 		local ret = {rednet.lookup(protocolToken .. url, initiateToken .. url)}
+
 		for _, v in pairs(ret) do
 			table.insert(unencryptedResults, {
 				dist = v,
@@ -983,10 +985,12 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 	local timer = os.startTimer(initiationTimeout)
 	while true do
 		local event, connectionSide, connectionChannel, verify, msg, distance = os.pullEvent()
+
 		if event == "modem_message" and connectionChannel == channel and verify == responseID then
 			if crypt(textutils.unserialize(msg), tostring(distance) .. url):match(connectToken) == url and 
 					not checkDuplicate(distance) then
 				local calculatedChannel = calculateChannel(url, distance)
+				
 				table.insert(results, {
 					dist = distance,
 					channel = calculatedChannel,

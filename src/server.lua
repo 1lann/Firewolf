@@ -8,20 +8,6 @@
 
 --    Variables
 
-local debug = function(...)
-	local f = io.open("debug","a")
-	local data = ""
-	local args = {...}
-	for k,v in pairs(args) do
-		if type(v) == "table" then
-			data = data.."\ntable"
-		else
-			data = data.."\n"..v
-		end
-	end
-	f:write(data)
-	f:close()
-end
 
 local version = "3.0"
 local build = 0
@@ -37,7 +23,6 @@ local publicDnsChannel = 9999
 local publicRespChannel = 9998
 local responseID = 41738
 
-
 local DNSRequestTag = "--@!FIREWOLF-LIST!@--"
 local DNSResponseTag = "--@!FIREWOLF-DNSRESP!@--"
 local connectTag = "--@!FIREWOLF-CONNECT!@--"
@@ -49,7 +34,6 @@ local protocolTag = "--@!FIREWOLF-REDNET-PROTOCOL!@--"
 local initiatePattern = "^%-%-@!FIREWOLF%-INITIATE!@%-%-(.+)"
 local retrievePattern = "^%-%-@!FIREWOLF%-FETCH!@%-%-(.+)"
 
-
 local theme = {
 	background = colors.gray, 
 	accent = colors.red, 
@@ -59,7 +43,6 @@ local theme = {
 	text = colors.white, 
 	errorText = colors.red, 
 }
-
 
 local default404 = [[
 local function center(text)
@@ -224,7 +207,7 @@ end
 
 local selectServer = function()
 	clear(theme.background, theme.text)
-	title("Select a server to host...")
+	title("Select a server to host .. .")
 
 	local servers = allServers()
 	table.insert(servers, 1, "New Server")
@@ -303,10 +286,10 @@ local setupModem = function()
 	end
 end
 
-local modem = function(func, ...)
+local modem = function(func,  .. .)
 	for _, side in pairs(sides) do
 		if peripheral.getType(side) == "modem" then
-			peripheral.call(side, func, ...)
+			peripheral.call(side, func,  .. .)
 		end
 	end
 
@@ -382,9 +365,8 @@ local backend = function(serverURL, onEvent, onMessage)
 	local serverChannel = calculateChannel(serverURL)
 	local sessions = {}
 
-	local tReceivedMessages = {}
-    local tReceivedMessageTimeouts = {}
-    local nTransmittedMessages = 0
+	local receivedMessages = {}
+    local receivedMessageTimeouts = {}
 
 	modem("closeAll")
 	modem("open", publicDnsChannel)
@@ -396,10 +378,10 @@ local backend = function(serverURL, onEvent, onMessage)
 			rednet.open(side)
 		end
 	end
-	rednet.host(protocolTag..serverURL,initiateTag..serverURL)
+	rednet.host(protocolTag .. serverURL, initiateTag .. serverURL)
 
 	onMessage("Hosting rdnt://" .. serverURL)
-	onMessage("Listening for incoming requests...")
+	onMessage("Listening for incoming requests .. .")
 
 	while true do
 		local eventArgs = {os.pullEvent()}
@@ -453,7 +435,7 @@ local backend = function(serverURL, onEvent, onMessage)
 						contents = fetch404(serverURL)
 					end
 
-					modem("transmit", givenChannel, responseID, crypt(receiveTag..contents, serverURL .. tostring(givenDistance)))
+					modem("transmit", givenChannel, responseID, crypt(receiveTag .. contents, serverURL .. tostring(givenDistance)))
 				elseif request == disconnectTag then
 					for k, v in pairs(sessions) do
 						if v[2] == givenChannel then
@@ -466,60 +448,48 @@ local backend = function(serverURL, onEvent, onMessage)
 					onMessage("[DIRECT] Connection closed: " .. givenChannel)
 				end
 			end
-		elseif event == "modem_message" and givenChannel == rednet.CHANNEL_REPEAT then
-			local sModem, nChannel, nReplyChannel, tMessage = givenSide, givenChannel, givenID, givenMessage
-			if type( tMessage ) == "table" and tMessage.nMessageID and tMessage.nRecipient then
-				if not tReceivedMessages[ tMessage.nMessageID ] then
-					-- Ensure we only repeat a message once
-					tReceivedMessages[ tMessage.nMessageID ] = true
-					tReceivedMessageTimeouts[ os.startTimer( 30 ) ] = tMessage.nMessageID
+		elseif event == "modem_message" and givenChannel == rednet.CHANNEL_REPEAT and
+				type(givenMessage) == "table" and givenMessage.nMessageID and givenMessage.nRecipient and
+				not receivedMessages[givenMessage.nMessageID] then
+			receivedMessages[givenMessage.nMessageID] = true
+			receivedMessageTimeouts[os.startTimer(30)] = givenMessage.nMessageID
 
-					-- Send on all other open modems, to the target and to other repeaters
-					modem("transmit", rednet.CHANNEL_REPEAT, nReplyChannel, tMessage )
-					modem("transmit", tMessage.nRecipient, nReplyChannel, tMessage )
-
-					-- Log the event
-					nTransmittedMessages = nTransmittedMessages + 1
-				end
-			end
+			modem("transmit", rednet.CHANNEL_REPEAT, givenID, givenMessage)
+			modem("transmit", givenMessage.nRecipient, givenID, givenMessage)
 		elseif event == "timer" then
-			local sModem, nChannel, nReplyChannel, tMessage = givenSide, givenChannel, givenID, givenMessage
-			-- Got a timer event, use it to clear the message history
-			local nTimer = sModem
-			local nMessage = tReceivedMessageTimeouts[ nTimer ]
-			if nMessage then
-				tReceivedMessageTimeouts[ nTimer ] = nil
-				tReceivedMessages[ nMessage ] = nil
+			local messageID = receivedMessageTimeouts[givenSide]
+			if messageID then
+				receivedMessageTimeouts[givenSide] = nil
+				receivedMessages[messageID] = nil
 			end
-		-- event, givenSide (id), givenChannel(message), givenID(protocol), givenMessage, givenDistance = unpack(eventArgs)
 		elseif event == "rednet_message" then
 			if givenID == DNSRequestTag and givenChannel == DNSRequestTag then
 				onMessage("[REDNET] Responding to DNS request")
-				rednet.send(givenSide, DNSResponseTag..serverURL, DNSRequestTag)
-			elseif givenID == protocolTag..serverURL then
+				rednet.send(givenSide, DNSResponseTag .. serverURL, DNSRequestTag)
+			elseif givenID == protocolTag .. serverURL then
 				local id = givenSide
-				local domain = crypt(textutils.unserialize(givenChannel), serverURL..id):match(retrievePattern)
+				local domain = crypt(textutils.unserialize(givenChannel), serverURL .. id):match(retrievePattern)
 				if domain then
 					local page = domain:match("^[^/]+/(.+)")
 					if not page then
 						page = "index"
 					end
 
-					onMessage("[REDNET] Requested: /" .. page .." from "..id)
+					onMessage("[REDNET] Requested: /" .. page .. " from " .. id)
 
 					local contents = fetchPage(serverURL, page)
 					if not contents then
 						contents = fetch404(serverURL)
 					end
 
-					rednet.send(id, crypt(receiveTag..contents, serverURL .. id), protocolTag .. serverURL)
+					rednet.send(id, crypt(receiveTag .. contents, serverURL .. id), protocolTag .. serverURL)
 				end
 			end
 		end
 
 		local shouldExit = onEvent(unpack(eventArgs))
 		if shouldExit then
-			rednet.unhost(protocolTag..serverURL,initiateTag..serverURL)
+			rednet.unhost(protocolTag .. serverURL, initiateTag .. serverURL)
 			break
 		end
 	end
@@ -533,8 +503,8 @@ end
 local host = function(domain)
 	clear(theme.background, theme.text)
 
-	local onEvent = function(...)
-		local event = {...}
+	local onEvent = function( .. .)
+		local event = { .. .}
 		if event[1] == "mouse_click" and event[3] == w and event[4] == 1 then
 			return true
 		end
