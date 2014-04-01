@@ -33,16 +33,15 @@ local languages = {}
 
 local history = {}
 
-local modem = nil
-local side = nil
+local sides = {}
 local publicDNSChannel = 9999
 local publicResponseChannel = 9998
 local responseID = 41738
 local domainLimitPerServer = 3
 
-local searchResultTimeout = 0.1
+local searchResultTimeout = 0.5
 local initiationTimeout = 0.2
-local fetchTimeout = 2
+local fetchTimeout = 1
 
 local listToken = "--@!FIREWOLF-LIST!@--"
 local initiateToken = "--@!FIREWOLF-INITIATE!@--"
@@ -78,6 +77,21 @@ local firewolfLocation = "/" .. shell.getRunningProgram()
 
 
 --    Utilities
+
+local debug = function(...)
+	local f = io.open("debug","a")
+	local data = ""
+	local args = {...}
+	for k,v in pairs(args) do
+		if type(v) == "table" then
+			data = data.."\ntable"
+		else
+			data = data.."\n"..v
+		end
+	end
+	f:write(data)
+	f:close()
+end
 
 
 local modifiedRead = function(properties)
@@ -763,16 +777,24 @@ end
 protocols["rdnt"]["setup"] = function()
 	for _, v in pairs(redstone.getSides()) do
 		if peripheral.getType(v) == "modem" then
-			local testModem = peripheral.wrap(v)
-			if testModem.isWireless() then
-				side = v
-				modem = testModem
-				return true
-			end
+			table.insert(sides, v)
 		end
 	end
 	
-	error("No modem found!")
+	if #sides <= 0 then
+		error("No modem found!")
+	end
+end
+
+
+protocols["rdnt"]["modem"] = function(func, ...)
+	for _, side in pairs(sides) do
+		if peripheral.getType(side) == "modem" then
+			peripheral.call(side, func, ...)
+		end
+	end
+
+	return true
 end
 
 
@@ -798,30 +820,35 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 		return true
 	end
 
-	modem.open(publicResponseChannel)
-	modem.open(publicDNSChannel)
+	protocols.rdnt.modem("open", publicResponseChannel)
+	protocols.rdnt.modem("open", publicDNSChannel)
 
 	if allowUnencryptedConnections then
-		rednet.open(side)
+		for _, side in pairs(sides) do
+			if peripheral.getType(side) == "modem" then
+				rednet.open(side)
+			end
+		end
+
 		rednet.broadcast(listToken, listToken)
 	end
 
-	modem.transmit(publicDNSChannel, responseID, listToken)
-	modem.close(publicDNSChannel)
+	protocols.rdnt.modem("transmit", publicDNSChannel, responseID, listToken)
+	protocols.rdnt.modem("close", publicDNSChannel)
 
 	local timer = os.startTimer(searchResultTimeout)
 	while true do
 		local event, connectionSide, channel, verify, msg, distance = os.pullEvent()
 
-		if event == "modem_message" and connectionSide == side and channel == publicResponseChannel and verify == responseID then
+		if event == "modem_message" and channel == publicResponseChannel and verify == responseID then
 			if msg:match(DNSToken) and #msg:match(DNSToken) >= 4 and #msg:match(DNSToken) <= 30 then
 				if checkResults(distance) then
 					results[msg:match(DNSToken)] = distance
 				end
 			end
-		elseif event == "rednet_message" and channel == listToken and allowUnencryptedConnections then
-			if connectionSide:match(DNSToken) and #connectionSide:match(DNSToken) >= 4 and #connectionSide:match(DNSToken) <= 30 then
-				results[connectionSide:match(DNSToken)] = -1
+		elseif event == "rednet_message" and verify == listToken and allowUnencryptedConnections then
+			if channel:match(DNSToken) and #channel:match(DNSToken) >= 4 and #channel:match(DNSToken) <= 30 then
+				results[channel:match(DNSToken)] = -1
 			end
 		elseif event == "timer" and connectionSide == timer then
 			local finalResult = {}
@@ -837,10 +864,17 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 					table.insert(finalResult, k:lower())
 				end
 			end
+
 			if allowUnencryptedConnections then
-				rednet.close(side)
+				for _, side in pairs(sides) do
+					if peripheral.getType(side) == "modem" then
+						rednet.close(side)
+					end
+				end
 			end
-			modem.close(publicResponseChannel)
+
+			protocols.rdnt.modem("close", publicResponseChannel)
+
 			return finalResult
 		end
 	end
@@ -873,9 +907,14 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 	end
 
 	if allowUnencryptedConnections then
-		rednet.open(side)
+		for _, side in pairs(sides) do
+			if peripheral.getType(side) == "modem" then
+				rednet.open(side)
+			end
+		end
+
 		local ret = {rednet.lookup(protocolToken .. url, initiateToken .. url)}
-		for k,v in pairs(ret) do
+		for _, v in pairs(ret) do
 			table.insert(unencryptedResults, {
 				dist = v,
 				channel = -1,
@@ -884,8 +923,10 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 				id = v,
 
 				fetchPage = function(page)
-					if not rednet.isOpen(side) then
-						rednet.open(side)
+					for _, side in pairs(sides) do
+						if peripheral.getType(side) == "modem" then
+							rednet.open(side)
+						end
 					end
 
 					local fetchTimer = os.startTimer(fetchTimeout)
@@ -896,36 +937,53 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 						if event == "rednet_message" and fetchId == v and fetchProtocol == (protocolToken .. url) then
 							local data = crypt(textutils.unserialize(fetchMessage),url .. tostring(os.getComputerID())):match(receiveToken)
 							if data then
-								rednet.close(side)
+								for _, side in pairs(sides) do
+									if peripheral.getType(side) == "modem" then
+										rednet.close(side)
+									end
+								end
+
 								return data
 							end
 						elseif event == "timer" and fetchId == fetchTimer then
-							rednet.close(side)
+							for _, side in pairs(sides) do
+								if peripheral.getType(side) == "modem" then
+									rednet.close(side)
+								end
+							end
+
 							return nil
 						end
 					end
 				end,
 
 				close = function()
-					if not(rednet.isOpen(side)) then
-						rednet.open(side)
+					for _, side in pairs(sides) do
+						if peripheral.getType(side) == "modem" then
+							rednet.open(side)
+						end
 					end
+
 					rednet.send(v, crypt(disconnectToken, url .. tostring(os.getComputerID())), protocolToken .. url)
-					rednet.close(side)
+
+					for _, side in pairs(sides) do
+						if peripheral.getType(side) == "modem" then
+							rednet.close(side)
+						end
+					end
 				end
 			})
 		end
 	end
 
-	modem.closeAll()
-	modem.open(channel)
-	modem.transmit(channel, responseID, initiateToken .. url)
+	protocols.rdnt.modem("closeAll")
+	protocols.rdnt.modem("open", channel)
+	protocols.rdnt.modem("transmit", channel, responseID, initiateToken .. url)
 
 	local timer = os.startTimer(initiationTimeout)
 	while true do
 		local event, connectionSide, connectionChannel, verify, msg, distance = os.pullEvent()
-
-		if event == "modem_message" and connectionSide == side and connectionChannel == channel and verify == responseID then
+		if event == "modem_message" and connectionChannel == channel and verify == responseID then
 			if crypt(textutils.unserialize(msg), tostring(distance) .. url):match(connectToken) == url and 
 					not checkDuplicate(distance) then
 				local calculatedChannel = calculateChannel(url, distance)
@@ -936,41 +994,38 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 					encrypted = true,
 
 					fetchPage = function(page)
-						if not modem.isOpen(calculatedChannel) then
-							modem.open(calculatedChannel)
-						end
+						protocols.rdnt.modem("open", calculatedChannel)
 
 						local fetchTimer = os.startTimer(fetchTimeout)
-						modem.transmit(calculatedChannel, responseID, crypt(fetchToken .. url .. page, url .. tostring(distance)))
+						protocols.rdnt.modem("transmit", calculatedChannel, responseID, crypt(fetchToken .. url .. page, url .. tostring(distance)))
 						
 						while true do
 							local event, fetchSide, fetchChannel, fetchVerify, fetchMessage, fetchDistance = os.pullEvent()
 							
-							if event == "modem_message" and fetchSide == side and fetchChannel == calculatedChannel and 
+							if event == "modem_message" and fetchChannel == calculatedChannel and 
 									fetchVerify == responseID and fetchDistance == distance then
 								local data = crypt(textutils.unserialize(fetchMessage), url .. tostring(fetchDistance)):match(receiveToken)
+								
 								if data then
-									modem.close(calculatedChannel)
+									protocols.rdnt.modem("close", calculatedChannel)
 									return data
 								end
 							elseif event == "timer" and fetchSide == fetchTimer then
-								modem.close(calculatedChannel)
+								protocols.rdnt.modem("close", calculatedChannel)
 								return nil
 							end
 						end
 					end,
 
 					close = function()
-						if not(modem.isOpen(calculatedChannel)) then
-							modem.open(calculatedChannel)
-						end
-						modem.transmit(calculatedChannel, responseID, crypt(disconnectToken, url .. tostring(distance)))
-						modem.close(calculatedChannel)
+						protocols.rdnt.modem("open", calculatedChannel)
+						protocols.rdnt.modem("transmit", calculatedChannel, responseID, crypt(disconnectToken, url .. tostring(distance)))
+						protocols.rdnt.modem("close", calculatedChannel)
 					end
 				})
 			end
 		elseif event == "timer" and connectionSide == timer then
-			modem.close(channel)
+			protocols.rdnt.modem("close", channel)
 
 			if #results == 0 then
 				if #unencryptedResults == 0 then
@@ -981,7 +1036,6 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 					local finalResult = {multipleServers = true, servers = unencryptedResults}
 					return finalResult
 				end
-			end
 			elseif #results == 1 then
 				return results[1]
 			else
@@ -990,6 +1044,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 			end
 		end
 	end
+end
 
 
 --    Fetching Raw Data
@@ -1100,7 +1155,13 @@ local fetchInternal = function(url)
 end
 
 
+local fetchError = function(err)
+	return languages["lua"]["runWithoutAntivirus"](builtInSites["error"], err)
+end
+
+
 local fetchExternal = function(url, connection)
+
 	if connection.multipleServers then
 		local ids = {}
 		for _, v in pairs(connection.servers) do
@@ -1135,12 +1196,6 @@ local fetchExternal = function(url, connection)
 		return fetchError("A connection timeout occurred!")
 	end
 end
-
-
-local fetchError = function(err)
-	return languages["lua"]["runWithoutAntivirus"](builtInSites["error"], err)
-end
-
 
 local fetchNone = function()
 	return languages["lua"]["runWithoutAntivirus"](builtInSites["noresults"])
@@ -1615,9 +1670,7 @@ local originalTerminal = term.current()
 local _, err = pcall(main)
 term.redirect(originalTerminal)
 
-if modem then
-	modem.closeAll()
-end
+protocols.rdnt.modem("closeAll")
 
 if err and not err:lower():find("terminate") then
 	handleError(err)
