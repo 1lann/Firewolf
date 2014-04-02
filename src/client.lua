@@ -14,7 +14,6 @@ local build = 0
 
 local w, h = term.getSize()
 
-local isUpdateAvailable = false
 local isMenubarOpen = true
 local menubarWindow = nil
 
@@ -58,8 +57,15 @@ local receiveToken = "^%-%-@!FIREWOLF%-RECEIVE!@%-%-(.+)"
 local websiteErrorEvent = "firewolf_websiteErrorEvent"
 local redirectEvent = "firewolf_redirectEvent"
 
+local buildURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/build.txt"
+local firewolfURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/client.lua"
+local serverURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/server.lua"
 
-local theme = {
+local firewolfLocation = "/" .. shell.getRunningProgram()
+
+local theme = {}
+
+local colorTheme = {
 	background = colors.gray,
 	accent = colors.red,
 	subtle = colors.orange,
@@ -69,12 +75,15 @@ local theme = {
 	errorText = colors.red,
 }
 
+local grayscaleTheme = {
+	background = colors.black,
+	accent = colors.black,
+	subtle = colors.black,
 
-local buildURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/build.txt"
-local firewolfURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/client.lua"
-local serverURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/server.lua"
-
-local firewolfLocation = "/" .. shell.getRunningProgram()
+	lightText = colors.white,
+	text = colors.white,
+	errorText = colors.white,
+}
 
 
 
@@ -510,19 +519,6 @@ builtInSites["display"]["firewolf"] = function()
 
 	term.setCursorPos(1, h - 2)
 	center("Made by GravityScore and 1lann")
-
-	local drawUpdateAvailable = function()
-		if isUpdateAvailable then
-			term.setCursorPos(1, 11)
-			term.setTextColor(theme.errorText)
-			center("An update is available!")
-			center("Click here to update.")
-		end
-	end
-
-	drawUpdateAvailable()
-	isUpdateAvailable = updateAvailable()
-	drawUpdateAvailable()
 end
 
 
@@ -622,7 +618,7 @@ builtInSites["search"] = function(results)
 		for i = scroll + 1, scroll + height do
 			if results[i] then
 				term.setCursorPos(5, (i - scroll) + startY)
-				term.write("rdnt://" .. results[i])
+				term.write(currentProtocol .. "://" .. results[i])
 			end
 		end
 	end
@@ -1639,6 +1635,12 @@ end
 local main = function()
 	currentProtocol = "rdnt"
 	currentTab = 1
+
+	if term.isColor() then
+		theme = colorTheme
+	else
+		theme = grayscaleTheme
+	end
 
 	setupMenubar()
 	protocols[currentProtocol]["setup"]()
