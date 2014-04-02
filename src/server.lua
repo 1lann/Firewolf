@@ -28,6 +28,8 @@ local DNSResponseTag = "--@!FIREWOLF-DNSRESP!@--"
 local connectTag = "--@!FIREWOLF-CONNECT!@--"
 local disconnectTag = "--@!FIREWOLF-DISCONNECT!@--"
 local receiveTag = "--@!FIREWOLF-RECEIVE!@--"
+local headTag = "--@!FIREWOLF-HEAD!@--"
+local bodyTag = "--@!FIREWOLF-BODY!@--"
 local initiateTag = "--@!FIREWOLF-INITIATE!@--"
 local protocolTag = "--@!FIREWOLF-REDNET-PROTOCOL!@--"
 
@@ -207,7 +209,7 @@ end
 
 local selectServer = function()
 	clear(theme.background, theme.text)
-	title("Select a server to host .. .")
+	title("Select a server to host ...")
 
 	local servers = allServers()
 	table.insert(servers, 1, "New Server")
@@ -286,10 +288,10 @@ local setupModem = function()
 	end
 end
 
-local modem = function(func,  .. .)
+local modem = function(func,  ...)
 	for _, side in pairs(sides) do
 		if peripheral.getType(side) == "modem" then
-			peripheral.call(side, func,  .. .)
+			peripheral.call(side, func,  ...)
 		end
 	end
 
@@ -381,14 +383,14 @@ local backend = function(serverURL, onEvent, onMessage)
 	rednet.host(protocolTag .. serverURL, initiateTag .. serverURL)
 
 	onMessage("Hosting rdnt://" .. serverURL)
-	onMessage("Listening for incoming requests .. .")
+	onMessage("Listening for incoming requests ...")
 
 	while true do
 		local eventArgs = {os.pullEvent()}
 		local event, givenSide, givenChannel, givenID, givenMessage, givenDistance = unpack(eventArgs)
 		if event == "modem_message" and givenID == responseID then
 			if givenChannel == publicDnsChannel and givenMessage == DNSRequestTag then
-				onMessage("[DIRECT] Responding to DNS request")
+				--onMessage("[DIRECT] Responding to DNS request")
 
 				modem("open", publicRespChannel)
 				modem("transmit", publicRespChannel, responseID, DNSResponseTag .. serverURL)
@@ -435,7 +437,10 @@ local backend = function(serverURL, onEvent, onMessage)
 						contents = fetch404(serverURL)
 					end
 
-					modem("transmit", givenChannel, responseID, crypt(receiveTag .. contents, serverURL .. tostring(givenDistance)))
+					-- CHANGEME
+					local header = {""}
+
+					modem("transmit", givenChannel, responseID, crypt(headTag .. textutils.serialize(header) .. bodyTag .. contents, serverURL .. tostring(givenDistance)))
 				elseif request == disconnectTag then
 					for k, v in pairs(sessions) do
 						if v[2] == givenChannel then
@@ -464,7 +469,7 @@ local backend = function(serverURL, onEvent, onMessage)
 			end
 		elseif event == "rednet_message" then
 			if givenID == DNSRequestTag and givenChannel == DNSRequestTag then
-				onMessage("[REDNET] Responding to DNS request")
+				--onMessage("[REDNET] Responding to DNS request")
 				rednet.send(givenSide, DNSResponseTag .. serverURL, DNSRequestTag)
 			elseif givenID == protocolTag .. serverURL then
 				local id = givenSide
@@ -482,7 +487,10 @@ local backend = function(serverURL, onEvent, onMessage)
 						contents = fetch404(serverURL)
 					end
 
-					rednet.send(id, crypt(receiveTag .. contents, serverURL .. id), protocolTag .. serverURL)
+					-- CHANGEME
+					local header = {""}
+
+					rednet.send(id, crypt(headTag .. textutils.serialize(header) .. bodyTag .. contents, serverURL .. givenSide), protocolTag .. serverURL)
 				end
 			end
 		end
@@ -503,8 +511,8 @@ end
 local host = function(domain)
 	clear(theme.background, theme.text)
 
-	local onEvent = function( .. .)
-		local event = { .. .}
+	local onEvent = function( ...)
+		local event = { ...}
 		if event[1] == "mouse_click" and event[3] == w and event[4] == 1 then
 			return true
 		end

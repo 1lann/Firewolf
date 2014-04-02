@@ -52,7 +52,7 @@ local protocolToken = "--@!FIREWOLF-REDNET-PROTOCOL!@--"
 
 local connectToken = "^%-%-@!FIREWOLF%-CONNECT!@%-%-(.+)"
 local DNSToken = "^%-%-@!FIREWOLF%-DNSRESP!@%-%-(.+)"
-local receiveToken = "^%-%-@!FIREWOLF%-RECEIVE!@%-%-(.+)"
+local receiveToken = "^%-%-@!FIREWOLF%-HEAD!@%-%-(.+)%-%-@!FIREWOLF%-BODY!@%-%-(.+)$"
 
 local websiteErrorEvent = "firewolf_websiteErrorEvent"
 local redirectEvent = "firewolf_redirectEvent"
@@ -933,15 +933,16 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 					while true do
 						local event, fetchId, fetchMessage, fetchProtocol = os.pullEvent()
 						if event == "rednet_message" and fetchId == v and fetchProtocol == (protocolToken .. url) then
-							local data = crypt(textutils.unserialize(fetchMessage),url .. tostring(os.getComputerID())):match(receiveToken)
-							if data then
+							local rawHeader, data = crypt(textutils.unserialize(fetchMessage),url .. tostring(os.getComputerID())):match(receiveToken)
+							local header = textutils.unserialize(rawHeader)
+							if data and header then
 								for _, side in pairs(sides) do
 									if peripheral.getType(side) == "modem" then
 										rednet.close(side)
 									end
 								end
 
-								return data
+								return data, header
 							end
 						elseif event == "timer" and fetchId == fetchTimer then
 							for _, side in pairs(sides) do
@@ -1004,11 +1005,12 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 							
 							if event == "modem_message" and fetchChannel == calculatedChannel and 
 									fetchVerify == responseID and fetchDistance == distance then
-								local data = crypt(textutils.unserialize(fetchMessage), url .. tostring(fetchDistance)):match(receiveToken)
-								
-								if data then
+								local rawHeader, data = crypt(textutils.unserialize(fetchMessage), url .. tostring(fetchDistance)):match(receiveToken)
+								local header = textutils.unserialize(rawHeader)
+
+								if data and header then
 									protocols.rdnt.modem("close", calculatedChannel)
-									return data
+									return data, header
 								end
 							elseif event == "timer" and fetchSide == fetchTimer then
 								protocols.rdnt.modem("close", calculatedChannel)
