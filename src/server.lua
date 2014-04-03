@@ -423,34 +423,36 @@ local backend = function(serverURL, onEvent, onMessage)
 				onMessage("[DIRECT] Request from active session")
 
 				local request = crypt(textutils.unserialize(givenMessage), serverURL .. tostring(givenDistance))
-				local domain = request:match(retrievePattern)
-				if domain then
-					local page = domain:match("^[^/]+/(.+)")
-					if not page then
-						page = "index"
-					end
-
-					onMessage("[DIRECT] Requested: /" .. page)
-
-					local contents = fetchPage(serverURL, page)
-					if not contents then
-						contents = fetch404(serverURL)
-					end
-
-					-- CHANGEME
-					local header = {""}
-
-					modem("transmit", givenChannel, responseID, crypt(headTag .. textutils.serialize(header) .. bodyTag .. contents, serverURL .. tostring(givenDistance)))
-				elseif request == disconnectTag then
-					for k, v in pairs(sessions) do
-						if v[2] == givenChannel then
-							sessions[k] = nil
-							break
+				if request then
+					local domain = request:match(retrievePattern)
+					if domain then
+						local page = domain:match("^[^/]+/(.+)")
+						if not page then
+							page = "index"
 						end
-					end
 
-					modem("close", givenChannel)
-					onMessage("[DIRECT] Connection closed: " .. givenChannel)
+						onMessage("[DIRECT] Requested: /" .. page)
+
+						local contents = fetchPage(serverURL, page)
+						if not contents then
+							contents = fetch404(serverURL)
+						end
+
+						-- CHANGEME
+						local header = {""}
+
+						modem("transmit", givenChannel, responseID, crypt(headTag .. textutils.serialize(header) .. bodyTag .. contents, serverURL .. tostring(givenDistance)))
+					elseif request == disconnectTag then
+						for k, v in pairs(sessions) do
+							if v[2] == givenChannel then
+								sessions[k] = nil
+								break
+							end
+						end
+
+						modem("close", givenChannel)
+						onMessage("[DIRECT] Connection closed: " .. givenChannel)
+					end
 				end
 			end
 		elseif event == "modem_message" and givenChannel == rednet.CHANNEL_REPEAT and
@@ -473,24 +475,27 @@ local backend = function(serverURL, onEvent, onMessage)
 				rednet.send(givenSide, DNSResponseTag .. serverURL, DNSRequestTag)
 			elseif givenID == protocolTag .. serverURL then
 				local id = givenSide
-				local domain = crypt(textutils.unserialize(givenChannel), serverURL .. id):match(retrievePattern)
-				if domain then
-					local page = domain:match("^[^/]+/(.+)")
-					if not page then
-						page = "index"
+				local decrypt = crypt(textutils.unserialize(givenChannel), serverURL .. id)
+				if decrypt then
+					local domain = decrypt:match(retrievePattern)
+					if domain then
+						local page = domain:match("^[^/]+/(.+)")
+						if not page then
+							page = "index"
+						end
+
+						onMessage("[REDNET] Requested: /" .. page .. " from " .. id)
+
+						local contents = fetchPage(serverURL, page)
+						if not contents then
+							contents = fetch404(serverURL)
+						end
+
+						-- CHANGEME
+						local header = {""}
+
+						rednet.send(id, crypt(headTag .. textutils.serialize(header) .. bodyTag .. contents, serverURL .. givenSide), protocolTag .. serverURL)
 					end
-
-					onMessage("[REDNET] Requested: /" .. page .. " from " .. id)
-
-					local contents = fetchPage(serverURL, page)
-					if not contents then
-						contents = fetch404(serverURL)
-					end
-
-					-- CHANGEME
-					local header = {""}
-
-					rednet.send(id, crypt(headTag .. textutils.serialize(header) .. bodyTag .. contents, serverURL .. givenSide), protocolTag .. serverURL)
 				end
 			end
 		end
