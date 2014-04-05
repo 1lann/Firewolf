@@ -1641,15 +1641,6 @@ local center = function(text, _, length, offset, center)
 end
 
 
-local display = function(text, width, length, offset, center)
-	if not offset then
-		offset = 0
-	end
-
-	return align(text, width, length, offset, center)
-end
-
-
 local render = function(data, startScroll)
 	if startScroll == nil then
 		startScroll = 0
@@ -1669,6 +1660,14 @@ local render = function(data, startScroll)
 	local markers = {}
 	local currentOffset = 0
 
+	local display = function(text, width, length, offset, center)
+		if not offset then
+			offset = 0
+		end
+
+		return align(text, width, length, offset, center)
+	end
+
 	for k, v in pairs(data) do
 		if type(v[2]) ~= "string" then
 			if v[2] then
@@ -1685,11 +1684,11 @@ local render = function(data, startScroll)
 					display(v[1], childWidth, nil, currentOffset, w / 2)
 				end
 			end
-		elseif (v[2] == "<") or (v[2] == "left") then
+		elseif v[2] == "<" or v[2] == "left" then
 			align = left
-		elseif (v[2] == ">") or (v[2] == "right") then
+		elseif v[2] == ">" or v[2] == "right" then
 			align = right
-		elseif (v[2] == "=") or (v[2] == "center") then
+		elseif v[2] == "=" or v[2] == "center" then
 			align = center
 		elseif v[2] == "br" then
 			if link then
@@ -1699,18 +1698,18 @@ local render = function(data, startScroll)
 			scroll = scroll + 1
 			maxScroll = math.max(scroll, maxScroll)
 		elseif v[2]:sub(1, 2) == "c " then
-			local sColor = v[2]:sub(3, -1)
-			if colors[sColor] then
-				term.setTextColor(colors[sColor])
+			local color = v[2]:sub(3, -1)
+			if colors[color] then
+				term.setTextColor(colors[color])
 			else
-				return "Invalid color: \"" .. sColor .. "\" on line " .. v[1]
+				return "Invalid color: \"" .. color .. "\" on line " .. v[1]
 			end
 		elseif v[2]:sub(1, 3) == "bg " then
-			local sColor = v[2]:sub(4, -1)
-			if colors[sColor] then
-				term.setBackgroundColor(colors[sColor])
+			local color = v[2]:sub(4, -1)
+			if colors[color] then
+				term.setBackgroundColor(colors[color])
 			else
-				return "Invalid color: \"" .. sColor .. "\" on line " .. v[1]
+				return "Invalid color: \"" .. color .. "\" on line " .. v[1]
 			end
 		elseif v[2]:sub(1, 8) == "newlink " then
 			link = v[2]:sub(9, -1)
@@ -1756,7 +1755,7 @@ local render = function(data, startScroll)
 			end
 
 			if not colors[color] then
-				return "Invalid color: \"" .. sColor .. "\" for box on line " .. v[1]
+				return "Invalid color: \"" .. color .. "\" for box on line " .. v[1]
 			end
 
 			term.setBackgroundColor(colors[color])
@@ -1780,7 +1779,7 @@ local render = function(data, startScroll)
 end
 
 
-languages["fwml"]["run"] = function(contents, page, ... )
+languages["fwml"]["run"] = function(contents, page, ...)
 	local err, data = pcall(parse, contents)
 
 	if not err then
@@ -1796,6 +1795,7 @@ languages["fwml"]["run"] = function(contents, page, ... )
 		else
 			while true do
 				local e, scroll, x, y = os.pullEvent()
+
 				if e == "mouse_click" then
 					for k, v in pairs(links) do
 						if x >= math.min(v[1], v[2]) and x <= math.max(v[1], v[2]) and y == v[3] then
@@ -1810,12 +1810,9 @@ languages["fwml"]["run"] = function(contents, page, ... )
 						links = render(data, currentScroll)
 					end
 				elseif e == "key" and (scroll == keys.up or scroll == keys.down) then
-					local scrollAmount
-
+					local scrollAmount = -1
 					if scroll == keys.up then
 						scrollAmount = 1
-					elseif scroll == keys.down then
-						scrollAmount = -1
 					end
 
 					if currentScroll + scrollAmount - h >= -pageHeight and currentScroll + scrollAmount <= 0 then
@@ -1975,7 +1972,7 @@ local main = function()
 	currentProtocol = "rdnt"
 	currentTab = 1
 
-	if term.isColor() then
+	if term.icolor() then
 		theme = colorTheme
 	else
 		theme = grayscaleTheme
