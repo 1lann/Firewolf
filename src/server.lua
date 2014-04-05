@@ -299,15 +299,16 @@ local modem = function(func,  ...)
 end
 
 
-local calculateChannel = function(domain, distance)
+local calculateChannel = function(domain, distance, id)
 	local total = 1
-	
+
 	if distance then
+		id = (id + 3642 * math.pi) % 100000
 		if tostring(distance):find("%.") then
 			local distProc = (tostring(distance):sub(1, tostring(distance):find("%.") + 1)):gsub("%.", "")
-			total = tonumber(distProc)
+			total = tonumber(distProc..id)
 		else
-			total = distance
+			total = tonumber(distance..id)
 		end
 	end
 
@@ -315,7 +316,8 @@ local calculateChannel = function(domain, distance)
 		total = total * string.byte(domain:sub(i, i))
 		if total > 10000000000 then
 			total = tonumber(tostring(total):sub(-5, -1))
-		elseif tostring(total):sub(-1, -1) == "0" then
+		end
+		while tostring(total):sub(-1, -1) == "0" do
 			total = tonumber(tostring(total):sub(1, -2))
 		end
 	end
@@ -324,9 +326,9 @@ local calculateChannel = function(domain, distance)
 end
 
 
-local isSession = function(sessions, channel, distance)
+local isSession = function(sessions, channel, distance, id)
 	for k, v in pairs(sessions) do
-		if v[1] == distance and v[2] == channel then
+		if v[1] == distance and v[2] == id and v[3] == channel then
 			return true
 		end
 	end
@@ -395,41 +397,40 @@ local backend = function(serverURL, onEvent, onMessage)
 	while true do
 		local eventArgs = {os.pullEvent()}
 		local event, givenSide, givenChannel, givenID, givenMessage, givenDistance = unpack(eventArgs)
-		if event == "modem_message" and givenID == responseID then
-			if givenChannel == publicDnsChannel and givenMessage == DNSRequestTag then
+		if event == "modem_message" then
+			if givenChannel == publicDnsChannel and givenMessage == DNSRequestTag and givenID == responseID then
 				--onMessage("[DIRECT] Responding to DNS request")
 
 				modem("open", publicRespChannel)
 				modem("transmit", publicRespChannel, responseID, DNSResponseTag .. serverURL)
 				modem("close", publicRespChannel)
 			elseif givenChannel == serverChannel and givenMessage:match(initiatePattern) == serverURL then
-				modem("transmit", serverChannel, responseID, crypt(connectTag .. serverURL, tostring(givenDistance) .. serverURL))
+				modem("transmit", serverChannel, responseID, crypt(connectTag .. serverURL, serverURL .. tostring(givenDistance) .. givenID))
 				
 				if #sessions > 50 then
-					modem("open", close(sessions[#sessions][2]))
+					modem("close", sessions[#sessions][3])
 					table.remove(sessions)
 				end
 
 				local isInSessions = false
 				for k, v in pairs(sessions) do
-					if v[1] == givenDistance then
+					if v[1] == givenDistance and v[3] == givenID then
 						isInSessions = true
 					end
 				end
 
-				local userChannel = calculateChannel(serverURL, givenDistance)
+				local userChannel = calculateChannel(serverURL, givenDistance, givenID)
 				if not isInSessions then
 					onMessage("[DIRECT] Starting encrypted connection: " .. userChannel)
-
-					table.insert(sessions, {givenDistance, userChannel})
+					table.insert(sessions, {givenDistance, givenID, userChannel})
 					modem("open", userChannel)
 				else
 					modem("open", userChannel)
 				end
-			elseif isSession(sessions, givenChannel, givenDistance) then
+			elseif isSession(sessions, givenChannel, givenDistance, givenID) then
 				onMessage("[DIRECT] Request from active session")
 
-				local request = crypt(textutils.unserialize(givenMessage), serverURL .. tostring(givenDistance))
+				local request = crypt(textutils.unserialize(givenMessage), serverURL .. tostring(givenDistance) .. givenID)
 				if request then
 					local domain = request:match(retrievePattern)
 					if domain then
@@ -452,7 +453,7 @@ local backend = function(serverURL, onEvent, onMessage)
 							header = {language = "Lua"}
 						end
 
-						modem("transmit", givenChannel, responseID, crypt(headTag .. textutils.serialize(header) .. bodyTag .. contents, serverURL .. tostring(givenDistance)))
+						modem("transmit", givenChannel, responseID, crypt(headTag .. textutils.serialize(header) .. bodyTag .. contents, serverURL .. tostring(givenDistance) .. givenID))
 					elseif request == disconnectTag then
 						for k, v in pairs(sessions) do
 							if v[2] == givenChannel then

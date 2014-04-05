@@ -746,15 +746,16 @@ end
 protocols["rdnt"] = {}
 
 
-local calculateChannel = function(domain, distance)
+local calculateChannel = function(domain, distance, id)
 	local total = 1
-	
+
 	if distance then
+		id = (id + 3642 * math.pi) % 100000
 		if tostring(distance):find("%.") then
 			local distProc = (tostring(distance):sub(1, tostring(distance):find("%.") + 1)):gsub("%.", "")
-			total = tonumber(distProc)
+			total = tonumber(distProc..id)
 		else
-			total = distance
+			total = tonumber(distance..id)
 		end
 	end
 
@@ -762,7 +763,8 @@ local calculateChannel = function(domain, distance)
 		total = total * string.byte(domain:sub(i, i))
 		if total > 10000000000 then
 			total = tonumber(tostring(total):sub(-5, -1))
-		elseif tostring(total):sub(-1, -1) == "0" then
+		end
+		while tostring(total):sub(-1, -1) == "0" do
 			total = tonumber(tostring(total):sub(1, -2))
 		end
 	end
@@ -980,17 +982,17 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 	protocols.rdnt.modem("closeAll")
 	protocols.rdnt.modem("open", channel)
-	protocols.rdnt.modem("transmit", channel, responseID, initiateToken .. url)
+	protocols.rdnt.modem("transmit", channel, os.getComputerID(), initiateToken .. url)
 
 	local timer = os.startTimer(initiationTimeout)
 	while true do
 		local event, connectionSide, connectionChannel, verify, msg, distance = os.pullEvent()
 
 		if event == "modem_message" and connectionChannel == channel and verify == responseID then
-			local decrypt = crypt(textutils.unserialize(msg), tostring(distance) .. url)
+			local decrypt = crypt(textutils.unserialize(msg), url .. tostring(distance) .. os.getComputerID())
 			if decrypt and decrypt:match(connectToken) == url and 
 					not checkDuplicate(distance) then
-				local calculatedChannel = calculateChannel(url, distance)
+				local calculatedChannel = calculateChannel(url, distance, os.getComputerID())
 				
 				table.insert(results, {
 					dist = distance,
@@ -1002,14 +1004,14 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 						protocols.rdnt.modem("open", calculatedChannel)
 
 						local fetchTimer = os.startTimer(fetchTimeout)
-						protocols.rdnt.modem("transmit", calculatedChannel, responseID, crypt(fetchToken .. url .. page, url .. tostring(distance)))
+						protocols.rdnt.modem("transmit", calculatedChannel, os.getComputerID(), crypt(fetchToken .. url .. page, url .. tostring(distance) .. os.getComputerID()))
 						
 						while true do
 							local event, fetchSide, fetchChannel, fetchVerify, fetchMessage, fetchDistance = os.pullEvent()
 							
 							if event == "modem_message" and fetchChannel == calculatedChannel and 
 									fetchVerify == responseID and fetchDistance == distance then
-								local rawHeader, data = crypt(textutils.unserialize(fetchMessage), url .. tostring(fetchDistance)):match(receiveToken)
+								local rawHeader, data = crypt(textutils.unserialize(fetchMessage), url .. tostring(fetchDistance) .. os.getComputerID()):match(receiveToken)
 								local header = textutils.unserialize(rawHeader)
 
 								if data and header then
@@ -1025,7 +1027,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 					close = function()
 						protocols.rdnt.modem("open", calculatedChannel)
-						protocols.rdnt.modem("transmit", calculatedChannel, responseID, crypt(disconnectToken, url .. tostring(distance)))
+						protocols.rdnt.modem("transmit", calculatedChannel, os.getComputerID(), crypt(disconnectToken, url .. tostring(distance) .. os.getComputerID()))
 						protocols.rdnt.modem("close", calculatedChannel)
 					end
 				})
