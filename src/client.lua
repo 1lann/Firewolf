@@ -1468,17 +1468,16 @@ end
 
 --    Running websites
 
-local function parse(original)
-	local data = original
-	local function getLine(loc)
-		local _, changes = original:sub(1,loc):gsub("\n","")
-		if not changes then
-			return 1
-		else
-			return changes+1
-		end
+local function getLine(loc, data)
+	local _, changes = data:sub(1,loc):gsub("\n","")
+	if not changes then
+		return 1
+	else
+		return changes+1
 	end
+end
 
+local function parseData(data)
 	local commands = {}
 	local searchPos = 1
 	while #data > 0 do
@@ -1507,12 +1506,12 @@ local function parse(original)
 						end
 					end
 					t = data:sub(sCmd,eCmd):gsub("\n","")
-					table.insert(commands,{getLine(sCmd),t})
+					table.insert(commands,{getLine(sCmd, data),t})
 					searchPos = eCmd+2
 				end
 			else
 				local t = data:sub(sCmd,eCmd):gsub("\n","")
-				table.insert(commands,{getLine(sCmd),t})
+				table.insert(commands,{getLine(sCmd, data),t})
 				searchPos = eCmd+2
 			end
 		else
@@ -1527,8 +1526,10 @@ local function parse(original)
 			break
 		end
 	end
+	return commands
+end
 
-
+local function proccessData(commands)
 	searchIndex = 0
 	while searchIndex < #commands do
 		searchIndex = searchIndex+1
@@ -1558,6 +1559,10 @@ local function parse(original)
 		end
 	end
 	return commands
+end
+
+local function parse(original)
+	return proccessData(parseData(original))
 end
 
 local render = {}
@@ -1830,7 +1835,7 @@ end
 languages["fwml"]["run"] = function(contents, page, ...)
 	local err, data = pcall(parse, contents)
 	if not err then
-		return languages["lua"]["runWithoutAntivirus"](builtInSites["crash"], "Invalid Firewolf Markup syntax!")
+		return languages["lua"]["runWithoutAntivirus"](builtInSites["crash"], data)
 	end
 	return function()
 		local currentScroll = 0
