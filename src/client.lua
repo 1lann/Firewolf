@@ -1468,6 +1468,49 @@ end
 
 --    Running websites
 
+
+languages["lua"] = {}
+
+
+languages["lua"]["runWithErrorCatching"] = function(func, ...)
+	local _, err = pcall(func, ...)
+	if err then
+		os.queueEvent(websiteErrorEvent, err)
+	end
+end
+
+
+languages["lua"]["runWithoutAntivirus"] = function(func, ...)
+	local args = {...}
+	local env = getWebsiteEnvironment(false)
+	setfenv(func, env)
+	return function()
+		languages["lua"]["runWithErrorCatching"](func, unpack(args))
+	end
+end
+
+languages["lua"]["run"] = function(contents, page, ...)
+	local func, err = loadstring(contents, page)
+	if err then
+		return languages["lua"]["runWithoutAntivirus"](builtInSites["crash"], err)
+	else
+		local args = {...}
+		local env = getWebsiteEnvironment(true)
+		setfenv(func, env)
+		return function()
+			languages["lua"]["runWithErrorCatching"](func, unpack(args))
+		end
+	end
+end
+
+
+
+--    FWML Website Execution
+
+
+languages["fwml"] = {}
+
+
 local function parse(original)
 	local data = original
 	local function getLine(loc)
@@ -1567,6 +1610,7 @@ local function parse(original)
 	end
 	return commands
 end
+
 
 local function render(data,startScroll)
 	local scroll
@@ -1739,40 +1783,6 @@ local function render(data,startScroll)
 	return linkData, maxScroll-startScroll
 end
 
-languages["lua"] = {}
-languages["fwml"] = {}
-
-
-languages["lua"]["runWithErrorCatching"] = function(func, ...)
-	local _, err = pcall(func, ...)
-	if err then
-		os.queueEvent(websiteErrorEvent, err)
-	end
-end
-
-
-languages["lua"]["runWithoutAntivirus"] = function(func, ...)
-	local args = {...}
-	local env = getWebsiteEnvironment(false)
-	setfenv(func, env)
-	return function()
-		languages["lua"]["runWithErrorCatching"](func, unpack(args))
-	end
-end
-
-languages["lua"]["run"] = function(contents, page, ...)
-	local func, err = loadstring(contents, page)
-	if err then
-		return languages["lua"]["runWithoutAntivirus"](builtInSites["crash"], err)
-	else
-		local args = {...}
-		local env = getWebsiteEnvironment(true)
-		setfenv(func, env)
-		return function()
-			languages["lua"]["runWithErrorCatching"](func, unpack(args))
-		end
-	end
-end
 
 languages["fwml"]["run"] = function(contents, page, ...)
 	local err, data = pcall(parse, contents)
