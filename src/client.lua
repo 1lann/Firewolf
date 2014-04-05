@@ -1579,7 +1579,6 @@ local function render(data,startScroll)
 
 	local wid, hi = term.getSize()
 	local childWidth = wid
-	local collumn = 0
 
 	local function left(text,_,length,offset)
 		local x,y = term.getCursorPos()
@@ -1800,9 +1799,24 @@ languages["fwml"]["run"] = function(contents, page, ...)
 						end
 					end
 				elseif e == "mouse_scroll" then
-					if (currentScroll + scroll < pageHeight) and (currentScroll + scroll >= 0) then
-						currentScroll = currentScroll+scroll
-						links = render(contents, currentScroll)
+					if currentScroll - scroll - h >= -pageHeight and currentScroll - scroll <= 0 then
+						currentScroll = currentScroll - scroll
+						clear(theme.background, theme.text)
+						links = render(data, currentScroll)
+					end
+				elseif e == "key" and (scroll == keys.up or scroll == keys.down) then
+					local scrollAmount
+
+					if scroll == keys.up then
+						scrollAmount = 1
+					elseif scroll == keys.down then
+						scrollAmount = -1
+					end
+
+					if currentScroll + scrollAmount - h >= -pageHeight and currentScroll + scrollAmount <= 0 then
+						currentScroll = currentScroll + scrollAmount
+						clear(theme.background, theme.text)
+						links = render(data, currentScroll)
 					end
 				end
 			end
