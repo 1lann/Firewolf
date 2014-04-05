@@ -337,15 +337,22 @@ end
 
 local fetchPage = function(domain, page)
 	local path = serversFolder .. "/" .. domain .. "/" .. page
-	if not fs.exists(path) or fs.isDir(path) then
-		return nil
+	if fs.exists(path) and not fs.isDir(path) then
+		local f = io.open(path, "r")
+		local contents = f:read("*a")
+		f:close()
+
+		return contents, "lua"
+	else
+		if fs.exists(path..".fwml") and not fs.isDir(path..".fwml") then
+			local f = io.open(path..".fwml", "r")
+			local contents = f:read("*a")
+			f:close()
+
+			return contents, "fwml"
+		end
 	end
-
-	local f = io.open(path, "r")
-	local contents = f:read("*a")
-	f:close()
-
-	return contents
+	return nil
 end
 
 
@@ -425,13 +432,17 @@ local backend = function(serverURL, onEvent, onMessage)
 
 						onMessage("[DIRECT] Requested: /" .. page)
 
-						local contents = fetchPage(serverURL, page)
+						local contents, language = fetchPage(serverURL, page)
 						if not contents then
 							contents = fetch404(serverURL)
 						end
 
-						-- CHANGEME
-						local header = {""}
+						local header
+						if language == "fwml" then
+							header = {language = "Firewolf Markup"}
+						else
+							header = {language = "Lua"}
+						end
 
 						modem("transmit", givenChannel, responseID, crypt(headTag .. textutils.serialize(header) .. bodyTag .. contents, serverURL .. tostring(givenDistance)))
 					elseif request == disconnectTag then
@@ -446,6 +457,12 @@ local backend = function(serverURL, onEvent, onMessage)
 						onMessage("[DIRECT] Connection closed: " .. givenChannel)
 					end
 				end
+			end
+		elseif event == "timer" then
+			local messageID = receivedMessageTimeouts[givenSide]
+			if messageID then
+				receivedMessageTimeouts[givenSide] = nil
+				receivedMessages[messageID] = nil
 			end
 
 		local shouldExit = onEvent(unpack(eventArgs))
