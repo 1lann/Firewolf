@@ -1,8 +1,8 @@
 
---  
+--
 --  Firewolf
 --  Made by GravityScore and 1lann
---  
+--
 
 
 
@@ -135,14 +135,14 @@ local modifiedRead = function(properties)
 			readHistory[k] = v
 		end
 	end
-	
+
 	if readHistory[1] == text then
 		table.remove(readHistory, 1)
 	end
 
 	local draw = function(replaceCharacter)
 		local scroll = 0
-		if properties.displayLength and pos > properties.displayLength then 
+		if properties.displayLength and pos > properties.displayLength then
 			scroll = pos - properties.displayLength
 		end
 
@@ -255,7 +255,7 @@ local modifiedRead = function(properties)
 			end
 		elseif event == "mouse_click" then
 			local scroll = 0
-			if properties.displayLength and pos > properties.displayLength then 
+			if properties.displayLength and pos > properties.displayLength then
 				scroll = pos - properties.displayLength
 			end
 
@@ -354,7 +354,7 @@ local cryptWrapper = function(plaintext, salt)
 	local i = 0
 	j = 0
 	local chars, astable = type(plaintext) == "table" and {unpack(plaintext)} or {string.byte(plaintext, 1,#plaintext)}, false
-	
+
 	for n = 1, #chars do
 		i = (i + 1) % 256
 		j = (j + S[i]) % 256
@@ -748,7 +748,7 @@ protocols["rdnt"] = {}
 
 local calculateChannel = function(domain, distance)
 	local total = 1
-	
+
 	if distance then
 		if tostring(distance):find("%.") then
 			local distProc = (tostring(distance):sub(1, tostring(distance):find("%.") + 1)):gsub("%.", "")
@@ -777,7 +777,7 @@ protocols["rdnt"]["setup"] = function()
 			table.insert(sides, v)
 		end
 	end
-	
+
 	if #sides <= 0 then
 		error("No modem found!")
 	end
@@ -929,7 +929,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 					local fetchTimer = os.startTimer(fetchTimeout)
 					rednet.send(v, crypt(fetchToken .. url .. page, url .. tostring(os.getComputerID())), protocolToken .. url)
-					
+
 					while true do
 						local event, fetchId, fetchMessage, fetchProtocol = os.pullEvent()
 						if event == "rednet_message" and fetchId == v and fetchProtocol == (protocolToken .. url) then
@@ -988,10 +988,10 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 		if event == "modem_message" and connectionChannel == channel and verify == responseID then
 			local decrypt = crypt(textutils.unserialize(msg), tostring(distance) .. url)
-			if decrypt and decrypt:match(connectToken) == url and 
+			if decrypt and decrypt:match(connectToken) == url and
 					not checkDuplicate(distance) then
 				local calculatedChannel = calculateChannel(url, distance)
-				
+
 				table.insert(results, {
 					dist = distance,
 					channel = calculatedChannel,
@@ -1003,11 +1003,11 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 						local fetchTimer = os.startTimer(fetchTimeout)
 						protocols.rdnt.modem("transmit", calculatedChannel, responseID, crypt(fetchToken .. url .. page, url .. tostring(distance)))
-						
+
 						while true do
 							local event, fetchSide, fetchChannel, fetchVerify, fetchMessage, fetchDistance = os.pullEvent()
-							
-							if event == "modem_message" and fetchChannel == calculatedChannel and 
+
+							if event == "modem_message" and fetchChannel == calculatedChannel and
 									fetchVerify == responseID and fetchDistance == distance then
 								local rawHeader, data = crypt(textutils.unserialize(fetchMessage), url .. tostring(fetchDistance)):match(receiveToken)
 								local header = textutils.unserialize(rawHeader)
@@ -1099,7 +1099,7 @@ end
 
 local appendToHistory = function(url)
 	if history[1] ~= url then
-		table.insert(history, 1, url)		
+		table.insert(history, 1, url)
 	end
 end
 
@@ -1786,7 +1786,7 @@ languages["fwml"]["run"] = function(contents, page, ...)
 			term.clear()
 			os.queueEvent(websiteErrorEvent, links)
 		else
-			while true do 
+			while true do
 				local e, scroll, x, y = os.pullEvent()
 				if e == "mouse_click" then
 					if isMenubarOpen and (y == 1 or y == 2) then
@@ -1807,13 +1807,13 @@ languages["fwml"]["run"] = function(contents, page, ...)
 					end
 				elseif e == "key" and (scroll == keys.up or scroll == keys.down) then
 					local scrollAmount
- 
+
 					if scroll == keys.up then
 						scrollAmount = 1
 					elseif scroll == keys.down then
 						scrollAmount = -1
 					end
- 
+
 					if currentScroll + scrollAmount - h >= -pageHeight and currentScroll + scrollAmount <= 0 then
 						currentScroll = currentScroll + scrollAmount
 						clear(theme.background, theme.text)
@@ -1987,7 +1987,7 @@ end
 
 local handleError = function(err)
 	clear(theme.background, theme.text)
-	
+
 	fill(1, 3, w, 3, theme.subtle)
 	term.setCursorPos(1, 4)
 	center("Firewolf has crashed!")
