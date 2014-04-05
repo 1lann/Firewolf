@@ -130,7 +130,8 @@ function parse(original)
 			local endIndex = origin
 			for i = origin+1, #commands do
 				if commands[i][2] and not((commands[i][2]:sub(1,2) == "c ") or
-				(commands[i][2]:sub(1,3) == "bg ")) then
+				(commands[i][2]:sub(1,3) == "bg ") or (commands[i][2]:sub(1,8) == "newlink ") or
+				(commands[i][2] == "endlink")) then
 					endIndex = i
 					break
 				elseif commands[i][2] then
@@ -263,9 +264,9 @@ local function render(data,startScroll)
 				link = v[2]:sub(9,-1)
 				linkStart = false
 			elseif v[2] == "endlink" then
-				link = false
 				local linkEnd = term.getCursorPos()-1
 				table.insert(linkData,{linkStart,linkEnd,scroll,link})
+				link = false
 				linkStart = false
 			elseif v[2]:sub(1,7) == "offset " then
 				local offset = tonumber(v[2]:sub(8,-1))
