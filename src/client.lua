@@ -1,8 +1,8 @@
 
---
+--  
 --  Firewolf
 --  Made by GravityScore and 1lann
---
+--  
 
 
 
@@ -89,6 +89,21 @@ local grayscaleTheme = {
 
 --    Utilities
 
+local debug = function(...)
+	local f = io.open("debug","a")
+	local data = ""
+	local args = {...}
+	for k,v in pairs(args) do
+		if type(v) == "table" then
+			data = data.."\ntable"
+		else
+			data = data.."\n"..v
+		end
+	end
+	f:write(data)
+	f:close()
+end
+
 
 local modifiedRead = function(properties)
 	local text = ""
@@ -120,14 +135,14 @@ local modifiedRead = function(properties)
 			readHistory[k] = v
 		end
 	end
-
+	
 	if readHistory[1] == text then
 		table.remove(readHistory, 1)
 	end
 
 	local draw = function(replaceCharacter)
 		local scroll = 0
-		if properties.displayLength and pos > properties.displayLength then
+		if properties.displayLength and pos > properties.displayLength then 
 			scroll = pos - properties.displayLength
 		end
 
@@ -240,7 +255,7 @@ local modifiedRead = function(properties)
 			end
 		elseif event == "mouse_click" then
 			local scroll = 0
-			if properties.displayLength and pos > properties.displayLength then
+			if properties.displayLength and pos > properties.displayLength then 
 				scroll = pos - properties.displayLength
 			end
 
@@ -338,8 +353,8 @@ local cryptWrapper = function(plaintext, salt)
 
 	local i = 0
 	j = 0
-	local chars, astable = type(plaintext) == "table" and {unpack(plaintext)} or {string.byte(plaintext, 1, #plaintext)}, false
-
+	local chars, astable = type(plaintext) == "table" and {unpack(plaintext)} or {string.byte(plaintext, 1,#plaintext)}, false
+	
 	for n = 1, #chars do
 		i = (i + 1) % 256
 		j = (j + S[i]) % 256
@@ -733,7 +748,7 @@ protocols["rdnt"] = {}
 
 local calculateChannel = function(domain, distance)
 	local total = 1
-
+	
 	if distance then
 		if tostring(distance):find("%.") then
 			local distProc = (tostring(distance):sub(1, tostring(distance):find("%.") + 1)):gsub("%.", "")
@@ -762,7 +777,7 @@ protocols["rdnt"]["setup"] = function()
 			table.insert(sides, v)
 		end
 	end
-
+	
 	if #sides <= 0 then
 		error("No modem found!")
 	end
@@ -914,11 +929,11 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 					local fetchTimer = os.startTimer(fetchTimeout)
 					rednet.send(v, crypt(fetchToken .. url .. page, url .. tostring(os.getComputerID())), protocolToken .. url)
-
+					
 					while true do
 						local event, fetchId, fetchMessage, fetchProtocol = os.pullEvent()
 						if event == "rednet_message" and fetchId == v and fetchProtocol == (protocolToken .. url) then
-							local decrypt = crypt(textutils.unserialize(fetchMessage), url .. tostring(os.getComputerID()))
+							local decrypt = crypt(textutils.unserialize(fetchMessage),url .. tostring(os.getComputerID()))
 							if decrypt then
 								local rawHeader, data = decrypt:match(receiveToken)
 								local header = textutils.unserialize(rawHeader)
@@ -973,10 +988,10 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 		if event == "modem_message" and connectionChannel == channel and verify == responseID then
 			local decrypt = crypt(textutils.unserialize(msg), tostring(distance) .. url)
-			if decrypt and decrypt:match(connectToken) == url and
+			if decrypt and decrypt:match(connectToken) == url and 
 					not checkDuplicate(distance) then
 				local calculatedChannel = calculateChannel(url, distance)
-
+				
 				table.insert(results, {
 					dist = distance,
 					channel = calculatedChannel,
@@ -988,11 +1003,11 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 						local fetchTimer = os.startTimer(fetchTimeout)
 						protocols.rdnt.modem("transmit", calculatedChannel, responseID, crypt(fetchToken .. url .. page, url .. tostring(distance)))
-
+						
 						while true do
 							local event, fetchSide, fetchChannel, fetchVerify, fetchMessage, fetchDistance = os.pullEvent()
-
-							if event == "modem_message" and fetchChannel == calculatedChannel and
+							
+							if event == "modem_message" and fetchChannel == calculatedChannel and 
 									fetchVerify == responseID and fetchDistance == distance then
 								local rawHeader, data = crypt(textutils.unserialize(fetchMessage), url .. tostring(fetchDistance)):match(receiveToken)
 								local header = textutils.unserialize(rawHeader)
@@ -1036,7 +1051,6 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 		end
 	end
 end
-
 
 
 --    Fetching Raw Data
@@ -1085,7 +1099,7 @@ end
 
 local appendToHistory = function(url)
 	if history[1] ~= url then
-		table.insert(history, 1, url)
+		table.insert(history, 1, url)		
 	end
 end
 
@@ -1191,7 +1205,6 @@ local fetchExternal = function(url, connection)
 		return fetchError("A connection timeout occurred!")
 	end
 end
-
 
 local fetchNone = function()
 	return languages["lua"]["runWithoutAntivirus"](builtInSites["noresults"])
@@ -1453,10 +1466,281 @@ end
 
 
 
---    Lua Website Execution
+--    Running websites
 
+local function parse(original)
+	local data = original
+	local function getLine(loc)
+		local _, changes = original:sub(1,loc):gsub("\n","")
+		if not changes then
+			return 1
+		else
+			return changes+1
+		end
+	end
+
+	local commands = {}
+	local searchPos = 1
+	--print(lineNum,": ",line)
+	while #data > 0 do
+		local sCmd, eCmd = data:find("%[[^%]]+%]",searchPos)
+		if sCmd then
+			sCmd = sCmd + 1
+			eCmd = eCmd - 1
+			if (sCmd > 2) then
+				if data:sub(sCmd-2,sCmd-2) == "\\" then
+					-- If it isn't the start, and is actually a string
+					local t = data:sub(searchPos,sCmd-1):gsub("\n",""):gsub("\\%[","%["):gsub("\\%]","%]")
+					if #t > 0 then
+						if type(commands[#commands][1]) == "string" then
+							commands[#commands][1] = commands[#commands][1]..t
+						else
+							table.insert(commands,{t})
+						end
+					end
+					-- Ommit up to the escape string
+					searchPos = sCmd
+				else
+					-- If it isn't the start and is a command
+					-- Insert the first bit of data before the command
+					local t = data:sub(searchPos,sCmd-2):gsub("\n",""):gsub("\\%[","%["):gsub("\\%]","%]")
+					if #t > 0 then
+						if type(commands[#commands][1]) == "string" then
+							commands[#commands][1] = commands[#commands][1]..t
+						else
+							table.insert(commands,{t})
+						end
+					end
+					-- Insert the command data
+					t = data:sub(sCmd,eCmd):gsub("\n","")
+					table.insert(commands,{getLine(sCmd),t})
+					-- Ommit the first part and the command
+					searchPos = eCmd+2
+				end
+			else
+				-- Command is at the start
+				local t = data:sub(sCmd,eCmd):gsub("\n","")
+				table.insert(commands,{getLine(sCmd),t})
+				-- Ommit just the command part
+				searchPos = eCmd+2
+			end
+		else
+			local t = data:sub(searchPos,-1):gsub("\n",""):gsub("\\%[","%["):gsub("\\%]","%]")
+			if #t > 0 then
+				if type(commands[#commands][1]) == "string" then
+					commands[#commands][1] = commands[#commands][1]..t
+				else
+					table.insert(commands,{t})
+				end
+			end
+			break
+		end
+	end
+
+	searchIndex = 0
+	while searchIndex < #commands do
+		searchIndex = searchIndex+1
+		local length = 0
+		local origin = searchIndex
+		if type(commands[searchIndex][1]) == "string" then
+			length = length+#commands[searchIndex][1]
+			local endIndex = origin
+			for i = origin+1, #commands do
+				if commands[i][2] and not((commands[i][2]:sub(1,2) == "c ") or
+				(commands[i][2]:sub(1,3) == "bg ") or (commands[i][2]:sub(1,8) == "newlink ") or
+				(commands[i][2] == "endlink")) then
+					endIndex = i
+					break
+				elseif commands[i][2] then
+
+				else
+					length = length+#commands[i][1]
+				end
+				if i == #commands then
+					endIndex = i
+				end
+			end
+			commands[origin][2] = length
+			searchIndex = endIndex
+			length = 0
+		end
+	end
+	return commands
+end
+
+local function render(data,startScroll)
+	local scroll
+	local maxScroll
+	if startScroll == nil then
+		startScroll = 0
+	end
+	scroll = startScroll+1
+	maxScroll = scroll
+
+	local wid, hi = term.getSize()
+	local childWidth = wid
+	local collumn = 0
+
+	local function left(text,_,length,offset)
+		local x,y = term.getCursorPos()
+		if (length) then
+			term.setCursorPos(1+offset,scroll)
+			term.write(text)
+			return 1+offset
+		else
+			term.setCursorPos(x,scroll)
+			term.write(text)
+			return x
+		end
+	end
+	local function right(text,width,length,offset)
+		local x,y = term.getCursorPos()
+		if (length) then
+			term.setCursorPos((width-length+1)+offset,scroll)
+			term.write(text)
+			return (width-length+1)+offset
+		else
+			term.setCursorPos(x,scroll)
+			term.write(text)
+			return x
+		end
+	end
+	local function center(text,_,length,offset,center)
+		local x,y = term.getCursorPos()
+		if (length) then
+			term.setCursorPos(math.ceil(center-length/2)+offset,scroll)
+			term.write(text)
+			return math.ceil(center-length/2)+offset
+		else
+			term.setCursorPos(x,scroll)
+			term.write(text)
+			return x
+		end
+	end
+	local align = left
+
+	local linkData = {}
+
+	-- Offset for offsetting from the left or right (make sure to also modify width where applicable)
+	-- center is only for the center point of the center function Ex. for the entire screen, wid/2
+	-- Right alignation requires a width to calculate the offset of the left (automatically)
+	local function display(text,width,length,offset,center)
+		if not offset then offset = 0 end
+		return align(text,width,length,offset,center);
+	end
+
+	local blockLength = 0
+	local link = false
+	local linkStart = false
+	local markers = {}
+	local currentOffset = 0
+	for k,v in pairs(data) do
+		--if type(v) == "table" then
+			if type(v[2]) ~= "string" then
+				if v[2] then
+					blockLength = v[2]
+					if link and not linkStart then
+						linkStart = display(v[1],childWidth,blockLength,currentOffset,wid/2)
+					else
+						display(v[1],childWidth,blockLength,currentOffset,wid/2)
+					end
+				else
+					if link and not linkStart then
+						linkStart = display(v[1],childWidth,nil,currentOffset,wid/2)
+					else
+						display(v[1],childWidth,nil,currentOffset,wid/2)
+					end
+				end
+			elseif (v[2] == "<") or (v[2] == "left") then
+				align = left
+			elseif (v[2] == ">") or (v[2] == "right") then
+				align = right
+			elseif (v[2] == "=") or (v[2] == "center") then
+				align = center
+			elseif v[2] == "br" then
+				if link then
+					return "Cannot insert new line within a link on line "..v[1]
+				end
+				scroll = scroll+1
+				maxScroll = math.max(scroll, maxScroll)
+			elseif v[2]:sub(1,2) == "c " then
+				local sColor = v[2]:sub(3,-1)
+				if colors[sColor] then
+					term.setTextColor(colors[sColor])
+				else
+					return "Invalid color: \""..sColor.."\" on line "..v[1]
+				end
+			elseif v[2]:sub(1,3) == "bg " then
+				local sColor = v[2]:sub(4,-1)
+				if colors[sColor] then
+					term.setBackgroundColor(colors[sColor])
+				else
+					return "Invalid color: \""..sColor.."\" on line "..v[1]
+				end
+			elseif v[2]:sub(1,8) == "newlink " then
+				link = v[2]:sub(9,-1)
+				linkStart = false
+			elseif v[2] == "endlink" then
+				local linkEnd = term.getCursorPos()-1
+				table.insert(linkData,{linkStart,linkEnd,scroll,link})
+				link = false
+				linkStart = false
+			elseif v[2]:sub(1,7) == "offset " then
+				local offset = tonumber(v[2]:sub(8,-1))
+				if offset then
+					currentOffset = offset
+				else
+					return "Invalid offset value: \""..v[2]:sub(8,-1).."\" on line "..v[1]
+				end
+			elseif v[2]:sub(1,7) == "marker " then
+				markers[v[2]:sub(8,-1)] = scroll
+			elseif v[2]:sub(1,5) == "goto " then
+				local location = v[2]:sub(6,-1)
+				if markers[location] then
+					scroll = markers[location]
+				else
+					return "No such location: \""..v[2]:sub(6-1).."\" on line "..v[1]
+				end
+			elseif v[2]:sub(1,4) == "box " then
+				local color, align, height, width, offset, url = v[2]:match("^box (%a+) (%a+) (%-?%d+) (%-?%d+) (%-?%d+) ?([^ ]*)")
+				if not color then
+					return "Invalid box syntax on line "..v[1]
+				end
+				local x,y = term.getCursorPos()
+				local startX
+				if (align == "center") or (align == "centre") then
+					startX = math.ceil((wid/2)-width/2)+offset
+				elseif align == "left" then
+					startX = 1+offset
+				elseif align == "right" then
+					startX = (wid-width+1)+offset
+				else
+					return "Invalid align option for box on line "..v[1]
+				end
+				if not colors[color] then
+					return "Invalid color: \""..sColor.."\" for box on line "..v[1]
+				end
+				term.setBackgroundColor(colors[color])
+				for i = 0, height-1 do
+					term.setCursorPos(startX, scroll+i)
+					term.write(string.rep(" ",width))
+					if url then
+						table.insert(linkData,{startX,startX+width,scroll+i,url})
+					end
+				end
+				maxScroll = math.max(scroll+height-1, maxScroll)
+				term.setCursorPos(x,y)
+			else
+				return "Non-existent tag: \""..v[2].."\" on line "..v[1]
+			end
+		--end
+	end
+
+	return linkData, maxScroll-startScroll
+end
 
 languages["lua"] = {}
+languages["fwml"] = {}
 
 
 languages["lua"]["runWithErrorCatching"] = function(func, ...)
@@ -1490,317 +1774,29 @@ languages["lua"]["run"] = function(contents, page, ...)
 	end
 end
 
-
-
---    FWML Website Execution
-
-
-languages["fwml"] = {}
-
-
-local parse = function(original)
-	local data = original
-
-	local function getLine(loc)
-		local _, changes = original:sub(1, loc):gsub("\n", "")
-		if not changes then
-			return 1
-		else
-			return changes + 1
-		end
-	end
-
-	local commands = {}
-	local searchPos = 1
-	while #data > 0 do
-		local sCmd, eCmd = data:find("%[[^%]]+%]", searchPos)
-		if sCmd then
-			sCmd = sCmd + 1
-			eCmd = eCmd - 1
-			if (sCmd > 2) then
-				if data:sub(sCmd - 2, sCmd - 2) == "\\" then
-					local t = data:sub(searchPos, sCmd - 1):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
-
-					if #t > 0 then
-						if type(commands[#commands][1]) == "string" then
-							commands[#commands][1] = commands[#commands][1] .. t
-						else
-							table.insert(commands, {t})
-						end
-					end
-
-					searchPos = sCmd
-				else
-					local t = data:sub(searchPos, sCmd - 2):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
-					if #t > 0 then
-						if type(commands[#commands][1]) == "string" then
-							commands[#commands][1] = commands[#commands][1] .. t
-						else
-							table.insert(commands, {t})
-						end
-					end
-
-					t = data:sub(sCmd, eCmd):gsub("\n", "")
-					table.insert(commands, {getLine(sCmd), t})
-					searchPos = eCmd + 2
-				end
-			else
-				local t = data:sub(sCmd, eCmd):gsub("\n", "")
-				table.insert(commands, {getLine(sCmd), t})
-				searchPos = eCmd + 2
-			end
-		else
-			local t = data:sub(searchPos, -1):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
-
-			if #t > 0 then
-				if type(commands[#commands][1]) == "string" then
-					commands[#commands][1] = commands[#commands][1] .. t
-				else
-					table.insert(commands, {t})
-				end
-			end
-
-			break
-		end
-	end
-
-	searchIndex = 0
-	while searchIndex < #commands do
-		searchIndex = searchIndex + 1
-		local length = 0
-		local origin = searchIndex
-
-		if type(commands[searchIndex][1]) == "string" then
-			length = length + #commands[searchIndex][1]
-			local endIndex = origin
-			for i = origin + 1, #commands do
-				if commands[i][2] and commands[i][2]:sub(1, 2) ~= "c " or
-						commands[i][2]:sub(1, 3) == "bg " or commands[i][2]:sub(1, 8) == "newlink " or
-						commands[i][2] == "endlink") then
-					endIndex = i
-
-					break
-				elseif not commands[i][2] then
-					length = length + #commands[i][1]
-				end
-
-				if i == #commands then
-					endIndex = i
-				end
-			end
-
-			commands[origin][2] = length
-			searchIndex = endIndex
-			length = 0
-		end
-	end
-
-	return commands
-end
-
-
-local left = function(text, _, length, offset)
-	local x, y = term.getCursorPos()
-	if length then
-		term.setCursorPos(1 + offset, scroll)
-		term.write(text)
-		return 1 + offset
-	else
-		term.setCursorPos(x, scroll)
-		term.write(text)
-		return x
-	end
-end
-
-
-local right = function(text, width, length, offset)
-	local x, y = term.getCursorPos()
-	if length then
-		term.setCursorPos((width - length + 1) + offset, scroll)
-		term.write(text)
-		return (width - length + 1) + offset
-	else
-		term.setCursorPos(x, scroll)
-		term.write(text)
-		return x
-	end
-end
-
-
-local center = function(text, _, length, offset, center)
-	local x, y = term.getCursorPos()
-	if length then
-		term.setCursorPos(math.ceil(center-length / 2) + offset, scroll)
-		term.write(text)
-		return math.ceil(center - length / 2) + offset
-	else
-		term.setCursorPos(x, scroll)
-		term.write(text)
-		return x
-	end
-end
-
-
-local render = function(data, startScroll)
-	if startScroll == nil then
-		startScroll = 0
-	end
-
-	local scroll = startScroll + 1
-	local maxScroll = scroll
-
-	local childWidth = w
-
-	local align = left
-	local linkData = {}
-
-	local blockLength = 0
-	local link = false
-	local linkStart = false
-	local markers = {}
-	local currentOffset = 0
-
-	local display = function(text, width, length, offset, center)
-		if not offset then
-			offset = 0
-		end
-
-		return align(text, width, length, offset, center)
-	end
-
-	for k, v in pairs(data) do
-		if type(v[2]) ~= "string" then
-			if v[2] then
-				blockLength = v[2]
-				if link and not linkStart then
-					linkStart = display(v[1], childWidth, blockLength, currentOffset, w / 2)
-				else
-					display(v[1], childWidth, blockLength, currentOffset, w / 2)
-				end
-			else
-				if link and not linkStart then
-					linkStart = display(v[1], childWidth, nil, currentOffset, w / 2)
-				else
-					display(v[1], childWidth, nil, currentOffset, w / 2)
-				end
-			end
-		elseif v[2] == "<" or v[2] == "left" then
-			align = left
-		elseif v[2] == ">" or v[2] == "right" then
-			align = right
-		elseif v[2] == "=" or v[2] == "center" then
-			align = center
-		elseif v[2] == "br" then
-			if link then
-				return "Cannot insert new line within a link on line " .. v[1]
-			end
-
-			scroll = scroll + 1
-			maxScroll = math.max(scroll, maxScroll)
-		elseif v[2]:sub(1, 2) == "c " then
-			local color = v[2]:sub(3, -1)
-			if colors[color] then
-				term.setTextColor(colors[color])
-			else
-				return "Invalid color: \"" .. color .. "\" on line " .. v[1]
-			end
-		elseif v[2]:sub(1, 3) == "bg " then
-			local color = v[2]:sub(4, -1)
-			if colors[color] then
-				term.setBackgroundColor(colors[color])
-			else
-				return "Invalid color: \"" .. color .. "\" on line " .. v[1]
-			end
-		elseif v[2]:sub(1, 8) == "newlink " then
-			link = v[2]:sub(9, -1)
-			linkStart = false
-		elseif v[2] == "endlink" then
-			local linkEnd = term.getCursorPos() - 1
-			table.insert(linkData, {linkStart, linkEnd, scroll, link})
-			link = false
-			linkStart = false
-		elseif v[2]:sub(1, 7) == "offset " then
-			local offset = tonumber(v[2]:sub(8, -1))
-			if offset then
-				currentOffset = offset
-			else
-				return "Invalid offset value: \"" .. v[2]:sub(8, -1) .. "\" on line " .. v[1]
-			end
-		elseif v[2]:sub(1, 7) == "marker " then
-			markers[v[2]:sub(8, -1)] = scroll
-		elseif v[2]:sub(1, 5) == "goto " then
-			local location = v[2]:sub(6, -1)
-			if markers[location] then
-				scroll = markers[location]
-			else
-				return "No such location: \"" .. v[2]:sub(6, -1) .. "\" on line " .. v[1]
-			end
-		elseif v[2]:sub(1, 4) == "box " then
-			local color, align, height, width, offset, url = v[2]:match("^box (%a+) (%a+) (%-?%d+) (%-?%d+) (%-?%d+) ?([^ ]*)")
-			if not color then
-				return "Invalid box syntax on line " .. v[1]
-			end
-
-			local x, y = term.getCursorPos()
-			local startX
-
-			if align == "center" or align == "centre" then
-				startX = math.ceil(w / 2 - width / 2) + offset
-			elseif align == "left" then
-				startX = offset + 1
-			elseif align == "right" then
-				startX = (w - width + 1) + offset
-			else
-				return "Invalid align option for box on line " .. v[1]
-			end
-
-			if not colors[color] then
-				return "Invalid color: \"" .. color .. "\" for box on line " .. v[1]
-			end
-
-			term.setBackgroundColor(colors[color])
-			for i = 0, height - 1 do
-				term.setCursorPos(startX, scroll + i)
-				term.write(string.rep(" ", width))
-
-				if url then
-					table.insert(linkData, {startX, startX + width, scroll + i, url})
-				end
-			end
-
-			maxScroll = math.max(scroll + height - 1, maxScroll)
-			term.setCursorPos(x, y)
-		else
-			return "Non-existent tag: \"" .. v[2] .. "\" on line " .. v[1]
-		end
-	end
-
-	return linkData, maxScroll - startScroll
-end
-
-
 languages["fwml"]["run"] = function(contents, page, ...)
 	local err, data = pcall(parse, contents)
-
 	if not err then
 		return languages["lua"]["runWithoutAntivirus"](builtInSites["crash"], "Invalid Firewolf Markup syntax!")
 	end
-
 	return function()
 		local currentScroll = 0
 		local links, pageHeight = render(data, currentScroll)
-
 		if type(links) == "string" then
+			term.clear()
 			os.queueEvent(websiteErrorEvent, links)
 		else
-			while true do
+			while true do 
 				local e, scroll, x, y = os.pullEvent()
-
 				if e == "mouse_click" then
-					for k, v in pairs(links) do
-						if x >= math.min(v[1], v[2]) and x <= math.max(v[1], v[2]) and y == v[3] then
-							os.queueEvent(redirectEvent, v[4])
-							coroutine.yield()
+					if isMenubarOpen and (y == 1 or y == 2) then
+						-- On the menubar
+					else
+						for k,v in pairs(links) do
+							if x >= math.min(v[1],v[2]) and x <= math.max(v[1],v[2]) and y == v[3] then
+								os.queueEvent(redirectEvent, v[4])
+								coroutine.yield()
+							end
 						end
 					end
 				elseif e == "mouse_scroll" then
@@ -1810,11 +1806,14 @@ languages["fwml"]["run"] = function(contents, page, ...)
 						links = render(data, currentScroll)
 					end
 				elseif e == "key" and (scroll == keys.up or scroll == keys.down) then
-					local scrollAmount = -1
+					local scrollAmount
+ 
 					if scroll == keys.up then
 						scrollAmount = 1
+					elseif scroll == keys.down then
+						scrollAmount = -1
 					end
-
+ 
 					if currentScroll + scrollAmount - h >= -pageHeight and currentScroll + scrollAmount <= 0 then
 						currentScroll = currentScroll + scrollAmount
 						clear(theme.background, theme.text)
@@ -1972,7 +1971,7 @@ local main = function()
 	currentProtocol = "rdnt"
 	currentTab = 1
 
-	if term.icolor() then
+	if term.isColor() then
 		theme = colorTheme
 	else
 		theme = grayscaleTheme
@@ -1988,7 +1987,7 @@ end
 
 local handleError = function(err)
 	clear(theme.background, theme.text)
-
+	
 	fill(1, 3, w, 3, theme.subtle)
 	term.setCursorPos(1, 4)
 	center("Firewolf has crashed!")
