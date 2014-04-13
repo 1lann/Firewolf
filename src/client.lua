@@ -18,6 +18,7 @@ local isMenubarOpen = true
 local menubarWindow = nil
 
 local allowUnencryptedConnections = true
+local enableTabBar = true
 
 local currentWebsiteURL = ""
 local builtInSites = {}
@@ -631,13 +632,7 @@ builtInSites["noresults"] = function()
 end
 
 
-builtInSites["search"] = function(results)
-	fill(1, 3, w, 3, theme.subtle)
-	term.setCursorPos(1, 4)
-	center(#results .. " Search " .. (#results == 1 and "Result" or "Results"))
-
-	term.setBackgroundColor(theme.background)
-
+builtInSites["search advanced"] = function(results)
 	local startY = 6
 	local height = h - startY - 1
 	local scroll = 0
@@ -656,10 +651,12 @@ builtInSites["search"] = function(results)
 	draw()
 	while true do
 		local event, but, x, y = os.pullEvent()
+
 		if event == "mouse_click" and y >= startY and y <= startY + height then
 			local item = results[y - startY + scroll]
 			if item then
-				firewolf.redirect(item)
+				os.queueEvent(redirectEvent, item)
+				coroutine.yield()
 			end
 		elseif event == "key" then
 			if but == keys.up then
@@ -667,8 +664,79 @@ builtInSites["search"] = function(results)
 			elseif but == keys.down and #results > height then
 				scroll = math.min(scroll + 1, #results - height)
 			end
+
 			draw()
 		end
+	end
+end
+
+
+builtInSites["search basic"] = function(results)
+	local startY = 6
+	local height = h - startY - 1
+	local scroll = 0
+	local selected = 1
+
+	local draw = function()
+		fill(1, startY, w, height + 1, theme.background)
+
+		for i = scroll + 1, scroll + height do
+			if results[i] then
+				if i == selected + scroll then
+					term.setCursorPos(3, (i - scroll) + startY)
+					term.write("> " .. currentProtocol .. "://" .. results[i])
+				else
+					term.setCursorPos(5, (i - scroll) + startY)
+					term.write(currentProtocol .. "://" .. results[i])
+				end
+			end
+		end
+	end
+
+	draw()
+	while true do
+		local event, but, x, y = os.pullEvent()
+
+		if event == "key" then
+			if but == keys.up and selected + scroll > 1 then
+				if selected > 1 then
+					selected = selected - 1
+				else
+					scroll = math.max(0, scroll - 1)
+				end
+			elseif but == keys.down and selected + scroll < #results then
+				if selected < height then
+					selected = selected + 1
+				else
+					scroll = math.min(scroll + 1, #results - height)
+				end
+			elseif but == keys.enter then
+				local item = results[scroll + selected]
+				if item then
+					os.queueEvent(redirectEvent, item)
+					coroutine.yield()
+				end
+			end
+
+			draw()
+		end
+	end
+end
+
+
+builtInSites["search"] = function(results)
+	clear(theme.background, theme.text)
+
+	fill(1, 3, w, 3, theme.subtle)
+	term.setCursorPos(1, 4)
+	center(#results .. " Search " .. (#results == 1 and "Result" or "Results"))
+
+	term.setBackgroundColor(theme.background)
+
+	if term.isColor() then
+		builtInSites["search advanced"](results)
+	else
+		builtInSites["search basic"](results)
 	end
 end
 
@@ -719,7 +787,11 @@ end
 
 
 local setupMenubar = function()
-	menubarWindow = window.create(term.native(), 1, 1, w, 2, false)
+	if enableTabBar then
+		menubarWindow = window.create(term.native(), 1, 1, w, 2, false)
+	else
+		menubarWindow = window.create(term.native(), 1, 1, w, 1, false)
+	end
 end
 
 
@@ -744,36 +816,39 @@ local drawMenubar = function()
 		menubarWindow.setVisible(true)
 
 		fill(1, 1, w, 1, theme.accent)
-		fill(1, 2, w, 1, theme.subtle)
 		term.setTextColor(theme.text)
 
 		term.setBackgroundColor(theme.accent)
 		term.setCursorPos(2, 1)
 		term.write(currentProtocol .. "://" .. currentWebsiteURL)
 
-		term.setCursorPos(1, 2)
-		for i, tab in pairs(tabs) do
-			term.setBackgroundColor(theme.subtle)
-			term.setTextColor(theme.lightText)
-			if i == currentTab then
-				term.setTextColor(theme.text)
+		if enableTabBar then
+			fill(1, 2, w, 1, theme.subtle)
+
+			term.setCursorPos(1, 2)
+			for i, tab in pairs(tabs) do
+				term.setBackgroundColor(theme.subtle)
+				term.setTextColor(theme.lightText)
+				if i == currentTab then
+					term.setTextColor(theme.text)
+				end
+
+				local tabName = getTabName(tab.name)
+				term.write(" " .. tabName)
+
+				if i == currentTab and #tabs > 1 then
+					term.setTextColor(theme.errorText)
+					term.write("x")
+				else
+					term.write(" ")
+				end
 			end
 
-			local tabName = getTabName(tab.name)
-			term.write(" " .. tabName)
-
-			if i == currentTab and #tabs > 1 then
-				term.setTextColor(theme.errorText)
-				term.write("x")
-			else
-				term.write(" ")
+			if #tabs < maxTabs then
+				term.setTextColor(theme.lightText)
+				term.setBackgroundColor(theme.subtle)
+				term.write(" + ")
 			end
-		end
-
-		if #tabs < maxTabs then
-			term.setTextColor(theme.lightText)
-			term.setBackgroundColor(theme.subtle)
-			term.write(" + ")
 		end
 	else
 		menubarWindow.setVisible(false)
@@ -2143,8 +2218,10 @@ local main = function()
 
 	if term.isColor() then
 		theme = colorTheme
+		enableTabBar = true
 	else
 		theme = grayscaleTheme
+		enableTabBar = false
 	end
 
 	setupMenubar()
