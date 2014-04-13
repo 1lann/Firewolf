@@ -831,6 +831,9 @@ local drawMenubar = function()
 		term.setCursorPos(2, 1)
 		term.write(currentProtocol .. "://" .. currentWebsiteURL)
 
+		term.setCursorPos(w-5,1)
+		term.write("[===]")
+
 		if enableTabBar then
 			fill(1, 2, w, 1, theme.subtle)
 
@@ -1447,6 +1450,10 @@ local loadTab = function(index, url, givenFunc)
 	local func = nil
 	local isOpen = true
 
+	isMenubarOpen = true
+	currentWebsiteURL = url;
+	drawMenubar()
+
 	if givenFunc then
 		func = givenFunc
 	else
@@ -1829,7 +1836,7 @@ render["functions"]["public"]["endlink"] = function(source)
 
 	local linkEnd = term.getCursorPos()-1
 	table.insert(render.variables.linkData, {render.variables.linkStart,
-		render.variables.linkEnd, render.variables.scroll, render.variables.link})
+		linkEnd, render.variables.scroll, render.variables.link})
 	render.variables.link = false
 	render.variables.linkStart = false
 end
@@ -1887,8 +1894,8 @@ render["functions"]["public"]["box "] = function(source)
 	for i = 0, height - 1 do
 		term.setCursorPos(startX, render.variables.scroll+i)
 		term.write(string.rep(" ", width))
-		if url then
-			table.insert(render.variables.linkData, {startX, startX + width, render.variables.scroll + i, url})
+		if url:len() > 3 then
+			table.insert(render.variables.linkData, {startX, startX + width-1, render.variables.scroll + i, url})
 		end
 	end
 
@@ -2206,6 +2213,10 @@ local handleEvents = function()
 			end)
 		elseif event[1] == redirectEvent then
 			cancelEvent = true
+
+			if (event[2]:match("^rdnt://(.+)$")) then
+				event[2] = event[2]:match("^rdnt://(.+)$")
+			end
 
 			loadTab(currentTab, event[2])
 		end

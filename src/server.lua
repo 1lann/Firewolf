@@ -339,6 +339,9 @@ end
 
 
 local fetchPage = function(domain, page)
+	if (page:match("(.+)%.fwml$")) then
+		page = page:match("(.+)%.fwml$")
+	end
 	local path = serversFolder .. "/" .. domain .. "/" .. page
 	if fs.exists(path) and not fs.isDir(path) then
 		local f = io.open(path, "r")
