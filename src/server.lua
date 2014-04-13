@@ -467,15 +467,15 @@ local backend = function(serverURL, onEvent, onMessage)
 						onMessage("[DIRECT] Connection closed: " .. givenChannel)
 					end
 				end
-			end
-		elseif event == "modem_message" and givenChannel == rednet.CHANNEL_REPEAT and
-				type(givenMessage) == "table" and givenMessage.nMessageID and givenMessage.nRecipient and
-				not receivedMessages[givenMessage.nMessageID] then
-			receivedMessages[givenMessage.nMessageID] = true
-			receivedMessageTimeouts[os.startTimer(30)] = givenMessage.nMessageID
+			elseif givenChannel == rednet.CHANNEL_REPEAT and type(givenMessage) == "table"
+			and givenMessage.nMessageID and givenMessage.nRecipient and
+			not receivedMessages[givenMessage.nMessageID] then
+				receivedMessages[givenMessage.nMessageID] = true
+				receivedMessageTimeouts[os.startTimer(30)] = givenMessage.nMessageID
 
-			modem("transmit", rednet.CHANNEL_REPEAT, givenID, givenMessage)
-			modem("transmit", givenMessage.nRecipient, givenID, givenMessage)
+				modem("transmit", rednet.CHANNEL_REPEAT, givenID, givenMessage)
+				modem("transmit", givenMessage.nRecipient, givenID, givenMessage)
+			end
 		elseif event == "timer" then
 			local messageID = receivedMessageTimeouts[givenSide]
 			if messageID then
