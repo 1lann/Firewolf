@@ -63,6 +63,7 @@ local serverURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/s
 
 local firewolfLocation = "/" .. shell.getRunningProgram()
 
+
 local theme = {}
 
 local colorTheme = {
@@ -442,7 +443,7 @@ end
 
 local downloadAndSave = function(url, path)
 	local contents = download(url)
-	if contents then
+	if contents and not fs.isReadOnly(path) and not fs.isDir(path) then
 		local f = io.open(path, "w")
 		f:write(contents)
 		f:close()
@@ -454,18 +455,15 @@ end
 
 local updateAvailable = function()
 	local number = download(buildURL)
-	if number and tonumber(number) then
-		number = tonumber(number)
-		if number > build then
-			return true
-		end
+	if number and tonumber(number) and tonumber(number) > build then
+		return true
 	end
 	return false
 end
 
 
 local redownloadBrowser = function()
-	downloadAndSave(firewolfURL, firewolfLocation)
+	return downloadAndSave(firewolfURL, firewolfLocation)
 end
 
 
@@ -549,6 +547,51 @@ builtInSites["display"]["server"] = function()
 			term.setCursorPos(1, 9)
 			center(err and "Download failed!" or "Download successful!")
 		end
+	end
+end
+
+
+builtInSites["display"]["update"] = function()
+	clear(theme.background, theme.text)
+
+	fill(1, 6, w, 3, theme.subtle)
+	term.setCursorPos(1, 7)
+	center("Update Firewolf")
+
+	term.setBackgroundColor(theme.background)
+	term.setCursorPos(1, 11)
+	center("Checking for updates...")
+
+	term.setCursorPos(1, 11)
+	if updateAvailable() then
+		term.clearLine()
+		center("Update found!")
+		center("Press enter to download.")
+
+		while true do
+			local event, key = os.pullEvent()
+			if event == "key" and key == keys.enter then
+				break
+			end
+		end
+
+		fill(1, 11, w, 2, theme.background)
+		term.setCursorPos(1, 11)
+		center("Downloading...")
+
+		local err = redownloadBrowser()
+
+		term.setCursorPos(1, 11)
+		term.clearLine()
+		if err then
+			center("Download failed!")
+		else
+			center("Download succeeded!")
+			center("Please restart Firewolf...")
+		end
+	else
+		term.clearLine()
+		center("No updates found.")
 	end
 end
 
