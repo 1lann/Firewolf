@@ -42,6 +42,7 @@ local domainLimitPerServer = 3
 
 local searchResultTimeout = 0.5
 local initiationTimeout = 0.2
+local animationInterval = 0.125
 local fetchTimeout = 1
 
 local listToken = "--@!FIREWOLF-LIST!@--"
@@ -1152,6 +1153,40 @@ end
 --    Fetch Websites
 
 
+local function loadingAnimation()
+	local state = -2
+
+	term.setTextColor(theme.text)
+	term.setBackgroundColor(theme.accent)
+
+	term.setCursorPos(w - 5, 1)
+	term.write("[=  ]")
+
+	local timer = os.startTimer(animationInterval)
+	
+	while true do
+		local event, timerID = os.pullEvent()
+		if event == "timer" and timerID == timer then
+			term.setTextColor(theme.text)
+			term.setBackgroundColor(theme.accent)
+
+			state = state + 1
+
+			term.setCursorPos(w - 5, 1)
+			term.write("[   ]")
+			term.setCursorPos(w - 2 - math.abs(state), 1)
+			term.write("=")
+
+			if state == 2 then
+				state = -2
+			end
+
+			timer = os.startTimer(animationInterval)
+		end
+	end
+end
+
+
 local normalizeURL = function(url)
 	url = url:lower():gsub(" ", "")
 	if url == "home" or url == "homepage" then
@@ -1347,7 +1382,7 @@ local loadTab = function(index, url, givenFunc)
 	if givenFunc then
 		func = givenFunc
 	else
-		func, isOpen = fetchURL(url)
+		parallel.waitForAny(function() func, isOpen = fetchURL(url) end, loadingAnimation)
 	end
 
 	tabs[index].thread = coroutine.create(func)
