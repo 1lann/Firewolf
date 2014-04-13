@@ -1,8 +1,8 @@
 
---  
+--
 --  Firewolf
 --  Made by GravityScore and 1lann
---  
+--
 
 
 
@@ -37,13 +37,13 @@ local initiatePattern = "^%-%-@!FIREWOLF%-INITIATE!@%-%-(.+)"
 local retrievePattern = "^%-%-@!FIREWOLF%-FETCH!@%-%-(.+)"
 
 local theme = {
-	background = colors.gray, 
-	accent = colors.red, 
-	subtle = colors.orange, 
+	background = colors.gray,
+	accent = colors.red,
+	subtle = colors.orange,
 
-	lightText = colors.gray, 
-	text = colors.white, 
-	errorText = colors.red, 
+	lightText = colors.gray,
+	text = colors.white,
+	errorText = colors.red,
 }
 
 local default404 = [[
@@ -86,7 +86,7 @@ local cryptWrapper = function(plaintext, salt)
 	local i = 0
 	j = 0
 	local chars, astable = type(plaintext) == "table" and {unpack(plaintext)} or {string.byte(plaintext, 1, #plaintext)}, false
-	
+
 	for n = 1, #chars do
 		i = (i + 1) % 256
 		j = (j + S[i]) % 256
@@ -282,11 +282,12 @@ local setupModem = function()
 			table.insert(sides, v)
 		end
 	end
-	
+
 	if #sides <= 0 then
 		error("No modem found!")
 	end
 end
+
 
 local modem = function(func,  ...)
 	for _, side in pairs(sides) do
@@ -406,7 +407,7 @@ local backend = function(serverURL, onEvent, onMessage)
 				modem("close", publicRespChannel)
 			elseif givenChannel == serverChannel and givenMessage:match(initiatePattern) == serverURL then
 				modem("transmit", serverChannel, responseID, crypt(connectTag .. serverURL, serverURL .. tostring(givenDistance) .. givenID))
-				
+
 				if #sessions > 50 then
 					modem("close", sessions[#sessions][3])
 					table.remove(sessions)
@@ -622,7 +623,7 @@ end
 
 local handleError = function(err)
 	clear(theme.background, theme.text)
-	
+
 	fill(1, 3, w, 3, theme.subtle)
 	term.setCursorPos(1, 4)
 	center("Firewolf Server has crashed!")
@@ -656,6 +657,7 @@ if modem then
 	end
 	modem("closeAll")
 end
+
 
 clear(colors.black, colors.white)
 center("Thanks for using Firewolf Server " .. version)

@@ -1,8 +1,8 @@
 
---  
+--
 --  Firewolf
 --  Made by GravityScore and 1lann
---  
+--
 
 
 
@@ -89,21 +89,6 @@ local grayscaleTheme = {
 
 --    Utilities
 
-local debug = function(...)
-	local f = io.open("debug","a")
-	local data = ""
-	local args = {...}
-	for k,v in pairs(args) do
-		if type(v) == "table" then
-			data = data.."\ntable"
-		else
-			data = data.."\n"..v
-		end
-	end
-	f:write(data)
-	f:close()
-end
-
 
 local modifiedRead = function(properties)
 	local text = ""
@@ -135,14 +120,14 @@ local modifiedRead = function(properties)
 			readHistory[k] = v
 		end
 	end
-	
+
 	if readHistory[1] == text then
 		table.remove(readHistory, 1)
 	end
 
 	local draw = function(replaceCharacter)
 		local scroll = 0
-		if properties.displayLength and pos > properties.displayLength then 
+		if properties.displayLength and pos > properties.displayLength then
 			scroll = pos - properties.displayLength
 		end
 
@@ -255,7 +240,7 @@ local modifiedRead = function(properties)
 			end
 		elseif event == "mouse_click" then
 			local scroll = 0
-			if properties.displayLength and pos > properties.displayLength then 
+			if properties.displayLength and pos > properties.displayLength then
 				scroll = pos - properties.displayLength
 			end
 
@@ -353,8 +338,8 @@ local cryptWrapper = function(plaintext, salt)
 
 	local i = 0
 	j = 0
-	local chars, astable = type(plaintext) == "table" and {unpack(plaintext)} or {string.byte(plaintext, 1,#plaintext)}, false
-	
+	local chars, astable = type(plaintext) == "table" and {unpack(plaintext)} or {string.byte(plaintext, 1, #plaintext)}, false
+
 	for n = 1, #chars do
 		i = (i + 1) % 256
 		j = (j + S[i]) % 256
@@ -779,7 +764,7 @@ protocols["rdnt"]["setup"] = function()
 			table.insert(sides, v)
 		end
 	end
-	
+
 	if #sides <= 0 then
 		error("No modem found!")
 	end
@@ -931,11 +916,11 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 					local fetchTimer = os.startTimer(fetchTimeout)
 					rednet.send(v, crypt(fetchToken .. url .. page, url .. tostring(os.getComputerID())), protocolToken .. url)
-					
+
 					while true do
 						local event, fetchId, fetchMessage, fetchProtocol = os.pullEvent()
 						if event == "rednet_message" and fetchId == v and fetchProtocol == (protocolToken .. url) then
-							local decrypt = crypt(textutils.unserialize(fetchMessage),url .. tostring(os.getComputerID()))
+							local decrypt = crypt(textutils.unserialize(fetchMessage), url .. tostring(os.getComputerID()))
 							if decrypt then
 								local rawHeader, data = decrypt:match(receiveToken)
 								local header = textutils.unserialize(rawHeader)
@@ -990,10 +975,10 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 		if event == "modem_message" and connectionChannel == channel and verify == responseID then
 			local decrypt = crypt(textutils.unserialize(msg), url .. tostring(distance) .. os.getComputerID())
-			if decrypt and decrypt:match(connectToken) == url and 
+			if decrypt and decrypt:match(connectToken) == url and
 					not checkDuplicate(distance) then
 				local calculatedChannel = calculateChannel(url, distance, os.getComputerID())
-				
+
 				table.insert(results, {
 					dist = distance,
 					channel = calculatedChannel,
@@ -1005,11 +990,11 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 						local fetchTimer = os.startTimer(fetchTimeout)
 						protocols.rdnt.modem("transmit", calculatedChannel, os.getComputerID(), crypt(fetchToken .. url .. page, url .. tostring(distance) .. os.getComputerID()))
-						
+
 						while true do
 							local event, fetchSide, fetchChannel, fetchVerify, fetchMessage, fetchDistance = os.pullEvent()
-							
-							if event == "modem_message" and fetchChannel == calculatedChannel and 
+
+							if event == "modem_message" and fetchChannel == calculatedChannel and
 									fetchVerify == responseID and fetchDistance == distance then
 								local rawHeader, data = crypt(textutils.unserialize(fetchMessage), url .. tostring(fetchDistance) .. os.getComputerID()):match(receiveToken)
 								local header = textutils.unserialize(rawHeader)
@@ -1053,6 +1038,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 		end
 	end
 end
+
 
 
 --    Fetching Raw Data
@@ -1101,7 +1087,7 @@ end
 
 local appendToHistory = function(url)
 	if history[1] ~= url then
-		table.insert(history, 1, url)		
+		table.insert(history, 1, url)
 	end
 end
 
@@ -1207,6 +1193,7 @@ local fetchExternal = function(url, connection)
 		return fetchError("A connection timeout occurred!")
 	end
 end
+
 
 local fetchNone = function()
 	return languages["lua"]["runWithoutAntivirus"](builtInSites["noresults"])
@@ -1468,10 +1455,11 @@ end
 
 
 
---    Running websites
+--    FWML Execution
+
 
 local function getLine(loc, data)
-	local _, changes = data:sub(1,loc):gsub("\n","")
+	local _, changes = data:sub(1, loc):gsub("\n", "")
 	if not changes then
 		return 1
 	else
@@ -1479,50 +1467,51 @@ local function getLine(loc, data)
 	end
 end
 
+
 local function parseData(data)
 	local commands = {}
 	local searchPos = 1
 	while #data > 0 do
-		local sCmd, eCmd = data:find("%[[^%]]+%]",searchPos)
+		local sCmd, eCmd = data:find("%[[^%]]+%]", searchPos)
 		if sCmd then
 			sCmd = sCmd + 1
 			eCmd = eCmd - 1
 			if (sCmd > 2) then
-				if data:sub(sCmd-2,sCmd-2) == "\\" then
-					local t = data:sub(searchPos,sCmd-1):gsub("\n",""):gsub("\\%[","%["):gsub("\\%]","%]")
+				if data:sub(sCmd-2, sCmd-2) == "\\" then
+					local t = data:sub(searchPos, sCmd-1):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
 					if #t > 0 then
 						if type(commands[#commands][1]) == "string" then
 							commands[#commands][1] = commands[#commands][1]..t
 						else
-							table.insert(commands,{t})
+							table.insert(commands, {t})
 						end
 					end
 					searchPos = sCmd
 				else
-					local t = data:sub(searchPos,sCmd-2):gsub("\n",""):gsub("\\%[","%["):gsub("\\%]","%]")
+					local t = data:sub(searchPos, sCmd-2):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
 					if #t > 0 then
 						if type(commands[#commands][1]) == "string" then
 							commands[#commands][1] = commands[#commands][1]..t
 						else
-							table.insert(commands,{t})
+							table.insert(commands, {t})
 						end
 					end
-					t = data:sub(sCmd,eCmd):gsub("\n","")
-					table.insert(commands,{getLine(sCmd, data),t})
+					t = data:sub(sCmd, eCmd):gsub("\n", "")
+					table.insert(commands, {getLine(sCmd, data), t})
 					searchPos = eCmd+2
 				end
 			else
-				local t = data:sub(sCmd,eCmd):gsub("\n","")
-				table.insert(commands,{getLine(sCmd, data),t})
+				local t = data:sub(sCmd, eCmd):gsub("\n", "")
+				table.insert(commands, {getLine(sCmd, data), t})
 				searchPos = eCmd+2
 			end
 		else
-			local t = data:sub(searchPos,-1):gsub("\n",""):gsub("\\%[","%["):gsub("\\%]","%]")
+			local t = data:sub(searchPos, -1):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
 			if #t > 0 then
 				if type(commands[#commands][1]) == "string" then
 					commands[#commands][1] = commands[#commands][1]..t
 				else
-					table.insert(commands,{t})
+					table.insert(commands, {t})
 				end
 			end
 			break
@@ -1530,6 +1519,7 @@ local function parseData(data)
 	end
 	return commands
 end
+
 
 local function proccessData(commands)
 	searchIndex = 0
@@ -1541,8 +1531,8 @@ local function proccessData(commands)
 			length = length+#commands[searchIndex][1]
 			local endIndex = origin
 			for i = origin+1, #commands do
-				if commands[i][2] and not((commands[i][2]:sub(1,2) == "c ") or
-				(commands[i][2]:sub(1,3) == "bg ") or (commands[i][2]:sub(1,8) == "newlink ") or
+				if commands[i][2] and not((commands[i][2]:sub(1, 2) == "c ") or
+				(commands[i][2]:sub(1, 3) == "bg ") or (commands[i][2]:sub(1, 8) == "newlink ") or
 				(commands[i][2] == "endlink")) then
 					endIndex = i
 					break
@@ -1563,11 +1553,17 @@ local function proccessData(commands)
 	return commands
 end
 
+
 local function parse(original)
 	return proccessData(parseData(original))
 end
 
+
 local render = {}
+
+render["functions"] = {}
+render["functions"]["public"] = {}
+render["alignations"] = {}
 
 render["variables"] = {
 	scroll,
@@ -1581,93 +1577,105 @@ render["variables"] = {
 	currentOffset
 }
 
-render["functions"] = {}
-render["functions"]["public"] = {}
-render["alignations"] = {}
 
-render["functions"]["display"] = function(text,length,offset,center)
-	if not offset then offset = 0 end
-	return render.variables.align(text,length,w,offset,center);
+render["functions"]["display"] = function(text, length, offset, center)
+	if not offset then
+		offset = 0
+	end
+
+	return render.variables.align(text, length, w, offset, center);
 end
+
 
 render["functions"]["displayText"] = function(source)
 	if source[2] then
 		render.variables.blockLength = source[2]
 		if render.variables.link and not render.variables.linkStart then
 			render.variables.linkStart = render.functions.display(
-				source[1],render.variables.blockLength,render.variables.currentOffset,w/2)
+				source[1], render.variables.blockLength, render.variables.currentOffset, w / 2)
 		else
-			render.functions.display(source[1],render.variables.blockLength,render.variables.currentOffset,w/2)
+			render.functions.display(source[1], render.variables.blockLength, render.variables.currentOffset, w / 2)
 		end
 	else
 		if render.variables.link and not render.variables.linkStart then
-			render.variables.linkStart = render.functions.display(source[1],nil,render.variables.currentOffset,w/2)
+			render.variables.linkStart = render.functions.display(source[1], nil, render.variables.currentOffset, w / 2)
 		else
-			render.functions.display(source[1],nil,render.variables.currentOffset,w/2)
+			render.functions.display(source[1], nil, render.variables.currentOffset, w / 2)
 		end
 	end
 end
 
+
 render["functions"]["public"]["br"] = function(source)
 	if render.variables.link then
-		return "Cannot insert new line within a link on line "..source[1]
+		return "Cannot insert new line within a link on line " .. source[1]
 	end
-	render.variables.scroll = render.variables.scroll+1
+
+	render.variables.scroll = render.variables.scroll + 1
 	render.variables.maxScroll = math.max(render.variables.scroll, render.variables.maxScroll)
 end
 
+
 render["functions"]["public"]["c "] = function(source)
-	local sColor = source[2]:sub(3,-1)
+	local sColor = source[2]:sub(3, -1)
 	if colors[sColor] then
 		term.setTextColor(colors[sColor])
 	else
-		return "Invalid color: \""..sColor.."\" on line "..source[1]
+		return "Invalid color: \"" .. sColor .. "\" on line " .. source[1]
 	end
 end
 
+
 render["functions"]["public"]["bg "] = function(source)
-	local sColor = source[2]:sub(3,-1)
+	local sColor = source[2]:sub(3, -1)
 	if colors[sColor] then
 		term.setBackgroundColor(colors[sColor])
 	else
-		return "Invalid color: \""..sColor.."\" on line "..source[1]
+		return "Invalid color: \"" .. sColor .. "\" on line " .. source[1]
 	end
 end
+
 
 render["functions"]["public"]["newlink "] = function(source)
 	if render.variables.link then
-		return "Cannot nest links on line "..source[1]
+		return "Cannot nest links on line " .. source[1]
 	end
-	render.variables.link = source[2]:sub(9,-1)
+
+	render.variables.link = source[2]:sub(9, -1)
 	render.variables.linkStart = false
 end
 
+
 render["functions"]["public"]["endlink"] = function(source)
 	if not render.variables.link then
-		return "Cannot end a link without a link on line "..source[1]
+		return "Cannot end a link without a link on line " .. source[1]
 	end
+
 	local linkEnd = term.getCursorPos()-1
-	table.insert(render.variables.linkData,{render.variables.linkStart,
-		render.variables.linkEnd,render.variables.scroll,render.variables.link})
+	table.insert(render.variables.linkData, {render.variables.linkStart,
+		render.variables.linkEnd, render.variables.scroll, render.variables.link})
 	render.variables.link = false
 	render.variables.linkStart = false
 end
 
+
 render["functions"]["public"]["offset "] = function(source)
-	local offset = tonumber(source[2]:sub(8,-1))
+	local offset = tonumber(source[2]:sub(8, -1))
 	if offset then
 		render.variables.currentOffset = offset
 	else
-		return "Invalid offset value: \"" .. source[2]:sub(8,-1) .. "\" on line " .. source[1]
+		return "Invalid offset value: \"" .. source[2]:sub(8, -1) .. "\" on line " .. source[1]
 	end
 end
 
+
 render["functions"]["public"]["marker "] = function(source)
-	render.variables.markers[source[2]:sub(8,-1)] = render.variables.scroll
+	render.variables.markers[source[2]:sub(8, -1)] = render.variables.scroll
 end
 
+
 render["functions"]["public"]["goto "] = function(source)
-	local location = source[2]:sub(6,-1)
+	local location = source[2]:sub(6, -1)
 	if render.variables.markers[location] then
 		render.variables.scroll = render.variables.markers[location]
 	else
@@ -1675,85 +1683,93 @@ render["functions"]["public"]["goto "] = function(source)
 	end
 end
 
+
 render["functions"]["public"]["box "] = function(source)
 	local sColor, align, height, width, offset, url = source[2]:match("^box (%a+) (%a+) (%-?%d+) (%-?%d+) (%-?%d+) ?([^ ]*)")
 	if not sColor then
 		return "Invalid box syntax on line "..source[1]
 	end
-	local x,y = term.getCursorPos()
+
+	local x, y = term.getCursorPos()
 	local startX
-	if (render.variables.align == "center") or (render.variables.align == "centre") then
-		startX = math.ceil((w/2)-width/2)+offset
+
+	if render.variables.align == "center" or render.variables.align == "centre" then
+		startX = math.ceil((w / 2) - width / 2) + offset
 	elseif align == "left" then
-		startX = 1+offset
+		startX = 1 + offset
 	elseif align == "right" then
-		startX = (w-width+1)+offset
+		startX = (w - width + 1) + offset
 	else
-		return "Invalid align option for box on line "..source[1]
+		return "Invalid align option for box on line " .. source[1]
 	end
+
 	if not colors[sColor] then
-		return "Invalid color: \""..sColor.."\" for box on line "..source[1]
+		return "Invalid color: \"" .. sColor .. "\" for box on line " .. source[1]
 	end
+
 	term.setBackgroundColor(colors[sColor])
-	for i = 0, height-1 do
+	for i = 0, height - 1 do
 		term.setCursorPos(startX, render.variables.scroll+i)
-		term.write(string.rep(" ",width))
+		term.write(string.rep(" ", width))
 		if url then
-			table.insert(render.variables.linkData,{startX,startX+width,render.variables.scroll+i,url})
+			table.insert(render.variables.linkData, {startX, startX + width, render.variables.scroll + i, url})
 		end
 	end
-	render.variables.maxScroll = math.max(render.variables.scroll+height-1, render.variables.maxScroll)
-	term.setCursorPos(x,y)
+
+	render.variables.maxScroll = math.max(render.variables.scroll + height - 1, render.variables.maxScroll)
+	term.setCursorPos(x, y)
 end
 
-render["alignations"]["left"] = function(text,length,_,offset)
-	local x,y = term.getCursorPos()
-	if (length) then
-		term.setCursorPos(1+offset,render.variables.scroll)
+
+render["alignations"]["left"] = function(text, length, _, offset)
+	local x, y = term.getCursorPos()
+	if length then
+		term.setCursorPos(1 + offset, render.variables.scroll)
 		term.write(text)
-		return 1+offset
+		return 1 + offset
 	else
-		term.setCursorPos(x,render.variables.scroll)
+		term.setCursorPos(x, render.variables.scroll)
 		term.write(text)
 		return x
 	end
 end
 
 
-render["alignations"]["right"] = function(text,length,width,offset)
-	local x,y = term.getCursorPos()
-	if (length) then
-		term.setCursorPos((width-length+1)+offset,render.variables.scroll)
+render["alignations"]["right"] = function(text, length, width, offset)
+	local x, y = term.getCursorPos()
+	if length then
+		term.setCursorPos((width - length + 1) + offset, render.variables.scroll)
 		term.write(text)
-		return (width-length+1)+offset
+		return (width - length + 1) + offset
 	else
-		term.setCursorPos(x,render.variables.scroll)
+		term.setCursorPos(x, render.variables.scroll)
 		term.write(text)
 		return x
 	end
 end
 
 
-render["alignations"]["center"] = function(text,length,_,offset,center)
-	local x,y = term.getCursorPos()
-	if (length) then
-		term.setCursorPos(math.ceil(center-length/2)+offset,render.variables.scroll)
+render["alignations"]["center"] = function(text, length, _, offset, center)
+	local x, y = term.getCursorPos()
+	if length then
+		term.setCursorPos(math.ceil(center - length / 2) + offset, render.variables.scroll)
 		term.write(text)
-		return math.ceil(center-length/2)+offset
+		return math.ceil(center - length / 2) + offset
 	else
-		term.setCursorPos(x,render.variables.scroll)
+		term.setCursorPos(x, render.variables.scroll)
 		term.write(text)
 		return x
 	end
 end
 
-render["render"] = function(data,startScroll)
+
+render["render"] = function(data, startScroll)
 	if startScroll == nil then
 		render.variables.startScroll = 0
 	else
 		render.variables.startScroll = startScroll
 	end
-	
+
 	render.variables.scroll = startScroll+1
 	render.variables.maxScroll = render.variables.scroll
 
@@ -1767,14 +1783,14 @@ render["render"] = function(data,startScroll)
 	render.variables.markers = {}
 	render.variables.currentOffset = 0
 
-	for k,v in pairs(data) do
+	for k, v in pairs(data) do
 		if type(v[2]) ~= "string" then
 			render.functions.displayText(v)
-		elseif (v[2] == "<") or (v[2] == "left") then
+		elseif v[2] == "<" or v[2] == "left" then
 			render.variables.align = render.alignations.left
-		elseif (v[2] == ">") or (v[2] == "right") then
+		elseif v[2] == ">" or v[2] == "right" then
 			render.variables.align = render.alignations.right
-		elseif (v[2] == "=") or (v[2] == "center") then
+		elseif v[2] == "=" or v[2] == "center" then
 			render.variables.align = render.alignations.center
 		else
 			local existentFunction = false
@@ -1790,7 +1806,7 @@ render["render"] = function(data,startScroll)
 			end
 
 			if not existentFunction then
-				return "Non-existent tag: \""..v[2].."\" on line "..v[1]
+				return "Non-existent tag: \"" .. v[2] .. "\" on line " .. v[1]
 			end
 		end
 	end
@@ -1800,8 +1816,12 @@ end
 
 
 
+--    Lua Execution
+
+
 languages["lua"] = {}
 languages["fwml"] = {}
+
 
 languages["lua"]["runWithErrorCatching"] = function(func, ...)
 	local _, err = pcall(func, ...)
@@ -1820,6 +1840,7 @@ languages["lua"]["runWithoutAntivirus"] = function(func, ...)
 	end
 end
 
+
 languages["lua"]["run"] = function(contents, page, ...)
 	local func, err = loadstring(contents, page)
 	if err then
@@ -1834,11 +1855,13 @@ languages["lua"]["run"] = function(contents, page, ...)
 	end
 end
 
+
 languages["fwml"]["run"] = function(contents, page, ...)
 	local err, data = pcall(parse, contents)
 	if not err then
 		return languages["lua"]["runWithoutAntivirus"](builtInSites["crash"], data)
 	end
+
 	return function()
 		local currentScroll = 0
 		local err, links, pageHeight = pcall(render.render, data, currentScroll)
@@ -1846,11 +1869,11 @@ languages["fwml"]["run"] = function(contents, page, ...)
 			term.clear()
 			os.queueEvent(websiteErrorEvent, links)
 		else
-			while true do 
+			while true do
 				local e, scroll, x, y = os.pullEvent()
 				if e == "mouse_click" then
-					for k,v in pairs(links) do
-						if x >= math.min(v[1],v[2]) and x <= math.max(v[1],v[2]) and y == v[3] then
+					for k, v in pairs(links) do
+						if x >= math.min(v[1], v[2]) and x <= math.max(v[1], v[2]) and y == v[3] then
 							os.queueEvent(redirectEvent, v[4])
 							coroutine.yield()
 						end
@@ -1863,13 +1886,13 @@ languages["fwml"]["run"] = function(contents, page, ...)
 					end
 				elseif e == "key" and (scroll == keys.up or scroll == keys.down) then
 					local scrollAmount
- 
+
 					if scroll == keys.up then
 						scrollAmount = 1
 					elseif scroll == keys.down then
 						scrollAmount = -1
 					end
- 
+
 					if currentScroll + scrollAmount - h >= -pageHeight and currentScroll + scrollAmount <= 0 then
 						currentScroll = currentScroll + scrollAmount
 						clear(theme.background, theme.text)
@@ -2043,7 +2066,7 @@ end
 
 local handleError = function(err)
 	clear(theme.background, theme.text)
-	
+
 	fill(1, 3, w, 3, theme.subtle)
 	term.setCursorPos(1, 4)
 	center("Firewolf has crashed!")
@@ -2072,6 +2095,7 @@ protocols.rdnt.modem("closeAll")
 if err and not err:lower():find("terminate") then
 	handleError(err)
 end
+
 
 clear(colors.black, colors.white)
 center("Thanks for using Firewolf " .. version)
