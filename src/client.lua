@@ -57,9 +57,10 @@ local receiveToken = "^%-%-@!FIREWOLF%-HEAD!@%-%-(.+)%-%-@!FIREWOLF%-BODY!@%-%-(
 local websiteErrorEvent = "firewolf_websiteErrorEvent"
 local redirectEvent = "firewolf_redirectEvent"
 
-local buildURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/build.txt"
-local firewolfURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/client.lua"
-local serverURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/server.lua"
+local baseURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src"
+local buildURL = baseURL .. "/build.txt"
+local firewolfURL = baseURL .. "/client.lua"
+local serverURL = baseURL .. "/server.lua"
 
 local firewolfLocation = "/" .. shell.getRunningProgram()
 
@@ -721,6 +722,21 @@ local setupMenubar = function()
 end
 
 
+local getTabName = function(url)
+	local name = url
+	if name:len() > maxTabNameWidth then
+		name = name:sub(1, maxTabNameWidth)
+	end
+
+	name = name:gsub("^%s*(.-)%s*$", "%1")
+	if name:sub(-1, -1) == "." then
+		name = name:sub(1, -2)
+	end
+
+	return name
+end
+
+
 local drawMenubar = function()
 	if isMenubarOpen then
 		term.redirect(menubarWindow)
@@ -742,11 +758,8 @@ local drawMenubar = function()
 				term.setTextColor(theme.text)
 			end
 
-			if tab.name:len() > maxTabNameWidth then
-				term.write(" " .. tab.name:sub(1, maxTabNameWidth))
-			else
-				term.write(" " .. tab.name)
-			end
+			local tabName = getTabName(tab.name)
+			term.write(" " .. tabName)
 
 			if i == currentTab and #tabs > 1 then
 				term.setTextColor(theme.errorText)
