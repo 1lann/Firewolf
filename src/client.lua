@@ -759,13 +759,37 @@ end
 --    Menubar
 
 
+local getTabName = function(url)
+	local name = url:match("^[^/]+")
+
+	if not name then
+		name = "Search"
+	end
+
+	if name:sub(1, 3) == "www" then
+		name = name:sub(5):gsub("^%s*(.-)%s*$", "%1")
+	end
+
+	if name:len() > maxTabNameWidth then
+		name = name:sub(1, maxTabNameWidth):gsub("^%s*(.-)%s*$", "%1")
+	end
+
+	if name:sub(-1, -1) == "." then
+		name = name:sub(1, -2):gsub("^%s*(.-)%s*$", "%1")
+	end
+
+	return name:gsub("^%s*(.-)%s*$", "%1")
+end
+
+
 local determineClickedTab = function(x, y)
 	if y == 2 then
 		local minx = 2
 		for i, tab in pairs(tabs) do
-			local length = tab.name:len()
-			if tab.name:len() > maxTabNameWidth then
-				length = tab.name:sub(1, maxTabNameWidth):len()
+			local name = getTabName(tab.url)
+			local length = name:len()
+			if name:len() > maxTabNameWidth then
+				length = name:sub(1, maxTabNameWidth):len()
 			end
 
 			if x >= minx and x <= minx + length - 1 then
@@ -795,21 +819,6 @@ local setupMenubar = function()
 end
 
 
-local getTabName = function(url)
-	local name = url
-	if name:len() > maxTabNameWidth then
-		name = name:sub(1, maxTabNameWidth)
-	end
-
-	name = name:gsub("^%s*(.-)%s*$", "%1")
-	if name:sub(-1, -1) == "." then
-		name = name:sub(1, -2)
-	end
-
-	return name
-end
-
-
 local drawMenubar = function()
 	if isMenubarOpen then
 		term.redirect(menubarWindow)
@@ -833,7 +842,7 @@ local drawMenubar = function()
 					term.setTextColor(theme.text)
 				end
 
-				local tabName = getTabName(tab.name)
+				local tabName = getTabName(tab.url)
 				term.write(" " .. tabName)
 
 				if i == currentTab and #tabs > 1 then
@@ -1228,7 +1237,7 @@ end
 --    Fetch Websites
 
 
-local function loadingAnimation()
+local loadingAnimation = function()
 	local state = -2
 
 	term.setTextColor(theme.text)
@@ -1238,7 +1247,7 @@ local function loadingAnimation()
 	term.write("[=  ]")
 
 	local timer = os.startTimer(animationInterval)
-	
+
 	while true do
 		local event, timerID = os.pullEvent()
 		if event == "timer" and timerID == timer then
@@ -1435,39 +1444,40 @@ end
 local loadTab = function(index, url, givenFunc)
 	url = normalizeURL(url)
 
-	local name = url:match("^[^/]+")
-	if not name then
-		name = "Search"
-	end
-
-	if name:sub(1, 3) == "www" then
-		name = name:sub(5)
-	end
-
-	appendToHistory(url)
-
-	tabs[index] = {}
-	tabs[index].url = url
-	tabs[index].name = name
-	tabs[index].win = window.create(term.native(), 1, 1, w, h, false)
-
 	local func = nil
 	local isOpen = true
 
 	if givenFunc then
 		func = givenFunc
 	else
-		parallel.waitForAny(function() func, isOpen = fetchURL(url) end, loadingAnimation)
+		parallel.waitForAny(function()
+			func, isOpen = fetchURL(url)
+		end, function()
+			while true do
+				local event, key = os.pullEvent()
+				if event == "key" and (key == 29 or key == 157) then
+					break
+				end
+			end
+		end, loadingAnimation)
 	end
 
-	tabs[index].thread = coroutine.create(func)
-	tabs[index].isMenubarOpen = isOpen
-	tabs[index].isMenubarPermanent = isOpen
+	if func then
+		appendToHistory(url)
 
-	term.redirect(tabs[index].win)
-	clear(theme.background, theme.text)
+		tabs[index] = {}
+		tabs[index].url = url
+		tabs[index].win = window.create(term.native(), 1, 1, w, h, false)
 
-	switchTab(index)
+		tabs[index].thread = coroutine.create(func)
+		tabs[index].isMenubarOpen = isOpen
+		tabs[index].isMenubarPermanent = isOpen
+
+		term.redirect(tabs[index].win)
+		clear(theme.background, theme.text)
+
+		switchTab(index)
+	end
 end
 
 
@@ -1624,6 +1634,25 @@ end
 --    FWML Execution
 
 
+local render = {}
+
+render["functions"] = {}
+render["functions"]["public"] = {}
+render["alignations"] = {}
+
+render["variables"] = {
+	scroll,
+	maxScroll,
+	align,
+	linkData = {},
+	blockLength,
+	link,
+	linkStart,
+	markers,
+	currentOffset,
+}
+
+
 local function getLine(loc, data)
 	local _, changes = data:sub(1, loc):gsub("\n", "")
 	if not changes then
@@ -1723,25 +1752,6 @@ end
 local function parse(original)
 	return proccessData(parseData(original))
 end
-
-
-local render = {}
-
-render["functions"] = {}
-render["functions"]["public"] = {}
-render["alignations"] = {}
-
-render["variables"] = {
-	scroll,
-	maxScroll,
-	align,
-	linkData = {},
-	blockLength,
-	link,
-	linkStart,
-	markers,
-	currentOffset
-}
 
 
 render["functions"]["display"] = function(text, length, offset, center)
