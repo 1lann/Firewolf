@@ -400,8 +400,6 @@ local backend = function(serverURL, onEvent, onMessage)
 		local event, givenSide, givenChannel, givenID, givenMessage, givenDistance = unpack(eventArgs)
 		if event == "modem_message" then
 			if givenChannel == publicDnsChannel and givenMessage == DNSRequestTag and givenID == responseID then
-				--onMessage("[DIRECT] Responding to DNS request")
-
 				modem("open", publicRespChannel)
 				modem("transmit", publicRespChannel, responseID, DNSResponseTag .. serverURL)
 				modem("close", publicRespChannel)
