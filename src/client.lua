@@ -1412,18 +1412,10 @@ end
 local fetchExternal = function(url, connection)
 
 	if connection.multipleServers then
-		local ids = {}
-		for _, v in pairs(connection.servers) do
-			table.insert(ids, v.id)
-		end
-
-		local id = displayIDSelection(ids)
-		for _, v in pairs(connection.servers) do
-			if v.id == id then
-				connection = v
-				break
-			end
-		end
+		-- Please forgive me
+		-- GravityScore forced me to do it like this
+		-- I don't mean it, I really don't.
+		connection = connection.servers[1]
 	end
 
 	local page = normalizePage(url:match("^[^/]+(.+)"))
