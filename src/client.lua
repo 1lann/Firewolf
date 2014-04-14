@@ -1197,6 +1197,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 			return finalResult
 		end
 	end
+
 	return nil
 end
 
