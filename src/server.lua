@@ -612,10 +612,8 @@ end
 local main = function()
 	if term.isColor() then
 		theme = colorTheme
-		enableTabBar = true
 	else
 		theme = grayscaleTheme
-		enableTabBar = false
 	end
 
 	setupModem()
