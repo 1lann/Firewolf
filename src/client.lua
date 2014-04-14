@@ -742,13 +742,13 @@ end
 
 
 builtInSites["crash"] = function(err)
-	fill(1, 6, w, 3, theme.subtle)
-	term.setCursorPos(1, 7)
+	fill(1, 3, w, 3, theme.subtle)
+	term.setCursorPos(1, 4)
 	center("The website crashed!")
 
 	term.setBackgroundColor(theme.background)
-	term.setCursorPos(1, 11)
-	center(err)
+	term.setCursorPos(1, 8)
+	centerSplit(err, w - 4)
 	print("\n")
 	center("Please report this error to")
 	center("the website creator.")
@@ -1690,31 +1690,34 @@ end
 local function parseData(data)
 	local commands = {}
 	local searchPos = 1
+
 	while #data > 0 do
 		local sCmd, eCmd = data:find("%[[^%]]+%]", searchPos)
 		if sCmd then
 			sCmd = sCmd + 1
 			eCmd = eCmd - 1
+
 			if (sCmd > 2) then
-				if data:sub(sCmd-2, sCmd-2) == "\\" then
-					local t = data:sub(searchPos, sCmd-1):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
+				if data:sub(sCmd - 2, sCmd - 2) == "\\" then
+					local t = data:sub(searchPos, sCmd - 1):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
 					if #t > 0 then
-						if type(commands[#commands][1]) == "string" then
-							commands[#commands][1] = commands[#commands][1]..t
+						if #commands > 0 and type(commands[#commands][1]) == "string" then
+							commands[#commands][1] = commands[#commands][1] .. t
 						else
 							table.insert(commands, {t})
 						end
 					end
 					searchPos = sCmd
 				else
-					local t = data:sub(searchPos, sCmd-2):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
+					local t = data:sub(searchPos, sCmd - 2):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
 					if #t > 0 then
-						if type(commands[#commands][1]) == "string" then
-							commands[#commands][1] = commands[#commands][1]..t
+						if #commands > 0 and type(commands[#commands][1]) == "string" then
+							commands[#commands][1] = commands[#commands][1] .. t
 						else
 							table.insert(commands, {t})
 						end
 					end
+
 					t = data:sub(sCmd, eCmd):gsub("\n", "")
 					table.insert(commands, {getLine(sCmd, data), t})
 					searchPos = eCmd + 2
@@ -1727,34 +1730,41 @@ local function parseData(data)
 		else
 			local t = data:sub(searchPos, -1):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
 			if #t > 0 then
-				if type(commands[#commands][1]) == "string" then
-					commands[#commands][1] = commands[#commands][1]..t
+				if #commands > 0 and type(commands[#commands][1]) == "string" then
+					commands[#commands][1] = commands[#commands][1] .. t
 				else
 					table.insert(commands, {t})
 				end
 			end
+
 			break
 		end
 	end
+
 	return commands
 end
 
 
 local function proccessData(commands)
 	searchIndex = 0
+
 	while searchIndex < #commands do
 		searchIndex = searchIndex + 1
+
 		local length = 0
 		local origin = searchIndex
+
 		if type(commands[searchIndex][1]) == "string" then
 			length = length + #commands[searchIndex][1]
 			local endIndex = origin
 			for i = origin + 1, #commands do
-				if commands[i][2] and not((commands[i][2]:sub(1, 2) == "c ") or
-				(commands[i][2]:sub(1, 3) == "bg ") or (commands[i][2]:sub(1, 8) == "newlink ") or
-				(commands[i][2] == "endlink")) then
-					endIndex = i
-					break
+				if commands[i][2] then
+					local command = commands[i][2]:match("^(%w+)%s+")
+					if not (command == "c" or command == "color" or command == "bg"
+							or command == "background" or command == "newlink" or command == "endlink") then
+						endIndex = i
+						break
+					end
 				elseif commands[i][2] then
 
 				else
@@ -1764,11 +1774,13 @@ local function proccessData(commands)
 					endIndex = i
 				end
 			end
+
 			commands[origin][2] = length
 			searchIndex = endIndex
 			length = 0
 		end
 	end
+
 	return commands
 end
 
@@ -1817,7 +1829,7 @@ end
 
 
 render["functions"]["public"]["c "] = function(source)
-	local sColor = source[2]:sub(3, -1)
+	local sColor = source[2]:match("^%w+%s+(.+)$") or ""
 	if colors[sColor] then
 		term.setTextColor(colors[sColor])
 	else
@@ -1826,8 +1838,11 @@ render["functions"]["public"]["c "] = function(source)
 end
 
 
+render["functions"]["public"]["color "] = render["functions"]["public"]["c "]
+
+
 render["functions"]["public"]["bg "] = function(source)
-	local sColor = source[2]:sub(3, -1)
+	local sColor = source[2]:match("^%w+%s+(.+)$") or ""
 	if colors[sColor] then
 		term.setBackgroundColor(colors[sColor])
 	else
@@ -1836,12 +1851,15 @@ render["functions"]["public"]["bg "] = function(source)
 end
 
 
+render["functions"]["public"]["background "] = render["functions"]["public"]["bg "]
+
+
 render["functions"]["public"]["newlink "] = function(source)
 	if render.variables.link then
 		return "Cannot nest links on line " .. source[1]
 	end
 
-	render.variables.link = source[2]:sub(9, -1)
+	render.variables.link = source[2]:match("^%w+%s+(.+)$") or ""
 	render.variables.linkStart = false
 end
 
@@ -1860,26 +1878,26 @@ end
 
 
 render["functions"]["public"]["offset "] = function(source)
-	local offset = tonumber(source[2]:sub(8, -1))
+	local offset = tonumber((source[2]:match("^%w+%s+(.+)$") or ""))
 	if offset then
 		render.variables.currentOffset = offset
 	else
-		return "Invalid offset value: \"" .. source[2]:sub(8, -1) .. "\" on line " .. source[1]
+		return "Invalid offset value: \"" .. (source[2]:match("^%w+%s+(.+)$") or "") .. "\" on line " .. source[1]
 	end
 end
 
 
 render["functions"]["public"]["marker "] = function(source)
-	render.variables.markers[source[2]:sub(8, -1)] = render.variables.scroll
+	render.variables.markers[(source[2]:match("^%w+%s+(.+)$") or "")] = render.variables.scroll
 end
 
 
 render["functions"]["public"]["goto "] = function(source)
-	local location = source[2]:sub(6, -1)
+	local location = source[2]:match("%w+%s+(.+)$")
 	if render.variables.markers[location] then
 		render.variables.scroll = render.variables.markers[location]
 	else
-		return "No such location: \"" .. source[2]:sub(6-1) .. "\" on line " .. source[1]
+		return "No such location: \"" .. (source[2]:match("%w+%s+(.+)$") or "") .. "\" on line " .. source[1]
 	end
 end
 
@@ -1887,7 +1905,7 @@ end
 render["functions"]["public"]["box "] = function(source)
 	local sColor, align, height, width, offset, url = source[2]:match("^box (%a+) (%a+) (%-?%d+) (%-?%d+) (%-?%d+) ?([^ ]*)")
 	if not sColor then
-		return "Invalid box syntax on line "..source[1]
+		return "Invalid box syntax on line " .. source[1]
 	end
 
 	local x, y = term.getCursorPos()

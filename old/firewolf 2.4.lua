@@ -1,12 +1,12 @@
 
---  
+--
 --  Firewolf Website Browser
 --  Made by GravityScore and 1lann
 --  License found here: https://raw.github.com/1lann/Firewolf/master/LICENSE
---  
+--
 --  Original Concept From RednetExplorer 2.4.1
 --  RednetExplorer Made by ComputerCraftFan11
---  
+--
 
 
 --  -------- Variables
@@ -106,8 +106,8 @@ local function debugLog(n, ...)
 	if debugFile then
 		if n == nil then n = "" end
 		debugFile:write("\n" .. tostring(n) .. " : ")
-		for k, v in pairs(lArgs) do 
-			if type(v) == "string" or type(v) == "number" or type(v) == nil or 
+		for k, v in pairs(lArgs) do
+			if type(v) == "string" or type(v) == "number" or type(v) == nil or
 					type(v) == "boolean" then
 				debugFile:write(tostring(v) .. ", ")
 			else debugFile:write("type-" .. type(v) .. ", ") end
@@ -117,7 +117,7 @@ end
 
 local function modRead(properties)
 	local w, h = term.getSize()
-	local defaults = {replaceChar = nil, history = nil, visibleLength = nil, textLength = nil, 
+	local defaults = {replaceChar = nil, history = nil, visibleLength = nil, textLength = nil,
 		liveUpdates = nil, exitOnKey = nil}
 	if not properties then properties = {} end
 	for k, v in pairs(defaults) do if not properties[k] then properties[k] = v end end
@@ -131,7 +131,7 @@ local function modRead(properties)
 
 	local function redraw(repl)
 		local scroll = 0
-		if properties.visibleLength and sx + pos > properties.visibleLength + 1 then 
+		if properties.visibleLength and sx + pos > properties.visibleLength + 1 then
 			scroll = (sx + pos) - (properties.visibleLength + 1)
 		end
 
@@ -212,9 +212,9 @@ local function modRead(properties)
 					#properties.history > 0 then
 				redraw(" ")
 				if but == keys.up then
-					if historyPos == nil and #properties.history > 0 then 
+					if historyPos == nil and #properties.history > 0 then
 						historyPos = #properties.history
-					elseif historyPos > 1 then 
+					elseif historyPos > 1 then
 						historyPos = historyPos - 1
 					end
 				elseif but == keys.down then
@@ -252,9 +252,9 @@ local function modRead(properties)
 			elseif but == keys["end"] then
 				pos = line:len()
 				redraw()
-			elseif properties.exitOnKey then 
-				if but == properties.exitOnKey or (properties.exitOnKey == "control" and 
-						(but == 29 or but == 157)) then 
+			elseif properties.exitOnKey then
+				if but == properties.exitOnKey or (properties.exitOnKey == "control" and
+						(but == 29 or but == 157)) then
 					term.setCursorBlink(false)
 					return nil
 				end
@@ -279,7 +279,7 @@ end
 
 local function clearPage(site, color, redraw, tcolor)
 	-- Site titles
-	local titles = {firewolf = "Firewolf Homepage", ["server/rdnt"] = "RDNT Server Management", 
+	local titles = {firewolf = "Firewolf Homepage", ["server/rdnt"] = "RDNT Server Management",
 		["server/http"] = "HTTP Server Management", help = "Firewolf Help",
 		settings = "Firewolf Settings", credits = "Firewolf Credits",
 		crash = "Website Has Crashed!", overspeed = "Too Fast!"}
@@ -421,7 +421,7 @@ api.loadImageFromServer = function(path)
 end
 
 api.writeDataFile = function(path, content)
-	if type(path) ~= "string" or type(content) ~= "string" then 
+	if type(path) ~= "string" or type(content) ~= "string" then
 		error("writeDataFile: expected string, string") end
 	if path:sub(1, 1) == "/" then path = path:sub(2, -1) end
 	local dataPath = websiteDataFolder .. "/" .. path:gsub("/", "$slazh$")
@@ -532,7 +532,7 @@ api.urlDownload = function(url)
 		end
 	end
 
-	if type(source) == "string" then 
+	if type(source) == "string" then
 		local saveFunc = api.saveFileToUserComputer
 		env.setfenv(saveFunc, override)
 		return saveFunc(source)
@@ -660,7 +660,7 @@ api.scrollingPrompt = function(list, x, y, len, width)
 		local loc = 1
 		local disList = updateDisplayList(list, loc, len)
 		draw(disList)
-		
+
 		while true do
 			local e, but, clx, cly = os.pullEvent()
 			if e == "key" and but == 200 and loc > 1 then
@@ -748,7 +748,7 @@ local pullevent = function(data)
 			error()
 		end
 
-		if data then 
+		if data then
 			if e == data then return e, p1, p2, p3, p4, p5 end
 		else return e, p1, p2, p3, p4, p5 end
 	end
@@ -776,9 +776,9 @@ override.os = {}
 for k, v in pairs(env.os) do override.os[k] = v end
 
 override.write = function( sText )
-	local w,h = override.term.getSize()		
+	local w,h = override.term.getSize()
 	local x,y = override.term.getCursorPos()
-	
+
 	local nLinesPrinted = 0
 	local function newLine()
 		if y + 1 <= h then
@@ -790,7 +790,7 @@ override.write = function( sText )
 		x, y = override.term.getCursorPos()
 		nLinesPrinted = nLinesPrinted + 1
 	end
-	
+
 	-- Print the line with proper word wrapping
 	while string.len(sText) > 0 do
 		local whitespace = string.match( sText, "^[ \t]+" )
@@ -800,19 +800,19 @@ override.write = function( sText )
 			x,y = override.term.getCursorPos()
 			sText = string.sub( sText, string.len(whitespace) + 1 )
 		end
-		
+
 		local newline = string.match( sText, "^\n" )
 		if newline then
 			-- Print newlines
 			newLine()
 			sText = string.sub( sText, 2 )
 		end
-		
+
 		local text = string.match( sText, "^[^ \t\n]+" )
 		if text then
 			sText = string.sub( sText, string.len(text) + 1 )
 			if string.len(text) > w then
-				-- Print a multiline word				
+				-- Print a multiline word
 				while string.len( text ) > 0 do
 					if x > w then
 						newLine()
@@ -831,7 +831,7 @@ override.write = function( sText )
 			end
 		end
 	end
-	
+
 	return nLinesPrinted
 end
 
@@ -942,8 +942,8 @@ override.os.pullEvent = function(data)
 		elseif e == "mouse_drag" and data == "mouse_drag" then
 			return e, p1, p2, p3 - 1
 		end
-		
-		if data then 
+
+		if data then
 			if e == data then return e, p1, p2, p3, p4, p5 end
 		else return e, p1, p2, p3, p4, p5 end
 	end
@@ -951,7 +951,7 @@ end
 
 local overridePullEvent = override.os.pullEvent
 
-override.prompt = function(list, dir) 
+override.prompt = function(list, dir)
 	local a = {}
 	for k, v in pairs(list) do
 		table.insert(a, {v[1], v[2], v[3] + 1, tc = v.tc or curtext, bg = v.bg or curbackground})
@@ -989,8 +989,8 @@ end
 
 -- Overrides
 local antivirusOverrides = {
-	["Run Files"] = {"shell.run", "os.run"}, 
-	["Modify System"] = {"shell.setAlias", "shell.clearAlias", "os.setComputerLabel", "shell.setDir", 
+	["Run Files"] = {"shell.run", "os.run"},
+	["Modify System"] = {"shell.setAlias", "shell.clearAlias", "os.setComputerLabel", "shell.setDir",
 		"shell.setPath"},
 	["Modify Files"] = {"fs.makeDir", "fs.move", "fs.copy", "fs.delete", "fs.open",
 		"io.open", "io.write", "io.read", "io.close"},
@@ -1089,7 +1089,7 @@ antivirus.pcall = function(...)
 	elseif err:lower():find(event_exitWebsite) then
 		error(event_exitWebsite)
 	end
-	
+
 	return suc, err
 end
 
@@ -1097,15 +1097,15 @@ end
 --  -------- Graphics and Files
 
 graphics.githubImage = [[
-f       f 
-fffffffff 
-fffffffff 
-f4244424f 
-f4444444f 
+f       f
+fffffffff
+fffffffff
+f4244424f
+f4444444f
 fffffefffe
-   fffe e 
- fffff e  
-ff f fe e 
+   fffe e
+ fffff e
+ff f fe e
      e   e
 ]]
 
@@ -1148,11 +1148,11 @@ text-color=
 
 --  -------- Themes
 
-local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray", 
-	["address-bar-base"] = "lightGray", ["top-box"] = "red", ["bottom-box"] = "orange", 
+local defaultTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "gray",
+	["address-bar-base"] = "lightGray", ["top-box"] = "red", ["bottom-box"] = "orange",
 	["text-color"] = "white", ["background"] = "gray"}
-local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "black", 
-	["address-bar-base"] = "black", ["top-box"] = "black", ["bottom-box"] = "black", 
+local originalTheme = {["address-bar-text"] = "white", ["address-bar-background"] = "black",
+	["address-bar-base"] = "black", ["top-box"] = "black", ["bottom-box"] = "black",
 	["text-color"] = "white", ["background"] = "black"}
 
 local function loadTheme(path)
@@ -1197,7 +1197,7 @@ local function download(url, path)
 		end
 	end
 
-	return false  
+	return false
 end
 
 local function updateClient()
@@ -1382,7 +1382,7 @@ end
 
 local function loadDatabases()
 	-- Blacklist
-	if fs.exists(userBlacklist) and not fs.isDir(userBlacklist) then 
+	if fs.exists(userBlacklist) and not fs.isDir(userBlacklist) then
 		local bf = io.open(userBlacklist, "r")
 		local l = bf:read("*l")
 		while l ~= nil do
@@ -1396,7 +1396,7 @@ local function loadDatabases()
 	end
 
 	-- Whitelist
-	if fs.exists(userWhitelist) and not fs.isDir(userWhitelist) then 
+	if fs.exists(userWhitelist) and not fs.isDir(userWhitelist) then
 		local wf = io.open(userWhitelist, "r")
 		local l = wf:read("*l")
 		while l ~= nil do
@@ -1420,7 +1420,7 @@ end
 
 local function verifyWhitelist(id, url)
 	for _, v in pairs(whitelist) do
-		if v[2] == tostring(args[1]) and v[1] == tostring(args[2]) then 
+		if v[2] == tostring(args[1]) and v[1] == tostring(args[2]) then
 			return true
 		end
 	end
@@ -1450,7 +1450,7 @@ protocols.rdnt.getSearchResults = function()
 					if not resultIDs[tostring(id)] then resultIDs[tostring(id)] = 1
 					else resultIDs[tostring(id)] = resultIDs[tostring(id)] + 1
 					end
-					
+
 					if not i:find("rdnt://") then i = ("rdnt://" .. i) end
 					local x = false
 					if conflict[i] then
@@ -1609,7 +1609,7 @@ pages["firewolf/sites"] = function(site)
 		local e, but, x, y = os.pullEvent()
 		if isAdvanced() and e == "mouse_click" and x >= 14 and x <= 50 then
 			for i, v in ipairs(a) do
-				if y == sx + i then 
+				if y == sx + i then
 					if v == "exit" then return true end
 					redirect(v)
 				end
@@ -1662,7 +1662,7 @@ local function manageServers(site, protocol, functionList, startServerName)
 			term.setCursorPos(30, sy)
 			write(string.rep(" ", 19))
 			term.setCursorPos(30, sy)
-			if l[sel] then 
+			if l[sel] then
 				local nl = l[sel]
 				if nl:len() > 19 then nl = nl:sub(1, 16) .. "..." end
 				write(nl)
@@ -1679,8 +1679,8 @@ local function manageServers(site, protocol, functionList, startServerName)
 
 		local function updateDisplayList(items, loc, len)
 			local ret = {}
-			for i = 1, len do 
-				if items[i + loc - 1] then table.insert(ret, items[i + loc - 1]) end 
+			for i = 1, len do
+				if items[i + loc - 1] then table.insert(ret, items[i + loc - 1]) end
 			end
 			return ret
 		end
@@ -1729,8 +1729,8 @@ local function manageServers(site, protocol, functionList, startServerName)
 							break
 						elseif #servers > 0 then
 							for i, v in ipairs(disList) do
-								if y == i + 7 then 
-									sel = i 
+								if y == i + 7 then
+									sel = i
 									draw(disList, sel)
 								end
 							end
@@ -1743,7 +1743,7 @@ local function manageServers(site, protocol, functionList, startServerName)
 						functionList["edit"](disList[sel])
 						servers = functionList["reload servers"]()
 						break
-					elseif x >= 30 and x <= 46 and y == 13 and #servers > 0 and 
+					elseif x >= 30 and x <= 46 and y == 13 and #servers > 0 and
 							functionList["run on boot"] then
 						functionList["run on boot"](disList[sel])
 						term.setBackgroundColor(colors[theme["bottom-box"]])
@@ -1785,7 +1785,7 @@ local function manageServers(site, protocol, functionList, startServerName)
 			else
 				term.setCursorPos(30, 8)
 				write(server)
-				local a = {{"Start", 30, 9}, {"Edit", 30, 11}, {"Run on Boot", 30, 12}, 
+				local a = {{"Start", 30, 9}, {"Edit", 30, 11}, {"Run on Boot", 30, 12},
 					{"Delete", 30, 13}, {"Back", 30, 15}}
 				if not functionList["run on boot"] then
 					a = {{"Start", 30, 9}, {"Edit", 30, 11}, {"Delete", 30, 13}, {"Back", 30, 15}}
@@ -1826,11 +1826,11 @@ local function editPages(dir)
 	print(" The 'home' file is the index of your site.")
 	print("")
 
-	local allowed = {"move", "mv", "cp", "copy", "drive", "delete", "rm", "edit", 
+	local allowed = {"move", "mv", "cp", "copy", "drive", "delete", "rm", "edit",
 		"eject", "exit", "help", "id", "monitor", "rename", "alias", "clear",
 		"paint", "firewolf", "lua", "redstone", "rs", "redprobe", "redpulse", "programs",
 		"redset", "reboot", "hello", "label", "list", "ls", "easter", "pastebin", "dir"}
-	
+
 	while true do
 		shell.setDir(dir)
 		term.setBackgroundColor(colors.black)
@@ -1886,7 +1886,7 @@ local function newServer(onCreate)
 	write("URL:")
 	term.setCursorPos(8, 11)
 	write("rdnt://")
-	local url = modRead({grantPrint = "abcdefghijklmnopqrstuvwxyz1234567890-_.+", 
+	local url = modRead({grantPrint = "abcdefghijklmnopqrstuvwxyz1234567890-_.+",
 		visibleLength = w - 4, textLength = 200})
 	url = url:gsub(" ", "")
 	if name == "" or url == "" then
@@ -1956,7 +1956,7 @@ pages["server/rdnt"] = function(site)
 		fs.delete("/old-startup")
 		if fs.exists("/startup") then fs.move("/startup", "/old-startup") end
 		local f = io.open("/startup", "w")
-		f:write("shell.run(\"" .. serverLocation .. "\", \"" .. server .. "\", \"" .. 
+		f:write("shell.run(\"" .. serverLocation .. "\", \"" .. server .. "\", \"" ..
 			serverFolder .. "/" .. server .. "\")")
 		f:close()
 	end, ["delete"] = function(server)
@@ -2002,14 +2002,14 @@ pages["help"] = function(site)
 	rightPrint("       View the full documentation here: ")
 	rightPrint("  https://github.com/1lann/Firewolf/wiki ")
 
-	local opt = prompt({{"Getting Started", w - 21, 8}, {"Making a Theme", w - 20, 10}, 
+	local opt = prompt({{"Getting Started", w - 21, 8}, {"Making a Theme", w - 20, 10},
 		{"API Documentation", w - 23, 12}}, "vertical")
 	local pages = {}
 	if opt == "Getting Started" then
 		pages[1] = {title = "Getting Started - Intoduction", content = {
-			"Hey there!", 
+			"Hey there!",
 			"",
-			"Firewolf is an app that allows you to create", 
+			"Firewolf is an app that allows you to create",
 			"and visit websites! Each site has an address",
 			"(the URL) which you can type into the address",
 			"bar above, and then visit the site.",
@@ -2024,7 +2024,7 @@ pages["help"] = function(site)
 			"To view all sites, just open it and hit",
 			"enter (leave the field blank)."
 		}} pages[3] = {title = "Getting Started - Built-In Websites", content = {
-			"Firewolf has a set of built-in websites", 
+			"Firewolf has a set of built-in websites",
 			"available for use:",
 			"",
 			"rdnt://firewolf   Normal hompage",
@@ -2240,7 +2240,7 @@ pages["settings/themes"] = function(site)
 				n = "/" .. n
 				term.setCursorPos(1, 17)
 				rightWrite(string.rep(" ", 36))
-				
+
 				term.setCursorPos(1, 17)
 				if fs.exists(n) and not fs.isDir(n) then
 					local a = loadTheme(n)
@@ -2326,7 +2326,7 @@ pages["settings"] = function(site)
 
 	term.setBackgroundColor(colors[theme["bottom-box"]])
 	for i = 1, 9 do rightPrint(string.rep(" ", 36)) end
-	local c = {{a, w - a:len() - 6, 9}, {"Change Theme", w - 18, 11}, {b, w - b:len() - 6, 13}, 
+	local c = {{a, w - a:len() - 6, 9}, {"Change Theme", w - 18, 11}, {b, w - b:len() - 6, 13},
 		{"Reset Firewolf", w - 20, 15}}
 	if not isAdvanced() then
 		c = {{a, w - a:len(), 9}, {b, w - b:len(), 11}, {"Reset Firewolf", w - 14, 13}}
@@ -2357,9 +2357,9 @@ pages["settings"] = function(site)
 		print("\n")
 		term.setBackgroundColor(colors[theme["bottom-box"]])
 		for i = 1, 11 do rightPrint(string.rep(" ", 26)) end
-		local opt = prompt({{"Reset History", w - 19, 8}, {"Reset Servers", w - 19, 9}, 
-			{"Reset Theme", w - 17, 10}, {"Reset Cache", w - 17, 11}, {"Reset Databases", w - 21, 12}, 
-			{"Reset Settings", w - 20, 13}, {"Back", w - 10, 14}, {"Reset All", w - 15, 16}}, 
+		local opt = prompt({{"Reset History", w - 19, 8}, {"Reset Servers", w - 19, 9},
+			{"Reset Theme", w - 17, 10}, {"Reset Cache", w - 17, 11}, {"Reset Databases", w - 21, 12},
+			{"Reset Settings", w - 20, 13}, {"Back", w - 10, 14}, {"Reset All", w - 15, 16}},
 			"vertical")
 
 		openAddressBar = false
@@ -2581,7 +2581,7 @@ local function external(site)
 			centerPrint("Could Not Connect to Website!")
 			print("")
 			centerPrint("A Cached Version was Found.")
-			local opt = prompt({{"Load Cache", -1, 10}, {"Continue to Search Results", -1, 12}}, 
+			local opt = prompt({{"Load Cache", -1, 10}, {"Continue to Search Results", -1, 12}},
 				"vertical")
 			if opt == "Load Cache" then
 				-- Clear
@@ -2713,7 +2713,7 @@ local function websitecoroutine()
 			-- Reset loading rate
 			loadingRate = 0
 			loadingClock = os.clock()
-		end 
+		end
 
 		-- Run site
 		if loadingRate >= 8 then
@@ -2820,7 +2820,7 @@ local function addressbarread()
 		if event == "char" or event == "history" or event == "delete" then
 			list = {}
 			for _, v in pairs(dnsDatabase[1]) do
-				if #list < len and 
+				if #list < len and
 						v:gsub("rdnt://", ""):gsub("http://", ""):find(line:lower(), 1, true) then
 					table.insert(list, v)
 				end
@@ -2849,7 +2849,7 @@ local function addressbarread()
 		for _, v in pairs(rs.getSides()) do if rednet.isOpen(v) then mod = true end end
 	end
 	if isAdvanced() and mod then
-		return modRead({history = addressBarHistory, visibleLength = w - 2, textLength = 300, 
+		return modRead({history = addressBarHistory, visibleLength = w - 2, textLength = 300,
 			liveUpdates = update, exitOnKey = "control"})
 	else
 		return modRead({history = addressBarHistory, visibleLength = w - 2, textLength = 300,
@@ -2978,7 +2978,7 @@ local function main()
 	rightPrint("        Checking for Updates... ")
 	rightPrint(string.rep(" ", 32))
 	setfenv(updateClient, env)
-	if not noInternet then 
+	if not noInternet then
 		if updateClient() then
 			if debugFile then debugFile:close() end
 
@@ -2987,7 +2987,7 @@ local function main()
 			os.pullEvent = oldpullevent
 			shell.run(firewolfLocation)
 			error()
-		end 
+		end
 	end
 
 	-- Download Files
@@ -3037,7 +3037,7 @@ local function startup()
 			if e == "mouse_click" or e == "key" then break end
 		end
 
-		return false 
+		return false
 	end
 
 	-- Turtle
@@ -3120,7 +3120,7 @@ if fs.isReadOnly(firewolfLocation) or fs.isReadOnly(rootFolder) then
 end
 
 -- Theme
-if not isAdvanced() then 
+if not isAdvanced() then
 	theme = originalTheme
 else
 	theme = loadTheme(themeLocation)
@@ -3150,7 +3150,7 @@ api.centerPrint("Thank You for Using Firewolf " .. version)
 api.centerPrint("Made by 1lann and GravityScore")
 
 -- Close
-for _, v in pairs(rs.getSides()) do 
+for _, v in pairs(rs.getSides()) do
 	if peripheral.getType(v) == "modem" then rednet.close(v) end
 end
 if debugFile then debugFile:close() end

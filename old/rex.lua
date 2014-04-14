@@ -26,7 +26,7 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 		term.setCursorPos(1,y-1)
 		write( string.rep( "-", x ) )
 		term.setCursorPos(1,y)
-		
+
 		local pages = {}
 		function addPage( name, link )
 			pages[#pages+1] = {
@@ -34,16 +34,16 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 				["Link"] = link,
 			}
 		end
-		
+
 		--Add your pages here
-		
+
 		addPage("Home","nexus")
 		addPage("Contact Us","nexus/contact")
 		addPage("IRC","nexus/games")
 		addPage("Search","nexus/search")
-		
+
 		--End
-		
+
 		local maxPage = #pages
 		for i=1,maxPage do
 			local page = pages[i]
@@ -64,7 +64,7 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 		term.setCursorPos(1,y-1)
 		write( string.rep( "-", x ) )
 		term.setCursorPos(1,y)
-		
+
 		local pages = {}
 		function addPage( name, link )
 			pages[#pages+1] = {
@@ -72,16 +72,16 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 				["Link"] = link,
 			}
 		end
-		
+
 		--Add your pages here
-		
+
 		addPage("Home","nexus")
 		addPage("Contact Us","nexus/contact")
 		addPage("IRC","nexus/games")
 		addPage("Search","nexus/search")
-		
+
 		--End
-		
+
 		local maxPage = #pages
 		for i=1,maxPage do
 			local page = pages[i]
@@ -126,7 +126,7 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 	   write(text.. "\n")
 	end
 
-	function newIRCREAD( _sReplaceChar, _tHistory )	
+	function newIRCREAD( _sReplaceChar, _tHistory )
 		term.setCursorBlink( true )
 
 		local sLine = ""
@@ -135,15 +135,15 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 		if _sReplaceChar then
 			_sReplaceChar = string.sub( _sReplaceChar, 1, 1 )
 		end
-		
+
 		local w, h = term.getSize()
-		local sx, sy = term.getCursorPos()	
+		local sx, sy = term.getCursorPos()
 		local function redraw()
 			local nScroll = 0
 			if sx + nPos >= w then
 				nScroll = (sx + nPos) - w
 			end
-				
+
 			term.setCursorPos( sx, sy )
 			term.write( string.rep(" ", w - sx + 1) )
 			term.setCursorPos( sx, sy )
@@ -154,33 +154,33 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 			end
 			term.setCursorPos( sx + nPos - nScroll, h )
 		end
-		
+
 		while true do
 			local sEvent, param, message = os.pullEvent()
 			if sEvent == "char" then
 				sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
 				nPos = nPos + 1
 				redraw()
-				
+
 			elseif sEvent == "key" then
 				if param == keys.enter then
 					-- Enter
 					break
-					
+
 				elseif param == keys.left then
 					-- Left
 					if nPos > 0 then
 						nPos = nPos - 1
 						redraw()
 					end
-					
+
 				elseif param == keys.right then
-					-- Right				
+					-- Right
 					if nPos < string.len(sLine) then
 						nPos = nPos + 1
 						redraw()
 					end
-				
+
 				elseif param == keys.up or param == keys.down then
 					-- Up or down
 					if _tHistory then
@@ -199,12 +199,12 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 								nHistoryPos = nil
 							elseif nHistoryPos ~= nil then
 								nHistoryPos = nHistoryPos + 1
-							end						
+							end
 						end
-						
+
 						if nHistoryPos then
 							sLine = _tHistory[nHistoryPos]
-							nPos = string.len( sLine ) 
+							nPos = string.len( sLine )
 						else
 							sLine = ""
 							nPos = 0
@@ -215,7 +215,7 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 					-- Backspace
 					if nPos > 0 then
 						sLine = string.sub( sLine, 1, nPos - 1 ) .. string.sub( sLine, nPos + 1 )
-						nPos = nPos - 1					
+						nPos = nPos - 1
 						redraw()
 					end
 				end
@@ -246,7 +246,7 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 				elseif message == ("ServerPing" .._tChannel) and serverHost then
 					rednet.send(id, ("Ping_Received_" .._tChannel.. "_IRC"))
 				end
-				
+
 				local x11,y11 = term.getSize()
 				local x12,y12 = term.getCursorPos()
 				term.clear()
@@ -255,15 +255,15 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 				for i=1,#messages do
 					print(messages[i])
 				end
-				
+
 				print()
 				term.setCursorPos(1,y11)
 				write("> " ..sLine)
 			end
 		end
-		
+
 		term.setCursorBlink( false )
-		
+
 		return sLine
 	end
 
@@ -337,16 +337,16 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 		function addMSG( messagez )
 			messages[#messages + 1] = messagez
 		end
-		
+
 		rednet.broadcast("IRC_JOIN:" .._tChannel.. ":" .._tUser)
-		
+
 		function b()
 			while true do
 				local x1,y1 = term.getCursorPos()
 				local x,y = term.getSize()
 				term.setCursorPos(1,1)
 				print(_tUser.. " has joined the server!")
-				
+
 				term.setCursorPos(1, y)
 				write("> ")
 				local messageaa = newIRCREAD()
@@ -355,12 +355,12 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 				term.setCursorPos(1,y)
 				term.clearLine()
 				term.setCursorPos(x1,y1)
-				
+
 				if string.sub(messageaa, 1, 1) == "/" then
 					if string.sub(messageaa, 1, 3) == "/op" then
 						if isOP(_tUser, serverOPs) then
 							addMSG("(Console) Op'ing " ..string.sub(messageaa, 5, string.len(messageaa)))
-							serverOPs[#serverOPs+1] = string.sub(messageaa, 5, string.len(messageaa)) 
+							serverOPs[#serverOPs+1] = string.sub(messageaa, 5, string.len(messageaa))
 							rednet.broadcast("IRC_OP:" .._tChannel.. ":" ..string.sub(messageaa, 5, string.len(messageaa)))
 						else
 							addMSG("No permission")
@@ -368,7 +368,7 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 					elseif string.sub(messageaa, 1, 5) == "/mute" then
 						if isOP(_tUser, serverOPs) then
 							addMSG(string.sub(messageaa, 7, string.len(messageaa)).. " has been muted.")
-							banList[#banList+1] = string.sub(messageaa, 7, string.len(messageaa)) 
+							banList[#banList+1] = string.sub(messageaa, 7, string.len(messageaa))
 						else
 							addMSG("No permission")
 						end
@@ -387,7 +387,7 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 						rednet.broadcast("IRC_MESSAGE<!:>" .._tChannel.. "<!:>" .._tUser.. "<!:>" ..messageaa)
 					end
 				end
-				
+
 				local x11,y11 = term.getSize()
 				local x12,y12 = term.getCursorPos()
 				term.clear()
@@ -396,11 +396,11 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 				for i=1,#messages do
 					print(messages[i])
 				end
-				
+
 				print()
 			end
 		end
-		
+
 		b()
 	end
 
@@ -434,11 +434,11 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 			term.setCursorPos(27,8)
 			_tChannel = read()
 		until _tChannel ~= ""
-		
+
 		if _tChannel == "ShowAdmin" then --OoOoOo! A easter egg :D Too bad you can't use it :/
 			mainMenu( true )
 		end
-		
+
 		if showAdministrator then
 			term.setCursorPos(24,10)
 			_tAdminCode = read()
@@ -524,12 +524,12 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 	startProgram()]],
 	["nexus/search"] = [[
 		local x,y = term.getSize()
-		
+
 		function navBar()
 			term.setCursorPos(1,y-1)
 			write( string.rep( "-", x ) )
 			term.setCursorPos(1,y)
-			
+
 			local pages = {}
 			function addPage( name, link )
 				pages[#pages+1] = {
@@ -537,16 +537,16 @@ local userSites = { --Message me on the forums if you want a pre-installed site
 					["Link"] = link,
 				}
 			end
-			
+
 			--Add your pages here
-			
+
 			addPage("Home","nexus")
 			addPage("Contact Us","nexus/contact")
 			addPage("IRC","nexus/games")
 			addPage("Search","nexus/search")
-			
+
 			--End
-			
+
 			if newLink then
 				local maxPage = #pages
 				for i=1,maxPage do
@@ -583,13 +583,13 @@ function cWrite( txt, ypos )
 	if ypos then
 		term.setCursorPos(1,ypos)
 	end
-	
+
 	local function printC( text )
 		x2,y2 = term.getCursorPos()
 		term.setCursorPos(math.ceil((x / 2) - (text:len() / 2)), y2)
 		write(text)
 	end
-	
+
 	if type(txt) == "string" then
 		printC( txt )
 	elseif type(txt) == "table" then
@@ -692,7 +692,7 @@ function rnetHost()
 			"name=".. textutils.urlEncode(domain) .. "&"..
 			"data=" ..textutils.urlEncode(data)
 			)
-						
+
 			if response then
 				local sResponse = response.readAll()
 				response.close()
@@ -745,7 +745,7 @@ local function settings()
 		print()
 		newButton( currentID, 5, "Exit" )
 	end
-	
+
 	while true do
 		settingMenu()
 		local event, key = os.pullEvent("key")
@@ -766,7 +766,7 @@ local function settings()
 				elseif rednetType == "rnet" then
 					rednetType = "Rednet"
 				end
-				
+
 				loadWebpage( "settings" )
 			elseif currentID == 2 then
 				local newID = 1
@@ -783,7 +783,7 @@ local function settings()
 					newButton( newID, 1, "Change" )
 					newButton( newID, 2, "Done" )
 				end
-				
+
 				while true do
 					settingMenu()
 					local event, key = os.pullEvent("key")
@@ -815,7 +815,7 @@ local function settings()
 				elseif theme == "edit" then
 					theme = "default"
 				end
-				
+
 				file = fs.open( ".rexsettings", "r" )
 				local humpage = file.readLine()
 				file.close()
@@ -829,7 +829,7 @@ local function settings()
 			end
 		end
 	end
-	
+
 	loadWebpage( "home" )
 end
 
@@ -857,7 +857,7 @@ function newServer( newURL )
 			end
 		end
 	end
-	
+
 	function drawFooter()
 		term.clear()
 		term.setCursorPos(1,1)
@@ -868,7 +868,7 @@ function newServer( newURL )
 			write("-")
 		end
 	end
-	
+
 	function drawBrowser()
 		term.setCursorPos(1,3)
 		if fs.exists( "." ..newURL ) and fs.isDir( "." ..newURL ) then
@@ -884,13 +884,13 @@ function newServer( newURL )
 			file.write( "print(\"This site has not yet been configured.\")" )
 			file.close()
 		end
-		
+
 		local filePath = fs.list( "." ..newURL )
 		for i=1,#filePath do
 			newButton2( currentID, i, filePath[i] )
 		end
 	end
-	
+
 	local status = "[Delete]New Edit"
 	currentID = 1
 	while true do
@@ -947,18 +947,18 @@ function newServer( newURL )
 					local fileName = read()
 					local number = 1
 					local origName = fileName
-					
+
 					while fs.exists( "." ..newURL.. "/" ..fileName ) do
 						fileName = origName.. " [" ..number.. "]"
 						number = number +1
 					end
-					
+
 					file = fs.open( "." ..newURL.. "/" ..fileName, "w" )
 					file.close()
 				else
 					local filePath = fs.list( "." ..newURL )
 					shouldIendThis = false
-					
+
 					function a()
 						while true do
 							local timer = os.startTimer( 0.5 )
@@ -982,12 +982,12 @@ function newServer( newURL )
 							end
 						end
 					end
-					
+
 					function b()
 						shell.run( "edit", "." ..newURL.. "/" ..filePath[ currentID ] )
 						shouldIendThis = true
 					end
-					
+
 					parallel.waitForAny( a, b )
 					drawFooter()
 				end
@@ -1001,7 +1001,7 @@ function loadWebpage( url, id )
 		term.setTextColour( colors.white )
 		term.setBackgroundColour( colors.black )
 	end
-	
+
 	if not url then
 		url = currentURL
 	end
@@ -1028,10 +1028,10 @@ function loadWebpage( url, id )
 			["eX"] = xxx,
 			["eY"] = yyy,
 		}
-		
+
 		return
 	end
-	
+
 	function cLink( text, link, yPos )
 		x2,y2 = term.getCursorPos()
 		if yPos ~= nil then
@@ -1044,14 +1044,14 @@ function loadWebpage( url, id )
 			link = text
 		end
 		term.setCursorPos(math.ceil((x / 2) - (text:len() / 2)), y2)
-		
+
 		newLink( text, link )
 		print()
 	end
-	
+
 	term.clear()
 	term.setCursorPos(1,1)
-	
+
 	if theme == "default" then
 		if rednetType == "HTTP" then
 			print("http://" ..currentURL)
@@ -1060,7 +1060,7 @@ function loadWebpage( url, id )
 		else
 			print("rdnt://" ..currentURL)
 		end
-		
+
 		for i=1,x do
 			term.setCursorPos(i,2)
 			write("-")
@@ -1080,11 +1080,11 @@ function loadWebpage( url, id )
 		term.setCursorPos(1,y)
 		write("Press CTRL to access menu")
 	end
-	
+
 	local function executeP( path )
 		shell.run( path )
 	end
-		
+
 	if url == "home" then
 		homePage()
 	elseif url == "newsite" then
@@ -1127,7 +1127,7 @@ function loadWebpage( url, id )
 					break
 				end
 			end
-			
+
 			print( text )
 		elseif rednetType == "rnet" then
 			local response = http.post(
@@ -1138,7 +1138,7 @@ function loadWebpage( url, id )
 			"data=blank&"..
 			"name=".. textutils.urlEncode(url)
 			)
-				
+
 			if response then
 				local body = response.readAll()
 				response.close()
@@ -1160,7 +1160,7 @@ function loadWebpage( url, id )
 				end
 			end
 		else
-			
+
 			if id then
 				fs.delete(".downloadedWebsite")
 				file = fs.open(".downloadedWebsite", "w")
@@ -1174,7 +1174,7 @@ function loadWebpage( url, id )
 					else
 						rednet.broadcast( url )
 					end
-					
+
 					local timer = os.startTimer(0)
 					local messages = {}
 					repeat
@@ -1195,7 +1195,7 @@ function loadWebpage( url, id )
 							end
 						end
 					until event == "timer" and key == timer
-					
+
 					if #messages == 1 then
 						fs.delete(".downloadedWebsite")
 						file = fs.open(".downloadedWebsite", "w")
@@ -1220,7 +1220,7 @@ function loadWebpage( url, id )
 								valvez = false
 							end
 						end
-						
+
 						if valvez then
 							fs.delete(".downloadedWebsite")
 							file = fs.open(".downloadedWebsite", "w")
@@ -1243,9 +1243,9 @@ function loadWebpage( url, id )
 									term.setCursorPos(xx, yy)
 									newButton( currentID, i, "#" ..messages[i]["id"], true )
 								end
-								
+
 								cPrint("+----------------------+")
-								
+
 								local event, key = os.pullEvent("key")
 								if key == keys.up then
 									if currentID ~= 1 then
@@ -1269,12 +1269,12 @@ function loadWebpage( url, id )
 			end
 		end
 	end
-	
+
 	if term.isColor() then
 		term.setTextColour( colors.white )
 		term.setBackgroundColour( colors.black )
 	end
-	
+
 	if theme == "default" then
 		term.setCursorPos(x-#("Press CTRL to brows"), 1)
 		write("Press CTRL to browse")
@@ -1282,7 +1282,7 @@ function loadWebpage( url, id )
 		term.setCursorPos(x-#("Press CTRL to explor"), y)
 		write("Press CTRL to explore")
 	end
-	
+
 	while true do
 		local event, key, mX, mY = os.pullEvent()
 		if event == "key" then
@@ -1304,11 +1304,11 @@ function loadWebpage( url, id )
 			end
 		end
 	end
-	
+
 	if theme == "default" then
 		term.setCursorPos(1,1)
 		term.clearLine()
-		
+
 		if rednetType == "HTTP" then
 			write("http://")
 		elseif rednetType == "rnet" then
@@ -1319,7 +1319,7 @@ function loadWebpage( url, id )
 	elseif theme == "old" or theme == "edit" then
 		term.setCursorPos(1,2)
 		term.clearLine()
-		
+
 		if rednetType == "HTTP" then
 			write("http://")
 		elseif rednetType == "rnet" then
@@ -1328,14 +1328,14 @@ function loadWebpage( url, id )
 			write("rdnt://")
 		end
 	end
-	
+
 	local sText = read( nil, sHistory )
 	if sHistory[1] == "secret" and #sHistory == 1 then
 		sHistory[1] = sText
 	else
 		table.insert( sHistory, sText )
 	end
-	
+
 	loadWebpage( sText )
 end
 
@@ -1429,7 +1429,7 @@ if newestVersion ~= vserin then
 			break
 		end
 	end
-	
+
 	if selection == 1 then
 		cPrint("Updating...")
 		local sPath = shell.getRunningProgram()

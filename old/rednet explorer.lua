@@ -15,7 +15,7 @@ fs.makeDir(".cache")
 local cPrint = function(text)
 	local x2,y2 = term.getCursorPos()
 	term.setCursorPos(math.ceil((x / 2) - (text:len() / 2)), y2)
-	
+
 	print(text)
 end
 
@@ -29,25 +29,25 @@ function createSite(websitename) --OPENNEXISGATES
 					startup = fs.open("startup", "w")
 					startup.writeLine("websitename = \"" ..websitename.. "\"")
 					servercode = [[
-						
+
 						local enableSearching = true --Change to false if you don't want bots to search your site
 						local password = os.getComputerID() --Change if you want a custom password
-						
+
 						function record(text)
 							print(text)
 							log = fs.open("rednet.log", "w")
 							log.writeLine(text)
 							log.close()
 						end
-						
+
 						local x,y = term.getSize()
 						local cPrint = function(text)
 							local x2,y2 = term.getCursorPos()
 							term.setCursorPos(math.ceil((x / 2) - (text:len() / 2)), y2)
-							
+
 							print(text)
 						end
-						
+
 						rednet.open("top")
 						term.clear()
 						cPrint("Hosting " ..websitename.. "...\n")
@@ -75,8 +75,8 @@ function createSite(websitename) --OPENNEXISGATES
 								webpage = fs.open(websitename, "w")
 								webpage.write(message)
 								webpage.close()
-								
-								
+
+
 								test = fs.open(websitename, "r")
 								fileContents = test:readAll()
 								test.close()
@@ -84,7 +84,7 @@ function createSite(websitename) --OPENNEXISGATES
 							end
 						end
 					]]
-					
+
 					startup.writeLine(servercode)
 					startup.close()
 					os.reboot()
@@ -94,7 +94,7 @@ local Address = function()
 	text = "rdnt://"
 	term.setCursorPos(math.ceil((x / 2) - (text:len() / 2)), 2)
 	term.clearLine()
-	
+
 	write("rdnt://")
 	website = read()
 	loadWebpage()
@@ -106,7 +106,7 @@ function done()
 	write("Press CTRL to travel the web! :D")
 	term.setCursorPos(x - name:len(), y)
 	write(name)
-	
+
 	while true do
 		sleep(0) -- stop crashing
 		e, k = os.pullEvent("key")
@@ -119,7 +119,7 @@ function done()
 		end
 	end
 end
-	
+
 
 loadWebpage = function()
 	term.clear()
@@ -140,11 +140,11 @@ loadWebpage = function()
 				break
 			end
 		end
-		
+
 		if k == "y" then
 			term.clear()
 			term.setCursorPos(1,1)
-			title = "Rednet Servers " ..rednetV() 
+			title = "Rednet Servers " ..rednetV()
 			cPrint(title)
 			print("Welcome to the Rednet Servers. Please enter the website name: ")
 			websitename = read()
@@ -186,30 +186,30 @@ loadWebpage = function()
 			id, EditingValue = rednet.receive(0.1)
 			 write("Password: ")
 			input = read("*")
-			if tostring(password) == input then 
+			if tostring(password) == input then
 				fs.delete(".cache/" ..website1)
 				editor = fs.open(".websiteedited", "w")
 				if editor then
 					editor.writeLine(EditingValue)
 				end
 				editor.close()
-				
+
 				shell.run("edit", ".websiteedited")
-				
+
 				edited = fs.open(".websiteedited", "r")
 				editwebpage = edited.readAll()
 				edited.close()
-				
+
 				rednet.broadcast(website.. " EDITED COMPLED!")
 				rednet.broadcast(editwebpage)
 				website = "home"
 				loadWebpage()
-				
+
 			else
-				
+
 				website = "home"
 				loadWebpage()
-				
+
 			end
 		else
 			if fs.exists(".cache/" ..website1) then fs.delete(".cache/" ..website1) end
@@ -223,7 +223,7 @@ loadWebpage = function()
 			shell.run(".cache/" ..website1)
 		end
 	end
-	
+
 	done()
 end
 
