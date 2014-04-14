@@ -430,7 +430,7 @@ local backend = function(serverURL, onEvent, onMessage)
 					modem("open", userChannel)
 				end
 			elseif isSession(sessions, givenChannel, givenDistance, givenID) then
-				onMessage("[DIRECT] Request from active session")
+				--onMessage("[DIRECT] Request from active session")
 
 				local request = crypt(textutils.unserialize(givenMessage), serverURL .. tostring(givenDistance) .. givenID)
 				if request then
