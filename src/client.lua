@@ -1034,6 +1034,88 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 		return false
 	end
 
+	protocols.rdnt.modem("closeAll")
+	protocols.rdnt.modem("open", channel)
+	protocols.rdnt.modem("transmit", channel, os.getComputerID(), initiateToken .. url)
+
+	local timer = os.startTimer(initiationTimeout)
+	while true do
+		local event, connectionSide, connectionChannel, verify, msg, distance = os.pullEvent()
+
+		if event == "modem_message" and connectionChannel == channel and verify == responseID then
+			local decrypt = crypt(textutils.unserialize(msg), url .. tostring(distance) .. os.getComputerID())
+			if decrypt and decrypt:match(connectToken) == url and
+					not checkDuplicate(distance) then
+				local calculatedChannel = calculateChannel(url, distance, os.getComputerID())
+
+				table.insert(results, {
+					dist = distance,
+					channel = calculatedChannel,
+					url = url,
+					wired = peripheral.call(connectionSide, "isWireless"),
+					encrypted = true,
+
+					fetchPage = function(page)
+						protocols.rdnt.modem("open", calculatedChannel)
+
+						local fetchTimer = os.startTimer(fetchTimeout)
+						protocols.rdnt.modem("transmit", calculatedChannel, os.getComputerID(), crypt(fetchToken .. url .. page, url .. tostring(distance) .. os.getComputerID()))
+
+						while true do
+							local event, fetchSide, fetchChannel, fetchVerify, fetchMessage, fetchDistance = os.pullEvent()
+
+							if event == "modem_message" and fetchChannel == calculatedChannel and
+									fetchVerify == responseID and fetchDistance == distance then
+								local rawHeader, data = crypt(textutils.unserialize(fetchMessage), url .. tostring(fetchDistance) .. os.getComputerID()):match(receiveToken)
+								local header = textutils.unserialize(rawHeader)
+
+								if data and header then
+									protocols.rdnt.modem("close", calculatedChannel)
+									return data, header
+								end
+							elseif event == "timer" and fetchSide == fetchTimer then
+								protocols.rdnt.modem("close", calculatedChannel)
+								return nil
+							end
+						end
+					end,
+
+					close = function()
+						protocols.rdnt.modem("open", calculatedChannel)
+						protocols.rdnt.modem("transmit", calculatedChannel, os.getComputerID(), crypt(disconnectToken, url .. tostring(distance) .. os.getComputerID()))
+						protocols.rdnt.modem("close", calculatedChannel)
+					end
+				})
+			end
+		elseif event == "timer" and connectionSide == timer then
+			protocols.rdnt.modem("close", channel)
+
+			if #results == 0 then
+				
+			elseif #results == 1 then
+				return results[1]
+			else
+				local wiredResults = {}
+				for k,v in pairs(results) do
+					if v.wired then
+						table.insert(wiredResults, v)
+					end
+				end
+				if #wiredResults == 0 then
+					local finalResult = {multipleServers = true, servers = results}
+					return finalResult
+				elseif #wiredResults == 1 then
+					return wiredResults[1]
+				else
+					local finalResult = {multipleServers = true, servers = wiredResults}
+					return finalResult
+				end
+			end
+		end
+	end
+
+	-- No modem connections, use rednet
+
 	if allowUnencryptedConnections then
 		for _, side in pairs(sides) do
 			if peripheral.getType(side) == "modem" then
@@ -1041,7 +1123,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 			end
 		end
 
-		local ret = {rednet.lookup(protocolToken .. url, initiateToken .. url)}
+		local ret = {rednet.lookup(protocolToken .. url)}
 
 		for _, v in pairs(ret) do
 			table.insert(unencryptedResults, {
@@ -1049,6 +1131,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 				channel = -1,
 				url = url,
 				encrypted = false,
+				wired = false,
 				id = v,
 
 				fetchPage = function(page)
@@ -1107,78 +1190,13 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 				end
 			})
 		end
-	end
-
-	protocols.rdnt.modem("closeAll")
-	protocols.rdnt.modem("open", channel)
-	protocols.rdnt.modem("transmit", channel, os.getComputerID(), initiateToken .. url)
-
-	local timer = os.startTimer(initiationTimeout)
-	while true do
-		local event, connectionSide, connectionChannel, verify, msg, distance = os.pullEvent()
-
-		if event == "modem_message" and connectionChannel == channel and verify == responseID then
-			local decrypt = crypt(textutils.unserialize(msg), url .. tostring(distance) .. os.getComputerID())
-			if decrypt and decrypt:match(connectToken) == url and
-					not checkDuplicate(distance) then
-				local calculatedChannel = calculateChannel(url, distance, os.getComputerID())
-
-				table.insert(results, {
-					dist = distance,
-					channel = calculatedChannel,
-					url = url,
-					encrypted = true,
-
-					fetchPage = function(page)
-						protocols.rdnt.modem("open", calculatedChannel)
-
-						local fetchTimer = os.startTimer(fetchTimeout)
-						protocols.rdnt.modem("transmit", calculatedChannel, os.getComputerID(), crypt(fetchToken .. url .. page, url .. tostring(distance) .. os.getComputerID()))
-
-						while true do
-							local event, fetchSide, fetchChannel, fetchVerify, fetchMessage, fetchDistance = os.pullEvent()
-
-							if event == "modem_message" and fetchChannel == calculatedChannel and
-									fetchVerify == responseID and fetchDistance == distance then
-								local rawHeader, data = crypt(textutils.unserialize(fetchMessage), url .. tostring(fetchDistance) .. os.getComputerID()):match(receiveToken)
-								local header = textutils.unserialize(rawHeader)
-
-								if data and header then
-									protocols.rdnt.modem("close", calculatedChannel)
-									return data, header
-								end
-							elseif event == "timer" and fetchSide == fetchTimer then
-								protocols.rdnt.modem("close", calculatedChannel)
-								return nil
-							end
-						end
-					end,
-
-					close = function()
-						protocols.rdnt.modem("open", calculatedChannel)
-						protocols.rdnt.modem("transmit", calculatedChannel, os.getComputerID(), crypt(disconnectToken, url .. tostring(distance) .. os.getComputerID()))
-						protocols.rdnt.modem("close", calculatedChannel)
-					end
-				})
-			end
-		elseif event == "timer" and connectionSide == timer then
-			protocols.rdnt.modem("close", channel)
-
-			if #results == 0 then
-				if #unencryptedResults == 0 then
-					return nil
-				elseif #unencryptedResults == 1 then
-					return unencryptedResults[1]
-				else
-					local finalResult = {multipleServers = true, servers = unencryptedResults}
-					return finalResult
-				end
-			elseif #results == 1 then
-				return results[1]
-			else
-				local finalResult = {multipleServers = true, servers = results}
-				return finalResult
-			end
+		if #unencryptedResults == 0 then
+			return nil
+		elseif #unencryptedResults == 1 then
+			return unencryptedResults[1]
+		else
+			local finalResult = {multipleServers = true, servers = unencryptedResults}
+			return finalResult
 		end
 	end
 end
