@@ -754,8 +754,8 @@ local sides = {}
 local publicDNSChannel = 9999
 local publicResponseChannel = 9998
 local responseID = 41738
-local domainLimitPerServer = 3
 
+local httpTimeout = 10
 local searchResultTimeout = 0.5
 local initiationTimeout = 0.2
 local animationInterval = 0.125
@@ -1147,13 +1147,15 @@ end
 
 
 local download = function(url)
-    local timeoutID = os.startTimer(20)
+    local timeoutID = os.startTimer(httpTimeout)
     while true do
         local event, fetchedURL, response = os.pullEvent()
         if (event == "timer" and fetchedURL == timeoutID) or event == "http_failure" then
             return false
         elseif event == "http_success" and fetchedURL == url then
-            return response.readAll()
+            local contents = response.readAll()
+            response.close()
+            return contents
         end
     end
 end
@@ -1173,10 +1175,15 @@ end
 
 local updateAvailable = function()
     local number = download(buildURL)
-    if number and tonumber(number) and tonumber(number) > build then
-        return true
+    if not number then
+        return false, true
     end
-    return false
+
+    if number and tonumber(number) and tonumber(number) > build then
+        return true, false
+    end
+
+    return false, false
 end
 
 
@@ -1217,6 +1224,7 @@ builtInSites["display"]["firewolf"] = function()
     term.setTextColor(theme.text)
     term.setCursorPos(1, 14)
     center("Search using the Query Box above")
+    center("Visit rdnt://help for help using Firewolf.")
 
     term.setCursorPos(1, h - 2)
     center("Made by GravityScore and 1lann")
@@ -1238,6 +1246,29 @@ builtInSites["display"]["credits"] = function()
 end
 
 
+builtInSites["display"]["help"] = function()
+    clear(theme.background, theme.text)
+
+    fill(1, 3, w, 3, theme.subtle)
+    term.setCursorPos(1, 4)
+    center("Help")
+
+    term.setBackgroundColor(theme.background)
+    term.setCursorPos(1, 7)
+    center("Click on the URL bar or press control to")
+    center("open the query box")
+    print("")
+    center("Type in a search query or website URL")
+    center("into the query box.")
+    print("")
+    center("Search for nothing to see all available")
+    center("websites.")
+    print("")
+    center("Visit rdnt://server to setup a server.")
+    center("Visit rdnt://update to update Firewolf.")
+end
+
+
 builtInSites["display"]["server"] = function()
     clear(theme.background, theme.text)
 
@@ -1247,23 +1278,30 @@ builtInSites["display"]["server"] = function()
 
     term.setBackgroundColor(theme.background)
     term.setCursorPos(1, 11)
-    center("Press space to download")
-    center("Firewolf Server to:")
-    print("")
-    center("/fwserver")
+    if not http then
+        center("HTTP is not enabled!")
+        print("")
+        center("Please enable it in your config file")
+        center("to download Firewolf Server.")
+    else
+        center("Press space to download")
+        center("Firewolf Server to:")
+        print("")
+        center("/fwserver")
 
-    while true do
-        local event, key = os.pullEvent()
-        if event == "key" and key == 57 then
-            fill(1, 9, w, 4, theme.background)
-            term.setCursorPos(1, 9)
-            center("Downloading...")
+        while true do
+            local event, key = os.pullEvent()
+            if event == "key" and key == 57 then
+                fill(1, 11, w, 4, theme.background)
+                term.setCursorPos(1, 11)
+                center("Downloading...")
 
-            local err = downloadAndSave(serverURL, "/fwserver")
+                local err = downloadAndSave(serverURL, "/fwserver")
 
-            fill(1, 9, w, 4, theme.background)
-            term.setCursorPos(1, 9)
-            center(err and "Download failed!" or "Download successful!")
+                fill(1, 11, w, 4, theme.background)
+                term.setCursorPos(1, 11)
+                center(err and "Download failed!" or "Download successful!")
+            end
         end
     end
 end
@@ -1272,44 +1310,57 @@ end
 builtInSites["display"]["update"] = function()
     clear(theme.background, theme.text)
 
-    fill(1, 6, w, 3, theme.subtle)
-    term.setCursorPos(1, 7)
-    center("Update Firewolf")
+    fill(1, 3, w, 3, theme.subtle)
+    term.setCursorPos(1, 4)
+    center("Update")
 
     term.setBackgroundColor(theme.background)
-    term.setCursorPos(1, 11)
-    center("Checking for updates...")
-
-    term.setCursorPos(1, 11)
-    if updateAvailable() then
-        term.clearLine()
-        center("Update found!")
-        center("Press enter to download.")
-
-        while true do
-            local event, key = os.pullEvent()
-            if event == "key" and key == keys.enter then
-                break
-            end
-        end
-
-        fill(1, 11, w, 2, theme.background)
-        term.setCursorPos(1, 11)
-        center("Downloading...")
-
-        local err = redownloadBrowser()
-
-        term.setCursorPos(1, 11)
-        term.clearLine()
-        if err then
-            center("Download failed!")
-        else
-            center("Download succeeded!")
-            center("Please restart Firewolf...")
-        end
+    if not http then
+        term.setCursorPos(1, 9)
+        center("HTTP is not enabled!")
+        print("")
+        center("Please enable it in your config")
+        center("file to download Firewolf updates.")
     else
-        term.clearLine()
-        center("No updates found.")
+        term.setCursorPos(1, 10)
+        center("Checking for updates...")
+
+        local available, err = updateAvailable()
+
+        term.setCursorPos(1, 10)
+        if available then
+            term.clearLine()
+            center("Update found!")
+            center("Press enter to download.")
+
+            while true do
+                local event, key = os.pullEvent()
+                if event == "key" and key == keys.enter then
+                    break
+                end
+            end
+
+            fill(1, 10, w, 2, theme.background)
+            term.setCursorPos(1, 10)
+            center("Downloading...")
+
+            local err = redownloadBrowser()
+
+            term.setCursorPos(1, 10)
+            term.clearLine()
+            if err then
+                center("Download failed!")
+            else
+                center("Download succeeded!")
+                center("Please restart Firewolf...")
+            end
+        elseif err then
+            term.clearLine()
+            center("Checking failed!")
+        else
+            term.clearLine()
+            center("No updates found.")
+        end
     end
 end
 
@@ -1457,13 +1508,13 @@ end
 
 
 builtInSites["crash"] = function(err)
-    fill(1, 6, w, 3, theme.subtle)
-    term.setCursorPos(1, 7)
+    fill(1, 3, w, 3, theme.subtle)
+    term.setCursorPos(1, 4)
     center("The website crashed!")
 
     term.setBackgroundColor(theme.background)
-    term.setCursorPos(1, 11)
-    center(err)
+    term.setCursorPos(1, 8)
+    centerSplit(err, w - 4)
     print("\n")
     center("Please report this error to")
     center("the website creator.")
@@ -1546,7 +1597,7 @@ local drawMenubar = function()
         term.setCursorPos(2, 1)
         term.write(currentProtocol .. "://" .. currentWebsiteURL)
 
-        term.setCursorPos(w-5,1)
+        term.setCursorPos(w - 5, 1)
         term.write("[===]")
 
         if enableTabBar then
@@ -1806,12 +1857,12 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
             protocols.rdnt.modem("close", channel)
 
             if #results == 0 then
-                
+                break
             elseif #results == 1 then
                 return results[1]
             else
                 local wiredResults = {}
-                for k,v in pairs(results) do
+                for k, v in pairs(results) do
                     if v.wired then
                         table.insert(wiredResults, v)
                     end
@@ -1828,8 +1879,6 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
             end
         end
     end
-
-    -- No modem connections, use rednet
 
     if allowUnencryptedConnections then
         for _, side in pairs(sides) do
@@ -1914,6 +1963,8 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
             return finalResult
         end
     end
+
+    return nil
 end
 
 
@@ -2076,18 +2127,10 @@ end
 local fetchExternal = function(url, connection)
 
     if connection.multipleServers then
-        local ids = {}
-        for _, v in pairs(connection.servers) do
-            table.insert(ids, v.id)
-        end
-
-        local id = displayIDSelection(ids)
-        for _, v in pairs(connection.servers) do
-            if v.id == id then
-                connection = v
-                break
-            end
-        end
+        -- Please forgive me
+        -- GravityScore forced me to do it like this
+        -- I don't mean it, I really don't.
+        connection = connection.servers[1]
     end
 
     local page = normalizePage(url:match("^[^/]+(.+)"))
@@ -2398,7 +2441,7 @@ local function getLine(loc, data)
     if not changes then
         return 1
     else
-        return changes+1
+        return changes + 1
     end
 end
 
@@ -2406,85 +2449,97 @@ end
 local function parseData(data)
     local commands = {}
     local searchPos = 1
+
     while #data > 0 do
         local sCmd, eCmd = data:find("%[[^%]]+%]", searchPos)
         if sCmd then
             sCmd = sCmd + 1
             eCmd = eCmd - 1
+
             if (sCmd > 2) then
-                if data:sub(sCmd-2, sCmd-2) == "\\" then
-                    local t = data:sub(searchPos, sCmd-1):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
+                if data:sub(sCmd - 2, sCmd - 2) == "\\" then
+                    local t = data:sub(searchPos, sCmd - 1):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
                     if #t > 0 then
-                        if type(commands[#commands][1]) == "string" then
-                            commands[#commands][1] = commands[#commands][1]..t
+                        if #commands > 0 and type(commands[#commands][1]) == "string" then
+                            commands[#commands][1] = commands[#commands][1] .. t
                         else
                             table.insert(commands, {t})
                         end
                     end
                     searchPos = sCmd
                 else
-                    local t = data:sub(searchPos, sCmd-2):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
+                    local t = data:sub(searchPos, sCmd - 2):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
                     if #t > 0 then
-                        if type(commands[#commands][1]) == "string" then
-                            commands[#commands][1] = commands[#commands][1]..t
+                        if #commands > 0 and type(commands[#commands][1]) == "string" then
+                            commands[#commands][1] = commands[#commands][1] .. t
                         else
                             table.insert(commands, {t})
                         end
                     end
+
                     t = data:sub(sCmd, eCmd):gsub("\n", "")
                     table.insert(commands, {getLine(sCmd, data), t})
-                    searchPos = eCmd+2
+                    searchPos = eCmd + 2
                 end
             else
                 local t = data:sub(sCmd, eCmd):gsub("\n", "")
                 table.insert(commands, {getLine(sCmd, data), t})
-                searchPos = eCmd+2
+                searchPos = eCmd + 2
             end
         else
             local t = data:sub(searchPos, -1):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
             if #t > 0 then
-                if type(commands[#commands][1]) == "string" then
-                    commands[#commands][1] = commands[#commands][1]..t
+                if #commands > 0 and type(commands[#commands][1]) == "string" then
+                    commands[#commands][1] = commands[#commands][1] .. t
                 else
                     table.insert(commands, {t})
                 end
             end
+
             break
         end
     end
+
     return commands
 end
 
 
 local function proccessData(commands)
     searchIndex = 0
+
     while searchIndex < #commands do
-        searchIndex = searchIndex+1
+        searchIndex = searchIndex + 1
+
         local length = 0
         local origin = searchIndex
+
         if type(commands[searchIndex][1]) == "string" then
-            length = length+#commands[searchIndex][1]
+            length = length + #commands[searchIndex][1]
             local endIndex = origin
-            for i = origin+1, #commands do
-                if commands[i][2] and not((commands[i][2]:sub(1, 2) == "c ") or
-                (commands[i][2]:sub(1, 3) == "bg ") or (commands[i][2]:sub(1, 8) == "newlink ") or
-                (commands[i][2] == "endlink")) then
-                    endIndex = i
-                    break
+            for i = origin + 1, #commands do
+                if commands[i][2] then
+                    local command = commands[i][2]:match("^(%w+)%s+")
+                    if not (command == "c" or command == "color" or command == "bg"
+                            or command == "background" or command == "newlink" or command == "endlink") then
+                        endIndex = i
+                        break
+                    end
                 elseif commands[i][2] then
 
                 else
-                    length = length+#commands[i][1]
+                    length = length + #commands[i][1]
                 end
                 if i == #commands then
                     endIndex = i
                 end
             end
+
             commands[origin][2] = length
             searchIndex = endIndex
             length = 0
         end
     end
+
     return commands
 end
 
@@ -2533,7 +2588,7 @@ end
 
 
 render["functions"]["public"]["c "] = function(source)
-    local sColor = source[2]:sub(3, -1)
+    local sColor = source[2]:match("^%w+%s+(.+)$") or ""
     if colors[sColor] then
         term.setTextColor(colors[sColor])
     else
@@ -2542,8 +2597,11 @@ render["functions"]["public"]["c "] = function(source)
 end
 
 
+render["functions"]["public"]["color "] = render["functions"]["public"]["c "]
+
+
 render["functions"]["public"]["bg "] = function(source)
-    local sColor = source[2]:sub(3, -1)
+    local sColor = source[2]:match("^%w+%s+(.+)$") or ""
     if colors[sColor] then
         term.setBackgroundColor(colors[sColor])
     else
@@ -2552,12 +2610,15 @@ render["functions"]["public"]["bg "] = function(source)
 end
 
 
+render["functions"]["public"]["background "] = render["functions"]["public"]["bg "]
+
+
 render["functions"]["public"]["newlink "] = function(source)
     if render.variables.link then
         return "Cannot nest links on line " .. source[1]
     end
 
-    render.variables.link = source[2]:sub(9, -1)
+    render.variables.link = source[2]:match("^%w+%s+(.+)$") or ""
     render.variables.linkStart = false
 end
 
@@ -2576,26 +2637,26 @@ end
 
 
 render["functions"]["public"]["offset "] = function(source)
-    local offset = tonumber(source[2]:sub(8, -1))
+    local offset = tonumber((source[2]:match("^%w+%s+(.+)$") or ""))
     if offset then
         render.variables.currentOffset = offset
     else
-        return "Invalid offset value: \"" .. source[2]:sub(8, -1) .. "\" on line " .. source[1]
+        return "Invalid offset value: \"" .. (source[2]:match("^%w+%s+(.+)$") or "") .. "\" on line " .. source[1]
     end
 end
 
 
 render["functions"]["public"]["marker "] = function(source)
-    render.variables.markers[source[2]:sub(8, -1)] = render.variables.scroll
+    render.variables.markers[(source[2]:match("^%w+%s+(.+)$") or "")] = render.variables.scroll
 end
 
 
 render["functions"]["public"]["goto "] = function(source)
-    local location = source[2]:sub(6, -1)
+    local location = source[2]:match("%w+%s+(.+)$")
     if render.variables.markers[location] then
         render.variables.scroll = render.variables.markers[location]
     else
-        return "No such location: \"" .. source[2]:sub(6-1) .. "\" on line " .. source[1]
+        return "No such location: \"" .. (source[2]:match("%w+%s+(.+)$") or "") .. "\" on line " .. source[1]
     end
 end
 
@@ -2603,7 +2664,7 @@ end
 render["functions"]["public"]["box "] = function(source)
     local sColor, align, height, width, offset, url = source[2]:match("^box (%a+) (%a+) (%-?%d+) (%-?%d+) (%-?%d+) ?([^ ]*)")
     if not sColor then
-        return "Invalid box syntax on line "..source[1]
+        return "Invalid box syntax on line " .. source[1]
     end
 
     local x, y = term.getCursorPos()
@@ -2625,10 +2686,10 @@ render["functions"]["public"]["box "] = function(source)
 
     term.setBackgroundColor(colors[sColor])
     for i = 0, height - 1 do
-        term.setCursorPos(startX, render.variables.scroll+i)
+        term.setCursorPos(startX, render.variables.scroll + i)
         term.write(string.rep(" ", width))
         if url:len() > 3 then
-            table.insert(render.variables.linkData, {startX, startX + width-1, render.variables.scroll + i, url})
+            table.insert(render.variables.linkData, {startX, startX + width - 1, render.variables.scroll + i, url})
         end
     end
 
@@ -2686,7 +2747,7 @@ render["render"] = function(data, startScroll)
         render.variables.startScroll = startScroll
     end
 
-    render.variables.scroll = startScroll+1
+    render.variables.scroll = startScroll + 1
     render.variables.maxScroll = render.variables.scroll
 
     render.variables.linkData = {}
@@ -2727,7 +2788,7 @@ render["render"] = function(data, startScroll)
         end
     end
 
-    return render.variables.linkData, render.variables.maxScroll-render.variables.startScroll
+    return render.variables.linkData, render.variables.maxScroll - render.variables.startScroll
 end
 
 
