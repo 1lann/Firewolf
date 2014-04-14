@@ -2012,7 +2012,7 @@ render["render"] = function(data, startScroll)
 		end
 	end
 
-	return render.variables.linkData, render.variables.maxScroll-render.variables.startScroll
+	return render.variables.linkData, render.variables.maxScroll - render.variables.startScroll
 end
 
 
