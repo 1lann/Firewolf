@@ -509,6 +509,7 @@ builtInSites["display"]["firewolf"] = function()
 	term.setTextColor(theme.text)
 	term.setCursorPos(1, 14)
 	center("Search using the Query Box above")
+	center("Visit rdnt://help for help using Firewolf.")
 
 	term.setCursorPos(1, h - 2)
 	center("Made by GravityScore and 1lann")
@@ -530,6 +531,29 @@ builtInSites["display"]["credits"] = function()
 end
 
 
+builtInSites["display"]["help"] = function()
+	clear(theme.background, theme.text)
+
+	fill(1, 3, w, 3, theme.subtle)
+	term.setCursorPos(1, 4)
+	center("Help")
+
+	term.setBackgroundColor(theme.background)
+	term.setCursorPos(1, 7)
+	center("Click on the URL bar or press control to")
+	center("open the query box")
+	print("")
+	center("Type in a search query or website URL")
+	center("into the query box.")
+	print("")
+	center("Search for nothing to see all available")
+	center("websites.")
+	print("")
+	center("Visit rdnt://server to setup a server.")
+	center("Visit rdnt://update to update Firewolf.")
+end
+
+
 builtInSites["display"]["server"] = function()
 	clear(theme.background, theme.text)
 
@@ -539,23 +563,30 @@ builtInSites["display"]["server"] = function()
 
 	term.setBackgroundColor(theme.background)
 	term.setCursorPos(1, 11)
-	center("Press space to download")
-	center("Firewolf Server to:")
-	print("")
-	center("/fwserver")
+	if not http then
+		center("HTTP is not enabled!")
+		print("")
+		center("Please enable it in your config file")
+		center("to download Firewolf Server.")
+	else
+		center("Press space to download")
+		center("Firewolf Server to:")
+		print("")
+		center("/fwserver")
 
-	while true do
-		local event, key = os.pullEvent()
-		if event == "key" and key == 57 then
-			fill(1, 9, w, 4, theme.background)
-			term.setCursorPos(1, 9)
-			center("Downloading...")
+		while true do
+			local event, key = os.pullEvent()
+			if event == "key" and key == 57 then
+				fill(1, 11, w, 4, theme.background)
+				term.setCursorPos(1, 11)
+				center("Downloading...")
 
-			local err = downloadAndSave(serverURL, "/fwserver")
+				local err = downloadAndSave(serverURL, "/fwserver")
 
-			fill(1, 9, w, 4, theme.background)
-			term.setCursorPos(1, 9)
-			center(err and "Download failed!" or "Download successful!")
+				fill(1, 11, w, 4, theme.background)
+				term.setCursorPos(1, 11)
+				center(err and "Download failed!" or "Download successful!")
+			end
 		end
 	end
 end
@@ -566,7 +597,7 @@ builtInSites["display"]["update"] = function()
 
 	fill(1, 3, w, 3, theme.subtle)
 	term.setCursorPos(1, 4)
-	center("Update Firewolf")
+	center("Update")
 
 	term.setBackgroundColor(theme.background)
 	if not http then
