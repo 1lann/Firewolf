@@ -831,7 +831,7 @@ local drawMenubar = function()
 		term.setCursorPos(2, 1)
 		term.write(currentProtocol .. "://" .. currentWebsiteURL)
 
-		term.setCursorPos(w-5,1)
+		term.setCursorPos(w - 5, 1)
 		term.write("[===]")
 
 		if enableTabBar then
@@ -1091,12 +1091,12 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 			protocols.rdnt.modem("close", channel)
 
 			if #results == 0 then
-				
+
 			elseif #results == 1 then
 				return results[1]
 			else
 				local wiredResults = {}
-				for k,v in pairs(results) do
+				for k, v in pairs(results) do
 					if v.wired then
 						table.insert(wiredResults, v)
 					end
@@ -1113,8 +1113,6 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 			end
 		end
 	end
-
-	-- No modem connections, use rednet
 
 	if allowUnencryptedConnections then
 		for _, side in pairs(sides) do
@@ -1683,7 +1681,7 @@ local function getLine(loc, data)
 	if not changes then
 		return 1
 	else
-		return changes+1
+		return changes + 1
 	end
 end
 
@@ -1718,12 +1716,12 @@ local function parseData(data)
 					end
 					t = data:sub(sCmd, eCmd):gsub("\n", "")
 					table.insert(commands, {getLine(sCmd, data), t})
-					searchPos = eCmd+2
+					searchPos = eCmd + 2
 				end
 			else
 				local t = data:sub(sCmd, eCmd):gsub("\n", "")
 				table.insert(commands, {getLine(sCmd, data), t})
-				searchPos = eCmd+2
+				searchPos = eCmd + 2
 			end
 		else
 			local t = data:sub(searchPos, -1):gsub("\n", ""):gsub("\\%[", "%["):gsub("\\%]", "%]")
@@ -1744,13 +1742,13 @@ end
 local function proccessData(commands)
 	searchIndex = 0
 	while searchIndex < #commands do
-		searchIndex = searchIndex+1
+		searchIndex = searchIndex + 1
 		local length = 0
 		local origin = searchIndex
 		if type(commands[searchIndex][1]) == "string" then
-			length = length+#commands[searchIndex][1]
+			length = length + #commands[searchIndex][1]
 			local endIndex = origin
-			for i = origin+1, #commands do
+			for i = origin + 1, #commands do
 				if commands[i][2] and not((commands[i][2]:sub(1, 2) == "c ") or
 				(commands[i][2]:sub(1, 3) == "bg ") or (commands[i][2]:sub(1, 8) == "newlink ") or
 				(commands[i][2] == "endlink")) then
@@ -1759,7 +1757,7 @@ local function proccessData(commands)
 				elseif commands[i][2] then
 
 				else
-					length = length+#commands[i][1]
+					length = length + #commands[i][1]
 				end
 				if i == #commands then
 					endIndex = i
@@ -1910,10 +1908,10 @@ render["functions"]["public"]["box "] = function(source)
 
 	term.setBackgroundColor(colors[sColor])
 	for i = 0, height - 1 do
-		term.setCursorPos(startX, render.variables.scroll+i)
+		term.setCursorPos(startX, render.variables.scroll + i)
 		term.write(string.rep(" ", width))
 		if url:len() > 3 then
-			table.insert(render.variables.linkData, {startX, startX + width-1, render.variables.scroll + i, url})
+			table.insert(render.variables.linkData, {startX, startX + width - 1, render.variables.scroll + i, url})
 		end
 	end
 
@@ -1971,7 +1969,7 @@ render["render"] = function(data, startScroll)
 		render.variables.startScroll = startScroll
 	end
 
-	render.variables.scroll = startScroll+1
+	render.variables.scroll = startScroll + 1
 	render.variables.maxScroll = render.variables.scroll
 
 	render.variables.linkData = {}
