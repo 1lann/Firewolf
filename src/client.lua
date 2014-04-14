@@ -39,8 +39,8 @@ local sides = {}
 local publicDNSChannel = 9999
 local publicResponseChannel = 9998
 local responseID = 41738
-local domainLimitPerServer = 3
 
+local httpTimeout = 10
 local searchResultTimeout = 0.5
 local initiationTimeout = 0.2
 local animationInterval = 0.125
@@ -432,13 +432,15 @@ end
 
 
 local download = function(url)
-	local timeoutID = os.startTimer(20)
+	local timeoutID = os.startTimer(httpTimeout)
 	while true do
 		local event, fetchedURL, response = os.pullEvent()
 		if (event == "timer" and fetchedURL == timeoutID) or event == "http_failure" then
 			return false
 		elseif event == "http_success" and fetchedURL == url then
-			return response.readAll()
+			local contents = response.readAll()
+			response.close()
+			return contents
 		end
 	end
 end
@@ -458,10 +460,15 @@ end
 
 local updateAvailable = function()
 	local number = download(buildURL)
-	if number and tonumber(number) and tonumber(number) > build then
-		return true
+	if not number then
+		return false, true
 	end
-	return false
+
+	if number and tonumber(number) and tonumber(number) > build then
+		return true, false
+	end
+
+	return false, false
 end
 
 
@@ -557,44 +564,57 @@ end
 builtInSites["display"]["update"] = function()
 	clear(theme.background, theme.text)
 
-	fill(1, 6, w, 3, theme.subtle)
-	term.setCursorPos(1, 7)
+	fill(1, 3, w, 3, theme.subtle)
+	term.setCursorPos(1, 4)
 	center("Update Firewolf")
 
 	term.setBackgroundColor(theme.background)
-	term.setCursorPos(1, 11)
-	center("Checking for updates...")
-
-	term.setCursorPos(1, 11)
-	if updateAvailable() then
-		term.clearLine()
-		center("Update found!")
-		center("Press enter to download.")
-
-		while true do
-			local event, key = os.pullEvent()
-			if event == "key" and key == keys.enter then
-				break
-			end
-		end
-
-		fill(1, 11, w, 2, theme.background)
-		term.setCursorPos(1, 11)
-		center("Downloading...")
-
-		local err = redownloadBrowser()
-
-		term.setCursorPos(1, 11)
-		term.clearLine()
-		if err then
-			center("Download failed!")
-		else
-			center("Download succeeded!")
-			center("Please restart Firewolf...")
-		end
+	if not http then
+		term.setCursorPos(1, 9)
+		center("HTTP is not enabled!")
+		print("")
+		center("Please enable it in your config")
+		center("file to download Firewolf updates.")
 	else
-		term.clearLine()
-		center("No updates found.")
+		term.setCursorPos(1, 10)
+		center("Checking for updates...")
+
+		local available, err = updateAvailable()
+
+		term.setCursorPos(1, 10)
+		if available then
+			term.clearLine()
+			center("Update found!")
+			center("Press enter to download.")
+
+			while true do
+				local event, key = os.pullEvent()
+				if event == "key" and key == keys.enter then
+					break
+				end
+			end
+
+			fill(1, 10, w, 2, theme.background)
+			term.setCursorPos(1, 10)
+			center("Downloading...")
+
+			local err = redownloadBrowser()
+
+			term.setCursorPos(1, 10)
+			term.clearLine()
+			if err then
+				center("Download failed!")
+			else
+				center("Download succeeded!")
+				center("Please restart Firewolf...")
+			end
+		elseif err then
+			term.clearLine()
+			center("Checking failed!")
+		else
+			term.clearLine()
+			center("No updates found.")
+		end
 	end
 end
 
