@@ -1091,7 +1091,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 			protocols.rdnt.modem("close", channel)
 
 			if #results == 0 then
-
+				break
 			elseif #results == 1 then
 				return results[1]
 			else
@@ -1197,6 +1197,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 			return finalResult
 		end
 	end
+	return nil
 end
 
 
