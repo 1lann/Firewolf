@@ -293,7 +293,9 @@ local protocolTag = "--@!FIREWOLF-REDNET-PROTOCOL!@--"
 local initiatePattern = "^%-%-@!FIREWOLF%-INITIATE!@%-%-(.+)"
 local retrievePattern = "^%-%-@!FIREWOLF%-FETCH!@%-%-(.+)"
 
-local theme = {
+local theme = {}
+
+local colorTheme = {
 	background = colors.gray,
 	accent = colors.red,
 	subtle = colors.orange,
@@ -301,6 +303,16 @@ local theme = {
 	lightText = colors.gray,
 	text = colors.white,
 	errorText = colors.red,
+}
+
+local grayscaleTheme = {
+	background = colors.black,
+	accent = colors.black,
+	subtle = colors.black,
+
+	lightText = colors.white,
+	text = colors.white,
+	errorText = colors.white,
 }
 
 local default404 = [[
@@ -466,7 +478,7 @@ end
 
 local selectServer = function()
 	clear(theme.background, theme.text)
-	title("Select a server to host ...")
+	title("Select a server to host...")
 
 	local servers = allServers()
 	table.insert(servers, 1, "New Server")
@@ -546,10 +558,10 @@ local setupModem = function()
 end
 
 
-local modem = function(func,  ...)
+local modem = function(func, ...)
 	for _, side in pairs(sides) do
 		if peripheral.getType(side) == "modem" then
-			peripheral.call(side, func,  ...)
+			peripheral.call(side, func, ...)
 		end
 	end
 
@@ -653,7 +665,7 @@ local backend = function(serverURL, onEvent, onMessage)
 	rednet.host(protocolTag .. serverURL, initiateTag .. serverURL)
 
 	onMessage("Hosting rdnt://" .. serverURL)
-	onMessage("Listening for incoming requests ...")
+	onMessage("Listening for incoming requests...")
 
 	while true do
 		local eventArgs = {os.pullEvent()}
@@ -687,8 +699,6 @@ local backend = function(serverURL, onEvent, onMessage)
 					modem("open", userChannel)
 				end
 			elseif isSession(sessions, givenChannel, givenDistance, givenID) then
-				--onMessage("[DIRECT] Request from active session")
-
 				local request = crypt(textutils.unserialize(givenMessage), serverURL .. tostring(givenDistance) .. givenID)
 				if request then
 					local domain = request:match(retrievePattern)
@@ -742,7 +752,6 @@ local backend = function(serverURL, onEvent, onMessage)
 			end
 		elseif event == "rednet_message" then
 			if givenID == DNSRequestTag and givenChannel == DNSRequestTag then
-				--onMessage("[REDNET] Responding to DNS request")
 				rednet.send(givenSide, DNSResponseTag .. serverURL, DNSRequestTag)
 			elseif givenID == protocolTag .. serverURL then
 				local id = givenSide
@@ -791,8 +800,8 @@ end
 local host = function(domain)
 	clear(theme.background, theme.text)
 
-	local onEvent = function( ...)
-		local event = { ...}
+	local onEvent = function(...)
+		local event = {...}
 		if event[1] == "mouse_click" and event[3] == w and event[4] == 1 then
 			return true
 		end
@@ -851,6 +860,7 @@ local newServer = function()
 		f:close()
 	end
 end
+
 
 
 
