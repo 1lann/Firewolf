@@ -2530,7 +2530,7 @@ local function proccessData(commands)
             local endIndex = origin
             for i = origin + 1, #commands do
                 if commands[i][2] then
-                    local command = commands[i][2]:match("^(%w+)%s-$")
+                    local command = commands[i][2]:match("^(%w+)%s-")
                     if not (command == "c" or command == "color" or command == "bg"
                             or command == "background" or command == "newlink" or command == "endlink") then
                         endIndex = i
