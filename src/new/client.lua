@@ -35,7 +35,9 @@ Events.exit = "firewolf_exitEvent"
 
 
 
+--
 --    Utilities
+--
 
 
 local function clear(bg, fg)
@@ -109,7 +111,9 @@ end
 
 
 
+--
 --    FWML
+--
 
 
 local FWML = {}
@@ -133,7 +137,9 @@ end
 
 
 
+--
 --    Internal Sites
+--
 
 
 local InternalSites = {}
@@ -143,11 +149,23 @@ InternalSites.invisible = {}
 InternalSites.pageTypes = {}
 
 
+
+--
+--    Visible Sites
+--
+
+
 InternalSites.pageTypes["firewolf"] = "lua"
 InternalSites.visible["firewolf"] = function()
 	print("hello there!")
 	print("testing")
 end
+
+
+
+--
+--    Invisible Sites
+--
 
 
 InternalSites.pageTypes["none"] = "lua"
@@ -167,6 +185,18 @@ InternalSites.pageTypes["search"] = "lua"
 InternalSites.invisible["search"] = function(results)
 
 end
+
+
+InternalSites.pageTypes["nomodem"] = "lua"
+InternalSites.invisible["nomodem"] = function()
+
+end
+
+
+
+--
+--    Internal Sites
+--
 
 
 function InternalSites.isInternal(url)
@@ -228,7 +258,95 @@ end
 
 
 
+--
+--    Modem API
+--
+
+
+local Modem = {}
+Modem.modems = {}
+
+
+function Modem.exists()
+	Modem.exists = false
+	for _, side in pairs(rs.getSides()) do
+		if peripheral.exists(side) and peripheral.getType(side) == "modem" then
+			Modem.exists = true
+
+			if not Modem.modems[side] then
+				Modem.modems[side] = peripheral.wrap(side)
+			end
+		end
+	end
+
+	return Modem.exists
+end
+
+
+function Modem.open(channel)
+	if not Modem.exists then
+		return false
+	end
+
+	for side, modem in pairs(Modem.modems) do
+		modem.open(channel)
+	end
+
+	return true
+end
+
+
+function Modem.close(channel)
+	if not Modem.exists then
+		return false
+	end
+
+	for side, modem in pairs(Modem.modems) do
+		modem.close(channel)
+	end
+
+	return true
+end
+
+
+function Modem.isOpen(channel)
+	if not Modem.exists then
+		return false
+	end
+
+	local isOpen = false
+	for side, modem in pairs(Modem.modems) do
+		if modem.isOpen(channel) then
+			isOpen = true
+			break
+		end
+	end
+
+	return isOpen
+end
+
+
+function Modem.send(channel, msg)
+	if not Modem.exists then
+		return false
+	end
+
+	if not Modem.isOpen(channel) then
+		Modem.open(channel)
+	end
+
+	for side, modem in pairs(Modem.modems) do
+		modem.transmit(channel, channel, msg)
+	end
+
+	return true
+end
+
+
+
+--
 --    External Sites
+--
 
 
 local ExternalSites = {}
@@ -242,7 +360,9 @@ end
 
 
 
+--
 --    Searching
+--
 
 
 local Search = {}
@@ -255,7 +375,9 @@ end
 
 
 
+--
 --   Page Execution
+--
 
 
 local Language = {}
@@ -307,7 +429,9 @@ end
 
 
 
+--
 --    Website Fetching
+--
 
 
 local Fetch = {}
@@ -370,7 +494,12 @@ function Fetch.determineType(url)
 				urlType = "external"
 				data = connection
 			else
-				local results = Search.results(url)
+				local query = url
+				if query:len() == 0 then
+					query = nil
+				end
+
+				local results = Search.results(query)
 				if results and #results > 0 then
 					urlType = "search"
 					data = results
@@ -435,7 +564,9 @@ end
 
 
 
+--
 --    Content
+--
 
 
 local Content = {}
@@ -513,7 +644,9 @@ end
 
 
 
+--
 --    Content Manager
+--
 
 
 local ContentManager = {}
@@ -596,7 +729,9 @@ end
 
 
 
+--
 --    Tab Bar
+--
 
 -- Delegate responds to:
 --  getTabNames()
@@ -742,7 +877,9 @@ end
 
 
 
+--
 --    Content Tab Bar Link
+--
 
 
 local ContentTabLink = {}
@@ -826,7 +963,9 @@ end
 
 
 
+--
 --    Menu Bar
+--
 
 
 local MenuBar = {}
@@ -939,7 +1078,9 @@ end
 
 
 
+--
 --    App
+--
 
 
 local App = {}
@@ -1021,7 +1162,9 @@ end
 
 
 
+--
 --    Error Handling
+--
 
 
 local Error = {}
@@ -1069,7 +1212,9 @@ end
 
 
 
+--
 --    Main
+--
 
 
 local function main()
