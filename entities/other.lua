@@ -10,7 +10,7 @@
 
 
 local version = "3.0"
-local build = 0
+local build = 2
 
 local w, h = term.getSize()
 
@@ -45,6 +45,7 @@ local searchResultTimeout = 0.5
 local initiationTimeout = 0.2
 local animationInterval = 0.125
 local fetchTimeout = 1
+local serverLimitPerComputer = 3
 
 local listToken = "--@!FIREWOLF-LIST!@--"
 local initiateToken = "--@!FIREWOLF-INITIATE!@--"
@@ -838,17 +839,13 @@ local determineClickedTab = function(x, y)
 		local minx = 2
 		for i, tab in pairs(tabs) do
 			local name = getTabName(tab.url)
-			local length = name:len()
-			if name:len() > maxTabNameWidth then
-				length = name:sub(1, maxTabNameWidth):len()
-			end
 
-			if x >= minx and x <= minx + length - 1 then
+			if x >= minx and x <= minx + name:len() - 1 then
 				return i
-			elseif x == minx + length and i == currentTab and #tabs > 1 then
+			elseif x == minx + name:len() and i == currentTab and #tabs > 1 then
 				return "close"
 			else
-				minx = minx + length + 2
+				minx = minx + name:len() + 2
 			end
 		end
 
@@ -987,7 +984,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 			if result == distance then
 				if not repeatedResults[tostring(result)] then
 					repeatedResults[tostring(result)] = 1
-				elseif repeatedResults[tostring(result)] >= limitPerSerresulter - 1 then
+				elseif repeatedResults[tostring(result)] >= serverLimitPerComputer - 1 then
 					table.insert(toDelete, result)
 					return false
 				else
@@ -1512,7 +1509,7 @@ local loadTab = function(index, url, givenFunc)
 	local isOpen = true
 
 	isMenubarOpen = true
-	currentWebsiteURL = url;
+	currentWebsiteURL = url
 	drawMenubar()
 
 	if givenFunc then
@@ -1540,6 +1537,9 @@ local loadTab = function(index, url, givenFunc)
 		tabs[index].thread = coroutine.create(func)
 		tabs[index].isMenubarOpen = isOpen
 		tabs[index].isMenubarPermanent = isOpen
+
+		tabs[index].ox = 1
+		tabs[index].oy = 1
 
 		term.redirect(tabs[index].win)
 		clear(theme.background, theme.text)
@@ -1582,6 +1582,7 @@ local getWhitelistedEnvironment = function()
 	env["os"]["shutdown"] = nil
 	env["os"]["reboot"] = nil
 	env["os"]["setComputerLabel"] = nil
+	env["os"]["queueEvent"] = nil
 	env["os"]["pullEventRaw"] = os.pullEvent
 
 	copy(paintutils, env, "paintutils")
@@ -2302,7 +2303,13 @@ local handleEvents = function()
 
 		if not cancelEvent then
 			term.redirect(tabs[currentTab].win)
+			term.setCursorPos(tabs[currentTab].ox, tabs[currentTab].oy)
+
 			coroutine.resume(tabs[currentTab].thread, unpack(event))
+
+			local ox, oy = term.getCursorPos()
+			tabs[currentTab].ox = ox
+			tabs[currentTab].oy = oy
 		end
 	end
 end

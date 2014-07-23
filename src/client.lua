@@ -10,7 +10,7 @@
 
 
 local version = "3.0"
-local build = 0
+local build = 2
 
 local w, h = term.getSize()
 
@@ -1582,6 +1582,7 @@ local getWhitelistedEnvironment = function()
 	env["os"]["shutdown"] = nil
 	env["os"]["reboot"] = nil
 	env["os"]["setComputerLabel"] = nil
+	env["os"]["queueEvent"] = nil
 	env["os"]["pullEventRaw"] = os.pullEvent
 
 	copy(paintutils, env, "paintutils")
