@@ -1,4 +1,3 @@
-
 --
 --  Firewolf Server
 --  Made by GravityScore and 1lann
@@ -724,32 +723,6 @@ local deleteServer = function(domain)
 	fs.delete(path)
 end
 
-
-local hostOnStartup = function(domain)
-	local path = serversFolder .. "/" .. domain
-	if fs.isDir(path) and fs.exists(path .. "/" .. indexFileName) then
-		if fs.exists("/startup") then
-			if not fs.isDir("/startup") then
-				local f = io.open("/startup", "r")
-				local firstLine = f:read("*l")
-				if firstLine ~= "-- Launch Firewolf Server" then
-					fs.move("/startup", "/old-startup")
-				end
-
-				f:close()
-			else
-				fs.move("/startup", "/old-startup")
-			end
-		end
-
-		local f = io.open("/startup", "w")
-		f:write("-- Launch Firewolf Server\nshell.run(\"/" .. shell.getRunningProgram() .. "\", \"" .. domain .. "\")")
-		f:close()
-	end
-end
-
-
-
 --    Menu Bar
 
 
@@ -839,39 +812,14 @@ end
 --    Hosting Interface
 
 
-local editServer = function(domain)
-	clear(colors.black, colors.white)
-
-	local path = serversFolder .. "/" .. domain
-	local oldDir = shell.dir()
-	shell.setDir(path)
-
-	term.setCursorPos(1, 1)
-	while true do
-		term.setTextColor(theme.yellow)
-		term.write("> ")
-		term.setTextColor(colors.white)
-		local command = modifiedRead()
-	end
-
-	shell.setDir(oldDir)
-end
-
-
 local hostInterface = function(index, domain)
 	local log = {}
 	local height = h - 4
-
-	local buttons = {
-		{text = "Edit Files", action = function()
-			editServer(domain)
-		end},
-		{text = "Run on Startup", action = function()
-			hostOnStartup(domain)
-		end},
-	}
+	local buttons = {}
 
 	local draw = function()
+		os.queueEvent(updateMenubarEvent)
+
 		clear(theme.background, theme.text)
 		term.setCursorPos(1, 2)
 
@@ -901,6 +849,54 @@ local hostInterface = function(index, domain)
 		end
 	end
 
+	local editServer = function()
+		clear(colors.black, colors.white)
+
+		local path = serversFolder .. "/" .. domain
+		local oldDir = shell.dir()
+		shell.setDir(path)
+
+		term.setCursorPos(1, 1)
+		while true do
+			term.setTextColor(theme.yellow)
+			term.write("> ")
+			term.setTextColor(colors.white)
+			local command = modifiedRead()
+			if command == "exit" then
+				break
+			else
+				shell.run(command)
+			end
+		end
+
+		shell.setDir(oldDir)
+	end
+
+	local hostOnStartup = function()
+		local path = serversFolder .. "/" .. domain
+		if fs.isDir(path) and fs.exists(path .. "/" .. indexFileName) then
+			if fs.exists("/startup") then
+				if not fs.isDir("/startup") then
+					local f = io.open("/startup", "r")
+					local firstLine = f:read("*l")
+					if firstLine ~= "-- Launch Firewolf Server" then
+						fs.move("/startup", "/old-startup")
+					end
+
+					f:close()
+				else
+					fs.move("/startup", "/old-startup")
+				end
+			end
+
+			local f = io.open("/startup", "w")
+			f:write("-- Launch Firewolf Server\n\nterm.clear()\nsleep(0.1)\nshell.run(\"/" .. shell.getRunningProgram() .. "\", \"" .. domain .. "\")")
+			f:close()
+
+			onMessage("Will run on startup!")
+		end
+	end
+
 	local onEvent = function(...)
 		local event = {...}
 
@@ -913,12 +909,19 @@ local hostInterface = function(index, domain)
 					end
 				end
 			end
-
-			draw()
 		end
 
 		return false
 	end
+
+	buttons = {
+		{text = "Edit Files", action = function()
+			editServer(domain)
+		end},
+		{text = "Run on Startup", action = function()
+			hostOnStartup()
+		end},
+	}
 
 	clear(theme.background, theme.text)
 	term.setCursorPos(1, 2)
@@ -1068,7 +1071,7 @@ local switchTab = function(index, shouldntResume)
 	tabs[index].win.redraw()
 
 	if not shouldntResume then
-		term.redirect()
+		--term.redirect()
 		term.setCursorPos(tabs[index].ox, tabs[index].oy)
 
 		coroutine.resume(tabs[index].thread, tabSwitchEvent, index)
@@ -1158,9 +1161,11 @@ local handleEvents = function()
 	end
 
 	while true do
-		drawMenubar()
 		local event = {os.pullEvent()}
-		drawMenubar()
+
+		if event[1] == updateMenubarEvent then
+			drawMenubar()
+		end
 
 		local cancelEvent = false
 		if event[1] == "mouse_click" then
