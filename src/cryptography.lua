@@ -555,6 +555,19 @@ local protocolName = "Firewolf"
 	end
 
 
+	function Modem.closeAll()
+			if not Modem.exists then
+				return false
+			end
+
+			for side, modem in pairs(Modem.modems) do
+				modem.closeAll()
+			end
+
+			return true
+	end
+
+
 	function Modem.isOpen(channel)
 		if not Modem.exists then
 			return false
@@ -695,8 +708,8 @@ local protocolName = "Firewolf"
 		end
 
 		self.identifier = identifier
-		self.packetMatch = packetMatchA .. Cryptography.sanatize(identifier) .. packetMatchB
-		self.packetHeader = packetHeaderA .. identifier .. packetHeaderB
+		self.packetMatch = SecureConnection.packetMatchA .. Cryptography.sanatize(identifier) .. SecureConnection.packetMatchB
+		self.packetHeader = SecureConnection.packetHeaderA .. identifier .. SecureConnection.packetHeaderB
 		self.secret = Cryptography.sha.sha256(rawSecret)
 
 		if not self.isRednet then
@@ -709,7 +722,7 @@ local protocolName = "Firewolf"
 
 
 	function SecureConnection:verifyHeader(msg)
-		if msg:match(this.packetMatch) then
+		if msg:match(self.packetMatch) then
 			return true
 		else
 			return false
@@ -721,8 +734,8 @@ local protocolName = "Firewolf"
 		if self.isRednet and not id then
 			return false
 		else
-			local rawEncryptedMsg = Cryptography.aes.encrypt(SecureConnection.packetHeader .. msg, self.secret)
-			local encryptedMsg = SecureConnection.packetHeader .. rawEncryptedMsg
+			local rawEncryptedMsg = Cryptography.aes.encrypt(self.packetHeader .. msg, self.secret)
+			local encryptedMsg = self.packetHeader .. rawEncryptedMsg
 
 			if self.isRednet then
 				rednet.send(id, encryptedMsg)
@@ -736,7 +749,7 @@ local protocolName = "Firewolf"
 
 	function SecureConnection:decryptMessage(msg)
 		if self:verifyHeader(msg) then
-			local encrypted = msg:match(this.packetMatch)
+			local encrypted = msg:match(self.packetMatch)
 
 			local unencryptedMsg = nil
 			pcall(function() unencryptedMsg = Cryptography.aes.decrypt(encrypted, self.secret) end)
@@ -745,9 +758,11 @@ local protocolName = "Firewolf"
 			end
 
 			if self:verifyHeader(unencryptedMsg) then
-				return unencryptedMsg:match(this.packetMatch)
+				return unencryptedMsg:match(self.packetMatch)
 			else
 				return false, "Could not verify"
 			end
+		else
+			return false, "Could not stage 1 verify"
 		end
 	end

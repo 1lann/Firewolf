@@ -4,6 +4,7 @@
 --  Made by 1lann and GravityScore
 --
 
+--  TODO: UPDATE THIS CODE FROM CRYPTOGRAPHY.LUA PLS
 --  Network Code
 	--  RC4
 		--    RC4
@@ -562,6 +563,19 @@
 		end
 
 
+		function Modem.closeAll()
+			if not Modem.exists then
+				return false
+			end
+
+			for side, modem in pairs(Modem.modems) do
+				modem.closeAll()
+			end
+
+			return true
+		end
+
+
 		function Modem.isOpen(channel)
 			if not Modem.exists then
 				return false
@@ -702,8 +716,8 @@
 			end
 
 			self.identifier = identifier
-			self.packetMatch = packetMatchA .. Cryptography.sanatize(identifier) .. packetMatchB
-			self.packetHeader = packetHeaderA .. identifier .. packetHeaderB
+			self.packetMatch = SecureConnection.packetMatchA .. Cryptography.sanatize(identifier) .. SecureConnection.packetMatchB
+			self.packetHeader = SecureConnection.packetHeaderA .. identifier .. SecureConnection.packetHeaderB
 			self.secret = Cryptography.sha.sha256(rawSecret)
 
 			if not self.isRednet then
@@ -769,8 +783,14 @@ local version = "3.1 Beta"
 local header = {}
 header.dnsMatch = "[Firewolf-DNS-Packet]"
 header.dnsHeader = "[Firewolf-DNS-Response]"
-header.requestMatchA = "%[Firewolf%- "
-header.requestMatchB = "%-Handshake%-Request%](.+)"
+header.rednetHeader = "[Firewolf-Rednet-Channel-Simulation]"
+header.rednetMatch = "^%[Firewolf%-Rednet%-Channel%-Simulation%](%d+)$"
+header.requestMatchA = "^%[Firewolf%- "
+header.requestMatchB = "%-Handshake%-Request%](.+)$"
+header.maliciousMatchA = "^%[Firewolf%- "
+header.maliciousMatchB = "%-Handshake%-Response%](.+)$"
+header.responseHeaderA = "[Firewolf-"
+header.responseHeaderB = "-Handshake-Response]"
 
 local theme = {}
 theme.error = colors.red
@@ -794,38 +814,117 @@ local exit = function()
 end
 
 local responseStack = {}
+local serverChannel = 0
+local requestMatch = ""
+local maliciousMatch = ""
+local responseHeader = ""
 local connections = {}
 
-local receiveDaemon = function(domain)
+local receiveDaemon = function()
 	while true do
-		local event, _, channel, _, message, dist = os.pullEvent()
+		local event, id, channel, protocol, message, dist = os.pullEvent()
 		if event == "modem_message" then
 			table.insert(responseStack, {type = "direct", channel = channel, message = message, dist = dist})
-		elseif event == "rednet_message" then
-			table.insert(responseStack, {type = "rednet", message = channel})
+		elseif event == "rednet_message" and protocol:match(header.rednetMatch) then
+			table.insert(responseStack, {type = "rednet", channel = tonumber(protocol:match(header.rednetMatch)), rednet_id = id, message = channel, dist = null})
+		end
+	end
+end
+
+local getActiveConnection = function(channel, distance)
+	for k, connection in pairs(connections) do
+		if connection.channel == channel then
+			if (not distance) then
+				if connection.type == "rednet" then
+					return connection
+				else
+					return false
+				end
+			else
+				if connection.dist == distance then
+					return connection
+				else
+					return false
+				end
+			end
 		end
 	end
 end
 
 local responseDaemon = function(domain)
+	for k, v in pairs(responseStack) do
+		if v.channel == channel.dnsListen and v.message == header.dnsMatch then
+			-- DNS Request
+			if v.type == "rednet" then
+				rednet.send(v.rednet_id, header.dnsResponse..domain, header.rednetHeader..channel.dnsResponse)
+			else
+				Modem.open(channel.dnsResponse)
+				Modem.transmit(header.dnsResponse..domain)
+				Modem.close(channel.dnsResponse)
+			end
+		elseif v.channel == serverChannel then
+			-- Handshake Request
+			local requestData = v.message:match(requestMatch)
+			if requestData and type(textutils.unserialize(requestData)) == "table" then
+				local receivedHandshake = textutils.unserialize(requestData)
+				local data, key = Handshake.generateResponseData(receivedHandshake)
+				local connection
 
+				if v.type == "direct" then
+					connection = SecureConnection.new(key, domain, domain, v.dist)
+				else
+					connection = SecureConnection.new(key, domain .. tostring(v.rednet_id), domain)
+				end
+
+				table.insert(connections, connection)
+				print("New connection established")
+			elseif v.message:match(maliciousMatch) then
+				-- Hijacking Detected
+				print("Connection Hijacking Detected!")
+			else
+				print("Invalid message on server channel")
+			end
+		elseif getActiveConnection(v.channel, v.dist) then
+			print("Active connection message")
+			local connection = getActiveConnection(v.channel, v.dist)
+			if connection:verifyHeader(v.message) then
+				print("Level 1 Passed Message")
+				local resp, data = connection:decryptMessage(msg)
+				if not resp then
+					print("Decrypting error: "..data)
+				else
+					print("Success! Message: ")
+					print(data)
+					-- Process Request
+				end
+			else
+				print("Invalid message")
+			end
+		end
+	end
 end
 
 local runOnDomain = function(domain)
-	channel.public  {}	
+	serverChannel = Cryptography.channel(domain)
+	requestMatch = header.requestMatchA .. Cryptography.sanatize(domain) .. header.requestMatchB
+	responseHeader = header.responseHeaderA .. domain .. header.responseHeaderB
+	maliciousMatch = header.maliciousMatchA .. Cryptography.sanatize(domain) .. header.maliciousMatchB
 
-	local receiveThread = coroutine.create(receiveDaemon)
+	Modem.open(serverChannel)
+	Modem.open(channel.dnsListen)
+
+	local receiveThread = coroutine.create()
 	local responseThread = coroutine.create(responseDaemon)
 
 	while true do
 		local events = {os.pullEventRaw()}
 		if false then
-
+			
 		else
 			coroutine.resume(receiveThread, unpack(events))
 			while #responseStack > 0 do
 				print("Responding loop...")
-				coroutine.resume(responseThread, unpack(events))
+				coroutine.resume(responseThread)
 			end
 		end
 	end
@@ -833,6 +932,7 @@ local runOnDomain = function(domain)
 end
 
 local init = function()
+	Modem.closeAll()
 	term.setBackgroundColor(theme.background)
 	term.setTextColor(theme.notice)
 	term.clear()
