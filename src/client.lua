@@ -10,7 +10,7 @@
 
 
 local version = "3.0"
-local build = 2
+local build = 3
 
 local w, h = term.getSize()
 
@@ -433,6 +433,7 @@ end
 
 
 local download = function(url)
+	http.request(url)
 	local timeoutID = os.startTimer(httpTimeout)
 	while true do
 		local event, fetchedURL, response = os.pullEvent()
