@@ -10,7 +10,7 @@
 
 
 local version = "3.0"
-local build = 3
+local build = 2
 
 local w, h = term.getSize()
 
@@ -582,7 +582,7 @@ builtInSites["display"]["server"] = function()
 				term.setCursorPos(1, 11)
 				center("Downloading...")
 
-				local err = downloadAndSave("http://pastebin.com/raw.php?i=hi4xFVxn", "/fwserver")
+				local err = downloadAndSave(serverURL, "/fwserver")
 
 				fill(1, 11, w, 4, theme.background)
 				term.setCursorPos(1, 11)
