@@ -4,8 +4,7 @@
 --  Made by 1lann and GravityScore
 --
 
---  TODO: UPDATE THIS CODE FROM CRYPTOGRAPHY.LUA PLS
---  Network Code
+--  Networking API
 	--  RC4
 		--    RC4
 		--    Implementation by AgentE382
@@ -507,10 +506,10 @@
 		end
 
 		function Cryptography.sanatize(text)
-			local sanatizeChars = {"(", ")", "[", "]", ".", "%", "+", "-", "*", "?", "^", "$"}
+			local sanatizeChars = {"%", "(", ")", "[", "]", ".", "+", "-", "*", "?", "^", "$"}
 
 			for _, char in pairs(sanatizeChars) do
-				text = text:gsub("%"+char, "%%%"+char)
+				text = text:gsub("%"..char, "%%%"..char)
 			end
 			return text
 		end
@@ -544,6 +543,7 @@
 
 			for side, modem in pairs(Modem.modems) do
 				modem.open(channel)
+				rednet.open(side)
 			end
 
 			return true
@@ -564,15 +564,15 @@
 
 
 		function Modem.closeAll()
-			if not Modem.exists then
-				return false
-			end
+				if not Modem.exists then
+					return false
+				end
 
-			for side, modem in pairs(Modem.modems) do
-				modem.closeAll()
-			end
+				for side, modem in pairs(Modem.modems) do
+					modem.closeAll()
+				end
 
-			return true
+				return true
 		end
 
 
@@ -593,7 +593,7 @@
 		end
 
 
-		function Modem.send(channel, msg)
+		function Modem.transmit(channel, msg)
 			if not Modem.exists then
 				return false
 			end
@@ -695,42 +695,43 @@
 		SecureConnection.successPacketTimeout = 0.1
 
 
-		function SecureConnection.new(secret, key, identifier, distance)
+		function SecureConnection.new(secret, key, identifier, distance, isRednet)
 			local self = setmetatable({}, SecureConnection)
-			self:setup(secret, key, identifier, distance)
+			self:setup(secret, key, identifier, distance, isRednet)
 			return self
 		end
 
 
-		function SecureConnection:setup(secret, key, identifier, distance)
+		function SecureConnection:setup(secret, key, identifier, distance, isRednet)
 			local rawSecret
 
-			if not distance or distance < 0 then
+			if isRednet then
 				self.isRednet = true
 				self.distance = -1
-				rawSecret = tostring(secret) .. "|" .. tostring(identifier) .. "|" .. tostring(key)
+				self.rednet_id = distance
+				rawSecret = protocolName .. "|" .. tostring(secret) .. "|" .. tostring(identifier) ..
+				"|" .. tostring(key) .. "|rednet"
 			else
 				self.isRednet = false
 				self.distance = distance
-				rawSecret = tostring(secret) .. "|" .. tostring(identifier) .. "|" .. tostring(key) .. "|" .. tostring(distance)
+				rawSecret = protocolName .. "|" .. tostring(secret) .. "|" .. tostring(identifier) ..
+				"|" .. tostring(key) .. "|" .. tostring(distance)
 			end
 
 			self.identifier = identifier
 			self.packetMatch = SecureConnection.packetMatchA .. Cryptography.sanatize(identifier) .. SecureConnection.packetMatchB
 			self.packetHeader = SecureConnection.packetHeaderA .. identifier .. SecureConnection.packetHeaderB
 			self.secret = Cryptography.sha.sha256(rawSecret)
+			self.channel = Cryptography.channel(self.secret)
 
 			if not self.isRednet then
-				self.channel = Cryptography.channel(self.secret)
 				Modem.open(self.channel)
-			else
-				self.channel = nil
 			end
 		end
 
 
 		function SecureConnection:verifyHeader(msg)
-			if msg:match(this.packetMatch) then
+			if msg:match(self.packetMatch) then
 				return true
 			else
 				return false
@@ -738,26 +739,22 @@
 		end
 
 
-		function SecureConnection:sendMessage(msg, id)
-			if self.isRednet and not id then
-				return false
-			else
-				local rawEncryptedMsg = Cryptography.aes.encrypt(SecureConnection.packetHeader .. msg, self.secret)
-				local encryptedMsg = SecureConnection.packetHeader .. rawEncryptedMsg
+		function SecureConnection:sendMessage(msg, rednetProtocol)
+			local rawEncryptedMsg = Cryptography.aes.encrypt(self.packetHeader .. msg, self.secret)
+			local encryptedMsg = self.packetHeader .. rawEncryptedMsg
 
-				if self.isRednet then
-					rednet.send(id, encryptedMsg)
-					return true
-				else
-					return Modem.send(self.channel, encryptedMsg)
-				end
+			if self.isRednet then
+				rednet.send(self.rednet_id, encryptedMsg, rednetProtocol)
+				return true
+			else
+				return Modem.transmit(self.channel, encryptedMsg)
 			end
 		end
 
 
 		function SecureConnection:decryptMessage(msg)
 			if self:verifyHeader(msg) then
-				local encrypted = msg:match(this.packetMatch)
+				local encrypted = msg:match(self.packetMatch)
 
 				local unencryptedMsg = nil
 				pcall(function() unencryptedMsg = Cryptography.aes.decrypt(encrypted, self.secret) end)
@@ -766,13 +763,15 @@
 				end
 
 				if self:verifyHeader(unencryptedMsg) then
-					return unencryptedMsg:match(this.packetMatch)
+					return unencryptedMsg:match(self.packetMatch)
 				else
 					return false, "Could not verify"
 				end
+			else
+				return false, "Could not stage 1 verify"
 			end
 		end
-
+-- END OF NETWORKING
 
 local channel = {}
 channel.dnsListen = 9999
@@ -781,52 +780,73 @@ channel.dnsResponse = 9998
 local version = "3.1 Beta"
 
 local header = {}
-header.dnsMatch = "[Firewolf-DNS-Packet]"
+header.dnsPacket = "[Firewolf-DNS-Packet]"
 header.dnsHeader = "[Firewolf-DNS-Response]"
 header.rednetHeader = "[Firewolf-Rednet-Channel-Simulation]"
 header.rednetMatch = "^%[Firewolf%-Rednet%-Channel%-Simulation%](%d+)$"
-header.requestMatchA = "^%[Firewolf%- "
+header.requestMatchA = "^%[Firewolf%-"
 header.requestMatchB = "%-Handshake%-Request%](.+)$"
-header.maliciousMatchA = "^%[Firewolf%- "
-header.maliciousMatchB = "%-Handshake%-Response%](.+)$"
+header.maliciousMatchA = "^%[Firewolf%-"
+header.maliciousMatchB = "%-.+%-Handshake%-Response%](.+)$"
 header.responseHeaderA = "[Firewolf-"
-header.responseHeaderB = "-Handshake-Response]"
+header.responseHeaderB = "-"
+header.responseHeaderC = "-Handshake-Response]"
+header.pageRequestMatchA = "^%[Firewolf%-"
+header.pageRequestMatchB = "%-Page%-Request%](.+)$"
+header.pageResponseHeaderA = "[Firewolf-"
+header.pageResponseHeaderB = "-Page-Response]"
+header.closeMatchA = "[Firewolf-"
+header.closeMatchB = "-Connection-Close]"
+
+local resetServerEvent = "firewolf-server-reset-event"
 
 local theme = {}
 theme.error = colors.red
 theme.background = colors.black
 theme.text = colors.white
 theme.notice = colors.yellow
+theme.barColor = colors.white
+theme.barText = colors.gray
 
 local center = function(text)
 	local x, y = term.getCursorPos()
+	local w, h = term.getSize()
 	term.setCursorPos(math.floor(w / 2 - text:len() / 2) + (text:len() % 2 == 0 and 1 or 0), y)
 	term.write(text)
 	term.setCursorPos(1, y + 1)
 end
 
 local exit = function()
-	term.setTextColor(theme.notice)
-	center("Firewolf Server Terminated.")
-	center("Press any key to continue...")
-	os.pullEvent("key")
+	term.setCursorPos(1,1)
+	term.clear()
 	error("firewolf-quit")
 end
 
 local responseStack = {}
+local terminalLog = {}
+local servedRequests = 0
 local serverChannel = 0
 local requestMatch = ""
 local maliciousMatch = ""
 local responseHeader = ""
+local pageRequestMatch = ""
+local pageResposneHeader = ""
+local closeMatch = ""
 local connections = {}
+
+local writeLog = function(text, color)
+	table.insert(terminalLog, {text, color})
+end
 
 local receiveDaemon = function()
 	while true do
-		local event, id, channel, protocol, message, dist = os.pullEvent()
+		local event, id, channel, protocol, message, dist = os.pullEventRaw()
 		if event == "modem_message" then
 			table.insert(responseStack, {type = "direct", channel = channel, message = message, dist = dist})
 		elseif event == "rednet_message" and protocol:match(header.rednetMatch) then
 			table.insert(responseStack, {type = "rednet", channel = tonumber(protocol:match(header.rednetMatch)), rednet_id = id, message = channel, dist = null})
+		elseif event == "terminate" then
+			exit()
 		end
 	end
 end
@@ -835,13 +855,13 @@ local getActiveConnection = function(channel, distance)
 	for k, connection in pairs(connections) do
 		if connection.channel == channel then
 			if (not distance) then
-				if connection.type == "rednet" then
+				if connection.isRednet then
 					return connection
 				else
 					return false
 				end
 			else
-				if connection.dist == distance then
+				if connection.distance == distance then
 					return connection
 				else
 					return false
@@ -852,80 +872,189 @@ local getActiveConnection = function(channel, distance)
 end
 
 local responseDaemon = function(domain)
-	for k, v in pairs(responseStack) do
-		if v.channel == channel.dnsListen and v.message == header.dnsMatch then
-			-- DNS Request
-			if v.type == "rednet" then
-				rednet.send(v.rednet_id, header.dnsResponse..domain, header.rednetHeader..channel.dnsResponse)
-			else
-				Modem.open(channel.dnsResponse)
-				Modem.transmit(header.dnsResponse..domain)
-				Modem.close(channel.dnsResponse)
-			end
-		elseif v.channel == serverChannel then
-			-- Handshake Request
-			local requestData = v.message:match(requestMatch)
-			if requestData and type(textutils.unserialize(requestData)) == "table" then
-				local receivedHandshake = textutils.unserialize(requestData)
-				local data, key = Handshake.generateResponseData(receivedHandshake)
-				local connection
+	while true do
+		os.pullEventRaw()
 
-				if v.type == "direct" then
-					connection = SecureConnection.new(key, domain, domain, v.dist)
-				else
-					connection = SecureConnection.new(key, domain .. tostring(v.rednet_id), domain)
-				end
+		for k, v in pairs(responseStack) do
+			if v.channel then
+				if v.channel == channel.dnsListen and v.message == header.dnsPacket then
+					-- DNS Request
+					if v.type == "rednet" then
+						rednet.send(v.rednet_id, header.dnsHeader..domain, header.rednetHeader..channel.dnsResponse)
+					else
+						Modem.open(channel.dnsResponse)
+						Modem.transmit(channel.dnsResponse ,header.dnsHeader..domain)
+						Modem.close(channel.dnsResponse)
+					end
+				elseif v.channel == serverChannel then
+					-- Handshake Request
+					local requestData = v.message:match(requestMatch)
+					if requestData and type(textutils.unserialize(requestData)) == "table" then
+						local receivedHandshake = textutils.unserialize(requestData)
+						local data, key = Handshake.generateResponseData(receivedHandshake)
+						if type(data) == "table" then
+							local connection
 
-				table.insert(connections, connection)
-				print("New connection established")
-			elseif v.message:match(maliciousMatch) then
-				-- Hijacking Detected
-				print("Connection Hijacking Detected!")
-			else
-				print("Invalid message on server channel")
-			end
-		elseif getActiveConnection(v.channel, v.dist) then
-			print("Active connection message")
-			local connection = getActiveConnection(v.channel, v.dist)
-			if connection:verifyHeader(v.message) then
-				print("Level 1 Passed Message")
-				local resp, data = connection:decryptMessage(msg)
-				if not resp then
-					print("Decrypting error: "..data)
-				else
-					print("Success! Message: ")
-					print(data)
-					-- Process Request
+							if v.type == "direct" then
+								connection = SecureConnection.new(key, domain, domain, v.dist)
+
+								Modem.transmit(serverChannel, responseHeader .. tostring(v.dist) .. header.responseHeaderC .. textutils.serialize(data))
+							else
+								connection = SecureConnection.new(key, domain, domain, v.rednet_id, true)
+
+								rednet.send(v.rednet_id, responseHeader .. tostring(v.rednet_id) .. header.responseHeaderC .. textutils.serialize(data), header.rednetHeader .. serverChannel)
+							end
+
+							table.insert(connections, connection)
+						end
+					elseif v.message:match(maliciousMatch) then
+						-- Hijacking Detected
+						writeLog("Warning: Connection Hijacking Detected", theme.error)
+					end
+				elseif getActiveConnection(v.channel, v.dist) then
+					local connection = getActiveConnection(v.channel, v.dist)
+					if connection:verifyHeader(v.message) then
+						local resp, data = connection:decryptMessage(v.message)
+						if not resp then
+							-- Decryption Error
+						else
+							-- Process Request
+							if resp:match(pageRequestMatch) then
+								-- TODO: Get page?
+							elseif resp == closeMatch then
+								Modem.close(connection.channel)
+								table.remove(connections, k)
+							end
+						end
+					end
 				end
-			else
-				print("Invalid message")
 			end
 		end
+
+		responseStack = {}
 	end
 end
+
+
+local terminalDaemon = function(domain)
+	local enteredText = ""
+	local cursorPosition = 1
+	local offsetPosition = 1
+	local w, h = term.getSize()
+
+	term.setCursorPos(1, h - 1)
+	term.write(string.rep("-", w))
+	term.setCursorPos(1, h)
+	term.write("> ")
+	term.write(enteredText:sub(offsetPosition, offsetPosition + h - 1))
+
+	term.setCursorPos(offsetPosition - cursorPosition, h)
+
+	width = w - 2
+
+	while true do
+		local event, key = os.pullEventRaw()
+		if event == "char" then
+			enteredText = enteredText:sub(1, cursorPosition-1) .. key .. enteredText:sub(cursorPosition, -1)
+			cursorPosition = cursorPosition + 1
+			if cursorPosition - offsetPosition >= width then
+				offsetPosition = offsetPosition + 1
+			end
+		elseif event == "key" then
+			if key == 14 then
+				if enteredText ~= "" then
+					enteredText = enteredText:sub(1, cursorPosition - 2) .. enteredText:sub(cursorPosition, -1)
+					cursorPosition = cursorPosition-1
+					if cursorPosition >= width then
+						offsetPosition = offsetPosition - 1
+					end
+				end
+			elseif key == 28 then
+				-- Enter key
+			elseif key == 203 then
+				cursorPosition = cursorPosition - 1
+				if cursorPosition < 1 then
+					cursorPosition = 1
+				end
+				if cursorPosition >= width then
+					offsetPosition = offsetPosition - 1
+				end
+			elseif key == 205 then
+				cursorPosition = cursorPosition + 1
+				if cursorPosition > #enteredText + 1 then
+					cursorPosition = #enteredText + 1
+				end
+				if cursorPosition - offsetPosition >= width then
+					offsetPosition = offsetPosition + 1
+				end
+			end
+		end
+		term.setCursorPos(1, h - 1)
+		term.write(string.rep("-", w))
+		term.setCursorPos(1, h)
+		term.clearLine()
+		term.write("> ")
+		term.write(enteredText:sub(offsetPosition, offsetPosition + width))
+
+		term.setCursorBlink(true)
+		term.setCursorPos(cursorPosition - offsetPosition + 3, h)
+	end
+end
+
 
 local runOnDomain = function(domain)
 	serverChannel = Cryptography.channel(domain)
 	requestMatch = header.requestMatchA .. Cryptography.sanatize(domain) .. header.requestMatchB
 	responseHeader = header.responseHeaderA .. domain .. header.responseHeaderB
+	pageRequestMatch = header.pageRequestMatchA .. Cryptography.sanatize(domain) .. header.pageRequestMatchB
+	pageResposneHeader = header.pageResponseHeaderA .. domain .. header.pageResponseHeaderB
+	closeMatch = header.closeMatchA .. domain .. header.closeMatchB
 	maliciousMatch = header.maliciousMatchA .. Cryptography.sanatize(domain) .. header.maliciousMatchB
 
 	Modem.open(serverChannel)
 	Modem.open(channel.dnsListen)
 
-	local receiveThread = coroutine.create()
-	local responseThread = coroutine.create(responseDaemon)
+	local receiveThread = coroutine.create(receiveDaemon)
+	local responseThread = coroutine.create(function() responseDaemon(domain) end)
+	local terminalThread = coroutine.create(function() terminalDaemon(domain) end)
+
+	local function resetServer()
+		connections = {}
+		Modem.closeAll()
+		Modem.open(serverChannel)
+		Modem.open(channel.dnsListen)
+		responseThread = coroutine.create(function() responseDaemon(domain) end)
+		coroutine.resume(responseThread)
+		writeLog("The server has been reset", theme.notice)
+	end
+
+	coroutine.resume(receiveThread)
+	coroutine.resume(responseThread)
+	coroutine.resume(terminalThread)
+
+	local err, msg
 
 	while true do
 		local events = {os.pullEventRaw()}
-		if false then
-			
-		else
-			coroutine.resume(receiveThread, unpack(events))
-			while #responseStack > 0 do
-				print("Responding loop...")
-				coroutine.resume(responseThread)
-			end
+		err, msg = coroutine.resume(receiveThread, unpack(events))
+		if not err and msg:find("firewolf-quit") then
+			error()
+		end
+		err, msg = coroutine.resume(responseThread)
+		if not err then
+			writeLog("Firewolf Server has encountered an internal error!", theme.error)
+			writeLog(msg, theme.error)
+		end
+		err, msg = coroutine.resume(terminalThread, unpack(events))
+		if not err then
+			print("Error: "..msg)
+		end
+		if coroutine.status(receiveThread) == "dead" then
+			error()
+		end
+
+		if events[1] == resetServerEvent then
+			resetServer()
 		end
 	end
 
@@ -943,8 +1072,11 @@ local init = function()
 
 	if not Modem.exists() then
 		term.setTextColor(theme.error)
-		print()
+		print("Error: No modems found!")
+		return
 	end
 
-
+	runOnDomain("1lann.com")
 end
+
+init()

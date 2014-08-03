@@ -499,10 +499,10 @@ local protocolName = "Firewolf"
 	end
 
 	function Cryptography.sanatize(text)
-		local sanatizeChars = {"(", ")", "[", "]", ".", "%", "+", "-", "*", "?", "^", "$"}
+		local sanatizeChars = {"%", "(", ")", "[", "]", ".", "+", "-", "*", "?", "^", "$"}
 
 		for _, char in pairs(sanatizeChars) do
-			text = text:gsub("%"+char, "%%%"+char)
+			text = text:gsub("%"..char, "%%%"..char)
 		end
 		return text
 	end
@@ -536,6 +536,7 @@ local protocolName = "Firewolf"
 
 		for side, modem in pairs(Modem.modems) do
 			modem.open(channel)
+			rednet.open(side)
 		end
 
 		return true
@@ -585,7 +586,7 @@ local protocolName = "Firewolf"
 	end
 
 
-	function Modem.send(channel, msg)
+	function Modem.transmit(channel, msg)
 		if not Modem.exists then
 			return false
 		end
@@ -687,36 +688,37 @@ local protocolName = "Firewolf"
 	SecureConnection.successPacketTimeout = 0.1
 
 
-	function SecureConnection.new(secret, key, identifier, distance)
+	function SecureConnection.new(secret, key, identifier, distance, isRednet)
 		local self = setmetatable({}, SecureConnection)
-		self:setup(secret, key, identifier, distance)
+		self:setup(secret, key, identifier, distance, isRednet)
 		return self
 	end
 
 
-	function SecureConnection:setup(secret, key, identifier, distance)
+	function SecureConnection:setup(secret, key, identifier, distance, isRednet)
 		local rawSecret
 
-		if not distance or distance < 0 then
+		if isRednet then
 			self.isRednet = true
 			self.distance = -1
-			rawSecret = tostring(secret) .. "|" .. tostring(identifier) .. "|" .. tostring(key)
+			self.rednet_id = distance
+			rawSecret = protocolName .. "|" .. tostring(secret) .. "|" .. tostring(identifier) ..
+			"|" .. tostring(key) .. "|rednet"
 		else
 			self.isRednet = false
 			self.distance = distance
-			rawSecret = tostring(secret) .. "|" .. tostring(identifier) .. "|" .. tostring(key) .. "|" .. tostring(distance)
+			rawSecret = protocolName .. "|" .. tostring(secret) .. "|" .. tostring(identifier) ..
+			"|" .. tostring(key) .. "|" .. tostring(distance)
 		end
 
 		self.identifier = identifier
 		self.packetMatch = SecureConnection.packetMatchA .. Cryptography.sanatize(identifier) .. SecureConnection.packetMatchB
 		self.packetHeader = SecureConnection.packetHeaderA .. identifier .. SecureConnection.packetHeaderB
 		self.secret = Cryptography.sha.sha256(rawSecret)
+		self.channel = Cryptography.channel(self.secret)
 
 		if not self.isRednet then
-			self.channel = Cryptography.channel(self.secret)
 			Modem.open(self.channel)
-		else
-			self.channel = nil
 		end
 	end
 
@@ -730,19 +732,15 @@ local protocolName = "Firewolf"
 	end
 
 
-	function SecureConnection:sendMessage(msg, id)
-		if self.isRednet and not id then
-			return false
-		else
-			local rawEncryptedMsg = Cryptography.aes.encrypt(self.packetHeader .. msg, self.secret)
-			local encryptedMsg = self.packetHeader .. rawEncryptedMsg
+	function SecureConnection:sendMessage(msg, rednetProtcol)
+		local rawEncryptedMsg = Cryptography.aes.encrypt(self.packetHeader .. msg, self.secret)
+		local encryptedMsg = self.packetHeader .. rawEncryptedMsg
 
-			if self.isRednet then
-				rednet.send(id, encryptedMsg)
-				return true
-			else
-				return Modem.send(self.channel, encryptedMsg)
-			end
+		if self.isRednet then
+			rednet.send(self.rednet_id, encryptedMsg, rednetPrtocol)
+			return true
+		else
+			return Modem.transmit(self.channel, encryptedMsg)
 		end
 	end
 
