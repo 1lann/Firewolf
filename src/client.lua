@@ -39,21 +39,11 @@ local publicResponseChannel = 9998
 local responseID = 41738
 
 local httpTimeout = 10
-local searchResultTimeout = 1
-local initiationTimeout = 1
+local searchResultTimeout = 0.25
+local initiationTimeout = 0.25
 local animationInterval = 0.125
-local fetchTimeout = 1
-local serverLimitPerComputer = 3
-
-local listToken = "--@!FIREWOLF-LIST!@--"
-local initiateToken = "--@!FIREWOLF-INITIATE!@--"
-local fetchToken = "--@!FIREWOLF-FETCH!@--"
-local disconnectToken = "--@!FIREWOLF-DISCONNECT!@--"
-local protocolToken = "--@!FIREWOLF-REDNET-PROTOCOL!@--"
-
-local connectToken = "^%-%-@!FIREWOLF%-CONNECT!@%-%-(.+)"
-local DNSToken = "^%-%-@!FIREWOLF%-DNSRESP!@%-%-(.+)"
-local receiveToken = "^%-%-@!FIREWOLF%-HEAD!@%-%-(.+)%-%-@!FIREWOLF%-BODY!@%-%-(.+)$"
+local fetchTimeout = 0.25
+local serverLimitPerComputer = 1
 
 local websiteErrorEvent = "firewolf_websiteErrorEvent"
 local redirectEvent = "firewolf_redirectEvent"
@@ -112,7 +102,7 @@ local debugLog = function(...)
 	-- f:close()
 end
 
---  debugLog("-- New firewolf session")
+ debugLog("-- New firewolf session")
 
 
 local modifiedRead = function(properties)
@@ -453,6 +443,7 @@ end
 
 
 local download = function(url)
+	http.request(url)
 	local timeoutID = os.startTimer(httpTimeout)
 	while true do
 		local event, fetchedURL, response = os.pullEvent()
@@ -1557,8 +1548,8 @@ protocols["rdnt"] = {}
 		Handshake.base = -1
 		Handshake.secret = -1
 		Handshake.sharedSecret = -1
-		Handshake.packetHeader = "["..protocolName.."-Handshake-Packet Header]"
-		Handshake.packetMatch = "%["..protocolName.."%-Handshake%-Packet Header%](.+)"
+		Handshake.packetHeader = "["..protocolName.."-Handshake-Packet-Header]"
+		Handshake.packetMatch = "%["..protocolName.."%-Handshake%-Packet%-Header%](.+)"
 
 		function Handshake.exponentWithModulo(base, exponent, modulo)
 			local remainder = base
@@ -1627,9 +1618,9 @@ protocols["rdnt"] = {}
 
 
 		SecureConnection.packetHeaderA = "["..protocolName.."-"
-		SecureConnection.packetHeaderB = "-SecureConnection-Packet Header]"
+		SecureConnection.packetHeaderB = "-SecureConnection-Packet-Header]"
 		SecureConnection.packetMatchA = "%["..protocolName.."%-"
-		SecureConnection.packetMatchB = "%-SecureConnection%-Packet Header%](.+)"
+		SecureConnection.packetMatchB = "%-SecureConnection%-Packet%-Header%](.+)"
 		SecureConnection.connectionTimeout = 0.1
 		SecureConnection.successPacketTimeout = 0.1
 
@@ -1702,7 +1693,7 @@ protocols["rdnt"] = {}
 				end
 
 				if self:verifyHeader(unencryptedMsg) then
-					return unencryptedMsg:match(self.packetMatch)
+					return true, unencryptedMsg:match(self.packetMatch)
 				else
 					return false, "Could not verify"
 				end
@@ -1724,6 +1715,10 @@ header.requestHeaderA = "[Firewolf-"
 header.requestHeaderB = "-Handshake-Request]"
 header.pageRequestHeaderA = "[Firewolf-"
 header.pageRequestHeaderB = "-Page-Request]"
+header.pageResponseMatchA = "^%[Firewolf%-"
+header.pageResponseMatchB = "%-Page%-Response%]%[HEADER%]([^%[]+)%[BODY%](.+)$"
+header.closeHeaderA = "[Firewolf-"
+header.closeHeaderB = "-Connection-Close]"
 
 
 protocols["rdnt"]["setup"] = function()
@@ -1821,7 +1816,10 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 							local fetchTimer = os.startTimer(fetchTimeout)
 
-							connection:sendMessage("Request page debug TODO: " .. page)
+							local pageRequest = header.pageRequestHeaderA .. url .. header.pageRequestHeaderB .. page
+							local pageResponseMatch = header.pageResponseMatchA .. Cryptography.sanatize(url) .. header.pageResponseMatchB
+
+							connection:sendMessage(pageRequest, header.rednetHeader .. connection.channel)
 
 							while true do
 								local event, id, channel, protocol, message, dist = os.pullEventRaw()
@@ -1829,10 +1827,12 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 									local resp, data = connection:decryptMessage(message)
 									if not resp then
 										debugLog("Decryption error!")
-									else
+									elseif data and data ~= page then
 										debugLog("Success! Message: ")
-										debugLog(data)
-										return data, "lua"
+										if data:match(pageResponseMatch) then
+											local head, body = data:match(pageResponseMatch)
+											return body, head
+										end
 									end
 								elseif event == "timer" and id == fetchTimer then
 									return nil
@@ -1840,7 +1840,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 							end
 						end,
 						close = function()
-							connection:sendMessage("Close connection debug TODO")
+							connection:sendMessage("Close connection debug TODO", header.rednetHeader .. connection.channel)
 							Modem.close(connection.channel)
 							connection = nil
 						end
@@ -1862,7 +1862,10 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 							local fetchTimer = os.startTimer(fetchTimeout)
 
-							connection:sendMessage("Request page debug TODO: " .. page, header.rednetHeader..connection.channel)
+							local pageRequest = header.pageRequestHeaderA .. url .. header.pageRequestHeaderB .. page
+							local pageResponseMatch = header.pageResponseMatchA .. Cryptography.sanatize(url) .. header.pageResponseMatchB
+
+							connection:sendMessage(pageRequest, header.rednetHeader .. connection.channel)
 
 							while true do
 								local event, id, channel, protocol, message, dist = os.pullEventRaw()
@@ -1870,11 +1873,12 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 									local resp, data = connection:decryptMessage(channel)
 									if not resp then
 										-- Decryption error
-									else
-										if data ~= page then
-											debugLog("Success! Message: ")
-											debugLog(data)
-											return data, "lua"
+									elseif data and data ~= page then
+										debugLog(data)
+										if data:match(pageResponseMatch) then
+											local head, body = data:match(pageResponseMatch)
+											debugLog("Success!")
+											return body, head
 										end
 									end
 								elseif event == "timer" and id == fetchTimer then
@@ -1883,7 +1887,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 							end
 						end,
 						close = function()
-							connection:sendMessage("Close connection debug TODO", header.rednetHeader..connection.channel)
+							connection:sendMessage(header.closeHeaderA .. url .. header.closeHeaderB, header.rednetHeader..connection.channel)
 							Modem.close(connection.channel)
 							connection = nil
 						end

@@ -618,8 +618,8 @@
 		Handshake.base = -1
 		Handshake.secret = -1
 		Handshake.sharedSecret = -1
-		Handshake.packetHeader = "["..protocolName.."-Handshake-Packet Header]"
-		Handshake.packetMatch = "%["..protocolName.."%-Handshake%-Packet Header%](.+)"
+		Handshake.packetHeader = "["..protocolName.."-Handshake-Packet-Header]"
+		Handshake.packetMatch = "%["..protocolName.."%-Handshake%-Packet%-Header%](.+)"
 
 		function Handshake.exponentWithModulo(base, exponent, modulo)
 			local remainder = base
@@ -688,9 +688,9 @@
 
 
 		SecureConnection.packetHeaderA = "["..protocolName.."-"
-		SecureConnection.packetHeaderB = "-SecureConnection-Packet Header]"
+		SecureConnection.packetHeaderB = "-SecureConnection-Packet-Header]"
 		SecureConnection.packetMatchA = "%["..protocolName.."%-"
-		SecureConnection.packetMatchB = "%-SecureConnection%-Packet Header%](.+)"
+		SecureConnection.packetMatchB = "%-SecureConnection%-Packet%-Header%](.+)"
 		SecureConnection.connectionTimeout = 0.1
 		SecureConnection.successPacketTimeout = 0.1
 
@@ -763,7 +763,7 @@
 				end
 
 				if self:verifyHeader(unencryptedMsg) then
-					return unencryptedMsg:match(self.packetMatch)
+					return true, unencryptedMsg:match(self.packetMatch)
 				else
 					return false, "Could not verify"
 				end
@@ -794,7 +794,8 @@ header.responseHeaderC = "-Handshake-Response]"
 header.pageRequestMatchA = "^%[Firewolf%-"
 header.pageRequestMatchB = "%-Page%-Request%](.+)$"
 header.pageResponseHeaderA = "[Firewolf-"
-header.pageResponseHeaderB = "-Page-Response]"
+header.pageResponseHeaderB = "-Page-Response][HEADER]"
+header.pageResponseHeaderC = "[BODY]"
 header.closeMatchA = "[Firewolf-"
 header.closeMatchB = "-Connection-Close]"
 
@@ -807,6 +808,8 @@ theme.text = colors.white
 theme.notice = colors.yellow
 theme.barColor = colors.white
 theme.barText = colors.gray
+theme.inputColor = colors.green
+theme.clock = colors.green
 
 local center = function(text)
 	local x, y = term.getCursorPos()
@@ -835,7 +838,12 @@ local closeMatch = ""
 local connections = {}
 
 local writeLog = function(text, color)
-	table.insert(terminalLog, {text, color})
+	if not color then color = theme.text end
+	local time = textutils.formatTime(os.time(), true)
+	if #time <= 4 then
+		time = "0"..time
+	end
+	table.insert(terminalLog, {text, color, "["..time.."] "})
 end
 
 local receiveDaemon = function()
@@ -843,7 +851,7 @@ local receiveDaemon = function()
 		local event, id, channel, protocol, message, dist = os.pullEventRaw()
 		if event == "modem_message" then
 			table.insert(responseStack, {type = "direct", channel = channel, message = message, dist = dist})
-		elseif event == "rednet_message" and protocol:match(header.rednetMatch) then
+		elseif event == "rednet_message" and protocol and protocol:match(header.rednetMatch) then
 			table.insert(responseStack, {type = "rednet", channel = tonumber(protocol:match(header.rednetMatch)), rednet_id = id, message = channel, dist = null})
 		elseif event == "terminate" then
 			exit()
@@ -906,6 +914,11 @@ local responseDaemon = function(domain)
 							end
 
 							table.insert(connections, connection)
+
+							if #connections >= 200 then
+								Modem.close(connections[1].channel)
+								table.remove(connections, 1)
+							end
 						end
 					elseif v.message:match(maliciousMatch) then
 						-- Hijacking Detected
@@ -917,11 +930,14 @@ local responseDaemon = function(domain)
 						local resp, data = connection:decryptMessage(v.message)
 						if not resp then
 							-- Decryption Error
+							writeLog("Decryption error: "..data, theme.notice)
 						else
 							-- Process Request
-							if resp:match(pageRequestMatch) then
-								-- TODO: Get page?
-							elseif resp == closeMatch then
+							if data:match(pageRequestMatch) then
+								writeLog("Page requested")
+								connection:sendMessage(pageResposneHeader.."lua"..header.pageResponseHeaderC.."print('it works!')", header.rednetHeader .. connection.channel)
+							elseif data == closeMatch then
+								writeLog("Connection closed")
 								Modem.close(connection.channel)
 								table.remove(connections, k)
 							end
@@ -942,17 +958,57 @@ local terminalDaemon = function(domain)
 	local offsetPosition = 1
 	local w, h = term.getSize()
 
-	term.setCursorPos(1, h - 1)
-	term.write(string.rep("-", w))
-	term.setCursorPos(1, h)
-	term.write("> ")
-	term.write(enteredText:sub(offsetPosition, offsetPosition + h - 1))
-
-	term.setCursorPos(offsetPosition - cursorPosition, h)
-
 	width = w - 2
 
 	while true do
+		term.setTextColor(theme.barText)
+		term.setBackgroundColor(theme.barColor)
+		term.setCursorPos(1,1)
+		term.clearLine()
+		term.write(" "..version)
+		center("["..domain.."]")
+		local time = textutils.formatTime(os.time(), true)
+		term.setCursorPos(w - #time, 1)
+		term.setTextColor(theme.clock)
+		term.write(time)
+
+		term.setBackgroundColor(theme.background)
+
+		if #terminalLog < h - 3 then
+			term.setCursorPos(1, 2)
+			for i = 1, #terminalLog do
+				term.clearLine()
+				term.setTextColor(theme.clock)
+				term.write(terminalLog[i][3])
+				term.setTextColor(terminalLog[i][2])
+				term.write(terminalLog[i][1])
+				term.setCursorPos(1, i + 1)
+			end
+		else
+			term.setCursorPos(1, 2)
+			for i = 1, h - 3 do
+				term.clearLine()
+				term.setTextColor(theme.clock)
+				term.write(terminalLog[#terminalLog - (h - 3) + i][3])
+				term.setTextColor(terminalLog[#terminalLog - (h - 3) + i][2])
+				term.write(terminalLog[#terminalLog - (h - 3) + i][1])
+				term.setCursorPos(1, i + 1)
+			end
+		end
+
+		term.setTextColor(theme.inputColor)
+		term.setCursorPos(1, h - 1)
+		term.write(string.rep("-", w))
+		term.setCursorPos(1, h)
+		term.clearLine()
+		term.write("> ")
+		term.write(enteredText:sub(offsetPosition, offsetPosition + width))
+
+		term.setCursorBlink(true)
+		term.setCursorPos(cursorPosition - offsetPosition + 3, h)
+
+
+		os.startTimer(1)
 		local event, key = os.pullEventRaw()
 		if event == "char" then
 			enteredText = enteredText:sub(1, cursorPosition-1) .. key .. enteredText:sub(cursorPosition, -1)
@@ -989,15 +1045,6 @@ local terminalDaemon = function(domain)
 				end
 			end
 		end
-		term.setCursorPos(1, h - 1)
-		term.write(string.rep("-", w))
-		term.setCursorPos(1, h)
-		term.clearLine()
-		term.write("> ")
-		term.write(enteredText:sub(offsetPosition, offsetPosition + width))
-
-		term.setCursorBlink(true)
-		term.setCursorPos(cursorPosition - offsetPosition + 3, h)
 	end
 end
 
@@ -1013,6 +1060,8 @@ local runOnDomain = function(domain)
 
 	Modem.open(serverChannel)
 	Modem.open(channel.dnsListen)
+
+	writeLog("Firewolf Server "..version.." running" , theme.notice)
 
 	local receiveThread = coroutine.create(receiveDaemon)
 	local responseThread = coroutine.create(function() responseDaemon(domain) end)
@@ -1032,17 +1081,18 @@ local runOnDomain = function(domain)
 	coroutine.resume(responseThread)
 	coroutine.resume(terminalThread)
 
-	local err, msg
-
 	while true do
 		local events = {os.pullEventRaw()}
 		err, msg = coroutine.resume(receiveThread, unpack(events))
 		if not err and msg:find("firewolf-quit") then
 			error()
+		elseif not err then
+			writeLog("Fatal error!", theme.error)
+			writeLog(msg, theme.error)
 		end
 		err, msg = coroutine.resume(responseThread)
 		if not err then
-			writeLog("Firewolf Server has encountered an internal error!", theme.error)
+			writeLog("Internal error!", theme.error)
 			writeLog(msg, theme.error)
 		end
 		err, msg = coroutine.resume(terminalThread, unpack(events))

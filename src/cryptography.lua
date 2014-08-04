@@ -611,8 +611,8 @@ local protocolName = "Firewolf"
 	Handshake.base = -1
 	Handshake.secret = -1
 	Handshake.sharedSecret = -1
-	Handshake.packetHeader = "["..protocolName.."-Handshake-Packet Header]"
-	Handshake.packetMatch = "%["..protocolName.."%-Handshake%-Packet Header%](.+)"
+	Handshake.packetHeader = "["..protocolName.."-Handshake-Packet-Header]"
+	Handshake.packetMatch = "%["..protocolName.."%-Handshake%-Packet%-Header%](.+)"
 
 	function Handshake.exponentWithModulo(base, exponent, modulo)
 		local remainder = base
@@ -681,9 +681,9 @@ local protocolName = "Firewolf"
 
 
 	SecureConnection.packetHeaderA = "["..protocolName.."-"
-	SecureConnection.packetHeaderB = "-SecureConnection-Packet Header]"
+	SecureConnection.packetHeaderB = "-SecureConnection-Packet-Header]"
 	SecureConnection.packetMatchA = "%["..protocolName.."%-"
-	SecureConnection.packetMatchB = "%-SecureConnection%-Packet Header%](.+)"
+	SecureConnection.packetMatchB = "%-SecureConnection%-Packet%-Header%](.+)"
 	SecureConnection.connectionTimeout = 0.1
 	SecureConnection.successPacketTimeout = 0.1
 
@@ -756,7 +756,7 @@ local protocolName = "Firewolf"
 			end
 
 			if self:verifyHeader(unencryptedMsg) then
-				return unencryptedMsg:match(self.packetMatch)
+				return true, unencryptedMsg:match(self.packetMatch)
 			else
 				return false, "Could not verify"
 			end
