@@ -84,22 +84,22 @@ local grayscaleTheme = {
 
 
 local debugLog = function(...)
-	-- if not fs.exists("/firewolf-log") then
-	-- 	local f = io.open("/firewolf-log", "w")
-	-- 	f:write("")
-	-- 	f:close()
-	-- end
+	if not fs.exists("/firewolf-log") then
+		local f = io.open("/firewolf-log", "w")
+		f:write("")
+		f:close()
+	end
 
-	-- local args = {...}
-	-- local construct = ""
+	local args = {...}
+	local construct = ""
 
-	-- for k,v in pairs(args) do
-	-- 	construct = construct .. " : " .. tostring(v)
-	-- end
+	for k,v in pairs(args) do
+		construct = construct .. " : " .. tostring(v)
+	end
 
-	-- local f = io.open("/firewolf-log", "a")
-	-- f:write(construct.."\n")
-	-- f:close()
+	local f = io.open("/firewolf-log", "a")
+	f:write(construct.."\n")
+	f:close()
 end
 
  debugLog("-- New firewolf session")
@@ -1716,7 +1716,7 @@ header.requestHeaderB = "-Handshake-Request]"
 header.pageRequestHeaderA = "[Firewolf-"
 header.pageRequestHeaderB = "-Page-Request]"
 header.pageResponseMatchA = "^%[Firewolf%-"
-header.pageResponseMatchB = "%-Page%-Response%]%[HEADER%]([^%[]+)%[BODY%](.+)$"
+header.pageResponseMatchB = "%-Page%-Response%]%[HEADER%](.-)%[BODY%](.+)$"
 header.closeHeaderA = "[Firewolf-"
 header.closeHeaderB = "-Connection-Close]"
 
@@ -1747,8 +1747,11 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 			if channel == publicResponseChannel and message:match(header.dnsHeaderMatch) then
 				if not uniqueServers[tostring(dist)] then
 					uniqueServers[tostring(dist)] = true
-					if not uniqueDomains[message:match(header.dnsHeaderMatch)] then
-						uniqueDomains[message:match(header.dnsHeaderMatch)] = tostring(dist)
+					local domain = message:match(header.dnsHeaderMatch)
+					if not uniqueDomains[domain] then
+						if not(domain:find("/") or domain:find(":")) and #domain > 4 then 
+							uniqueDomains[message:match(header.dnsHeaderMatch)] = tostring(dist)
+						end
 					else
 						debugLog("Multiple servers for 1 domain!")
 					end
@@ -1760,8 +1763,11 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 			if tonumber(protocol:match(header.rednetMatch)) == publicResponseChannel and channel:match(header.dnsHeaderMatch) then
 				if not uniqueServers[tostring(id)] then
 					uniqueServers[tostring(id)] = true
-					if not uniqueDomains[channel:match(header.dnsHeaderMatch)] then
-						uniqueDomains[channel:match(header.dnsHeaderMatch)] = tostring(id)
+					local domain = channel:match(header.dnsHeaderMatch)
+					if not uniqueDomains[domain] then
+						if not(domain:find("/") or domain:find(":")) and #domain > 4 then 
+							uniqueDomains[domain] = tostring(id)
+						end
 					else
 						debugLog("Rednet: Multiple servers for 1 domain!")
 					end
@@ -1828,10 +1834,9 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 									if not resp then
 										debugLog("Decryption error!")
 									elseif data and data ~= page then
-										debugLog("Success! Message: ")
 										if data:match(pageResponseMatch) then
 											local head, body = data:match(pageResponseMatch)
-											return body, head
+											return body, textutils.unserialize(head)
 										end
 									end
 								elseif event == "timer" and id == fetchTimer then
@@ -1878,7 +1883,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 										if data:match(pageResponseMatch) then
 											local head, body = data:match(pageResponseMatch)
 											debugLog("Success!")
-											return body, head
+											return body, textutils.unserialize(head)
 										end
 									end
 								elseif event == "timer" and id == fetchTimer then
@@ -2094,7 +2099,7 @@ local fetchExternal = function(url, connection)
 			return languages[language]["run"](contents, page)
 		end
 	else
-		return fetchError("A connection timeout occurred!")
+		return fetchError("A connection error/timeout has occurred!")
 	end
 end
 
