@@ -739,7 +739,7 @@
 		end
 
 
-		function SecureConnection:sendMessage(msg, rednetProtcol)
+		function SecureConnection:sendMessage(msg, rednetProtocol)
 			local rawEncryptedMsg = Cryptography.aes.encrypt(self.packetHeader .. msg, self.secret)
 			local encryptedMsg = self.packetHeader .. rawEncryptedMsg
 
@@ -1051,7 +1051,7 @@ local responseDaemon = function(domain)
 						repeatedMessages[v.message.nMessageID] = os.clock()
 						for side, modem in pairs(Modem.modems) do
 							modem.transmit(rednet.CHANNEL_REPEAT, v.reply, v.message)
-							modem.transmit(rednet.CHANNEL_REPEAT, v.message.nRecipient, v.message)
+							modem.transmit(v.message.nRecipient, v.reply, v.message)
 						end
 						writeLog("Repeated rednet message", theme.text, 0)
 					end

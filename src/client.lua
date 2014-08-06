@@ -9,7 +9,7 @@
 
 
 local version = "3.2"
-local build = 4
+local build = 5
 
 local w, h = term.getSize()
 
@@ -1671,7 +1671,7 @@ protocols["rdnt"] = {}
 		end
 
 
-		function SecureConnection:sendMessage(msg, rednetProtcol)
+		function SecureConnection:sendMessage(msg, rednetProtocol)
 			local rawEncryptedMsg = Cryptography.aes.encrypt(self.packetHeader .. msg, self.secret)
 			local encryptedMsg = self.packetHeader .. rawEncryptedMsg
 
