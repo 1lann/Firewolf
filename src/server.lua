@@ -1103,12 +1103,12 @@ local responseDaemon = function(domain)
 								end
 								local body, head = fetchPage(domain, page)
 								if body then
-									sendPage(connection, body, header)
+									sendPage(connection, body, head)
 									writeLog("Successful request: "..page:sub(1,20), theme.text, 1)
 								else
 									body, head = fetchPage(domain, "not-found")
 									if body then
-										sendPage(connection, body, header)
+										sendPage(connection, body, head)
 									else
 										sendPage(connection, defaultNotFound, "fwml")
 									end
