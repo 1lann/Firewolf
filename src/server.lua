@@ -1627,6 +1627,7 @@ local runOnDomain = function(domain)
 		err, msg = coroutine.resume(terminalThread, unpack(events))
 		if not err and msg:find("firewolf-exit", nil, true) then
 			writeLog("Normal exit", theme.text, math.huge)
+			Modem.closeAll()
 			term.setBackgroundColor(colors.black)
 			term.clear()
 			term.setCursorPos(1, 1)

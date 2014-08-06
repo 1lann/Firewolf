@@ -39,10 +39,10 @@ local publicResponseChannel = 9998
 local responseID = 41738
 
 local httpTimeout = 10
-local searchResultTimeout = 0.25
-local initiationTimeout = 0.25
+local searchResultTimeout = 1
+local initiationTimeout = 1
 local animationInterval = 0.125
-local fetchTimeout = 0.25
+local fetchTimeout = 1
 local serverLimitPerComputer = 1
 
 local websiteErrorEvent = "firewolf_websiteErrorEvent"
