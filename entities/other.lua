@@ -9,7 +9,7 @@
 
 
 local version = "3.2"
-local build = 3
+local build = 5
 
 local w, h = term.getSize()
 
@@ -39,10 +39,10 @@ local publicResponseChannel = 9998
 local responseID = 41738
 
 local httpTimeout = 10
-local searchResultTimeout = 0.25
-local initiationTimeout = 0.25
+local searchResultTimeout = 1
+local initiationTimeout = 1
 local animationInterval = 0.125
-local fetchTimeout = 0.25
+local fetchTimeout = 1
 local serverLimitPerComputer = 1
 
 local websiteErrorEvent = "firewolf_websiteErrorEvent"
@@ -1671,12 +1671,12 @@ protocols["rdnt"] = {}
 		end
 
 
-		function SecureConnection:sendMessage(msg, rednetProtcol)
+		function SecureConnection:sendMessage(msg, rednetProtocol)
 			local rawEncryptedMsg = Cryptography.aes.encrypt(self.packetHeader .. msg, self.secret)
 			local encryptedMsg = self.packetHeader .. rawEncryptedMsg
 
 			if self.isRednet then
-				rednet.send(self.rednet_id, encryptedMsg, rednetPrtocol)
+				rednet.send(self.rednet_id, encryptedMsg, rednetProtocol)
 				return true
 			else
 				return Modem.transmit(self.channel, encryptedMsg)
@@ -1762,7 +1762,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 				end
 			end
 		elseif event == "rednet_message" and allowUnencryptedConnections then
-			if tonumber(protocol:match(header.rednetMatch)) == publicResponseChannel and channel:match(header.dnsHeaderMatch) then
+			if protocol and tonumber(protocol:match(header.rednetMatch)) == publicResponseChannel and channel:match(header.dnsHeaderMatch) then
 				if not uniqueServers[tostring(id)] then
 					uniqueServers[tostring(id)] = true
 					local domain = channel:match(header.dnsHeaderMatch)
@@ -1847,7 +1847,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 							end
 						end,
 						close = function()
-							connection:sendMessage("Close connection debug TODO", header.rednetHeader .. connection.channel)
+							connection:sendMessage(header.closeHeaderA .. url .. header.closeHeaderB, header.rednetHeader..connection.channel)
 							Modem.close(connection.channel)
 							connection = nil
 						end
@@ -1856,7 +1856,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 			end
 		elseif event == "rednet_message" then
 			local fullMatch = responseMatch .. os.getComputerID() .. header.responseMatchC
-			if tonumber(protocol:match(header.rednetMatch)) == serverChannel and channel:match(fullMatch) and type(textutils.unserialize(channel:match(fullMatch))) == "table" then
+			if protocol and tonumber(protocol:match(header.rednetMatch)) == serverChannel and channel:match(fullMatch) and type(textutils.unserialize(channel:match(fullMatch))) == "table" then
 				local key = Handshake.generateResponseData(textutils.unserialize(channel:match(fullMatch)))
 				if key then
 					local connection = SecureConnection.new(key, url, url, id, true)
@@ -1876,7 +1876,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 							while true do
 								local event, id, channel, protocol, message, dist = os.pullEventRaw()
-								if event == "rednet_message" and tonumber(protocol:match(header.rednetMatch)) == connection.channel and connection:verifyHeader(channel) then
+								if event == "rednet_message" and protocol and tonumber(protocol:match(header.rednetMatch)) == connection.channel and connection:verifyHeader(channel) then
 									local resp, data = connection:decryptMessage(channel)
 									if not resp then
 										-- Decryption error
