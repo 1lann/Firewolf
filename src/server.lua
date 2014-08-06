@@ -1748,6 +1748,7 @@ if domain then
 		print("Domain already taken!")
 	else
 		config.lastDomain = domain
+		saveConfig()
 		init(domain)
 	end
 else
