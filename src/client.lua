@@ -1676,7 +1676,7 @@ protocols["rdnt"] = {}
 			local encryptedMsg = self.packetHeader .. rawEncryptedMsg
 
 			if self.isRednet then
-				rednet.send(self.rednet_id, encryptedMsg, rednetPrtocol)
+				rednet.send(self.rednet_id, encryptedMsg, rednetProtocol)
 				return true
 			else
 				return Modem.transmit(self.channel, encryptedMsg)
@@ -1847,7 +1847,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 							end
 						end,
 						close = function()
-							connection:sendMessage("Close connection debug TODO", header.rednetHeader .. connection.channel)
+							connection:sendMessage(header.closeHeaderA .. url .. header.closeHeaderB, header.rednetHeader..connection.channel)
 							Modem.close(connection.channel)
 							connection = nil
 						end

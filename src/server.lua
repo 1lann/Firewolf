@@ -744,7 +744,7 @@
 			local encryptedMsg = self.packetHeader .. rawEncryptedMsg
 
 			if self.isRednet then
-				rednet.send(self.rednet_id, encryptedMsg, rednetPrtocol)
+				rednet.send(self.rednet_id, encryptedMsg, rednetProtocol)
 				return true
 			else
 				return Modem.transmit(self.channel, encryptedMsg)
@@ -773,9 +773,8 @@
 		end
 -- END OF NETWORKING
 
-local channel = {}
-channel.dnsListen = 9999
-channel.dnsResponse = 9998
+dnsListenChannel = 9999
+dnsResponseChannel = 9998
 
 local config = {}
 config.visibleLoggingLevel = 1
@@ -863,18 +862,18 @@ local checkDomain = function(domain)
 	if #domain < 4 then
 		return "short"
 	else
-		Modem.open(channel.dnsListen)
-		Modem.open(channel.dnsResponse)
-		Modem.transmit(channel.dnsListen, header.dnsPacket)
-		Modem.close(channel.dnsListen)
+		Modem.open(dnsListenChannel)
+		Modem.open(dnsResponseChannel)
+		Modem.transmit(dnsListenChannel, header.dnsPacket)
+		Modem.close(dnsListenChannel)
 
-		rednet.broadcast(header.dnsPacket, header.rednetHeader .. channel.dnsListen)
+		rednet.broadcast(header.dnsPacket, header.rednetHeader .. dnsListenChannel)
 		local timer = os.startTimer(1)
 		while true do
 			local event, id, channel, protocol, message, dist = os.pullEventRaw()
-			if event == "modem_message" and channel == channel.dnsResponse and message:match(header.dnsHeaderMatch) == domain then
+			if event == "modem_message" and channel == dnsResponseChannel and message:match(header.dnsHeaderMatch) == domain then
 				return "taken"
-			elseif event == "rednet_message" and tonumber(protocol:match(header.rednetMatch)) == channel.dnsResponse and channel:match(header.dnsHeaderMatch) == domain then
+			elseif event == "rednet_message" and tonumber(protocol:match(header.rednetMatch)) == dnsResponseChannel and channel:match(header.dnsHeaderMatch) == domain then
 				return "taken"
 			elseif event == "timer" and id == timer then
 				break
@@ -1038,14 +1037,14 @@ local responseDaemon = function(domain)
 
 		for k, v in pairs(responseStack) do
 			if v.channel then
-				if v.channel == channel.dnsListen and v.message == header.dnsPacket then
+				if v.channel == dnsListenChannel and v.message == header.dnsPacket then
 					-- DNS Request
 					if v.type == "rednet" then
-						rednet.send(v.rednet_id, header.dnsHeader..domain, header.rednetHeader..channel.dnsResponse)
+						rednet.send(v.rednet_id, header.dnsHeader..domain, header.rednetHeader..dnsResponseChannel)
 					else
-						Modem.open(channel.dnsResponse)
-						Modem.transmit(channel.dnsResponse ,header.dnsHeader..domain)
-						Modem.close(channel.dnsResponse)
+						Modem.open(dnsResponseChannel)
+						Modem.transmit(dnsResponseChannel ,header.dnsHeader..domain)
+						Modem.close(dnsResponseChannel)
 					end
 				elseif v.channel == rednet.CHANNEL_REPEAT and config.actAsRednetRepeater and type(v.message) == "table" and v.message.nMessageID and v.message.nRecipient then
 					if (not repeatedMessages[v.message.nMessageID]) or (os.clock() - repeatedMessages[v.message.nMessageID]) > 10 then
@@ -1579,7 +1578,7 @@ local runOnDomain = function(domain)
 	maliciousMatch = header.maliciousMatchA .. Cryptography.sanatize(domain) .. header.maliciousMatchB
 
 	Modem.open(serverChannel)
-	Modem.open(channel.dnsListen)
+	Modem.open(dnsListenChannel)
 
 	if config.actAsRednetRepeater then
 		Modem.open(rednet.CHANNEL_REPEAT)
@@ -1595,7 +1594,10 @@ local runOnDomain = function(domain)
 		connections = {}
 		Modem.closeAll()
 		Modem.open(serverChannel)
-		Modem.open(channel.dnsListen)
+		Modem.open(dnsListenChannel)
+		if config.actAsRednetRepeater then
+			Modem.open(rednet.CHANNEL_REPEAT)
+		end
 		responseThread = coroutine.create(function() responseDaemon(domain) end)
 		receiveThread = coroutine.create(receiveDaemon)
 		coroutine.resume(responseThread)

@@ -737,7 +737,7 @@ local protocolName = "Firewolf"
 		local encryptedMsg = self.packetHeader .. rawEncryptedMsg
 
 		if self.isRednet then
-			rednet.send(self.rednet_id, encryptedMsg, rednetPrtocol)
+			rednet.send(self.rednet_id, encryptedMsg, rednetProtocol)
 			return true
 		else
 			return Modem.transmit(self.channel, encryptedMsg)
