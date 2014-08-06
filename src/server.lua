@@ -785,6 +785,7 @@ config.enableLogging = false
 config.password = null
 config.allowRednetConnections = true
 config.actAsRednetRepeater = true
+config.lastDomain = nil
 --config.actAsGPS = false
 --config.gpsLocation = {}
 
@@ -1660,14 +1661,6 @@ local init = function(domain)
 	term.setCursorBlink(false)
 	term.setTextColor(theme.text)
 
-	if fs.isDir(configLocation) then
-		fs.delete(configLocation)
-	end
-
-	if not fs.exists(configLocation) then
-		saveConfig()
-	end
-
 	if not fs.exists(serverLocation .. "/" .. domain) then
 		makeDirectory(serverLocation .. "/" .. domain)
 	else
@@ -1676,8 +1669,6 @@ local init = function(domain)
 		end
 		makeDirectory(serverLocation .. "/" .. domain)
 	end
-
-	loadConfig()
 
 	local report = checkConfig()
 	if report then
@@ -1729,6 +1720,20 @@ if not Modem.exists() then
 	return
 end
 
+if fs.isDir(configLocation) then
+	fs.delete(configLocation)
+end
+
+if not fs.exists(configLocation) then
+	saveConfig()
+end
+
+loadConfig()
+
+if not domain and config.lastDomain then
+	domain = config.lastDomain
+end
+
 if domain then
 	term.setTextColor(colors.yellow)
 	term.setCursorBlink(false)
@@ -1742,6 +1747,7 @@ if domain then
 	elseif report == "taken" then
 		print("Domain already taken!")
 	else
+		config.lastDomain = domain
 		init(domain)
 	end
 else
