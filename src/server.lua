@@ -846,7 +846,7 @@ theme.userResponse = colors.orange
 local makeDirectory = function(path)
 	fs.makeDir(path)
 	local function createIndex(path)
-		if not fs.exists(path.."/index") then
+		if not (fs.exists(path.."/index") or fs.exists(path.."/index.fwml"))  then
 			f = io.open(path.."/index", "w")
 			f:write("print('')\ncenter('Welcome to "..domain.."!')")
 			f:close()
