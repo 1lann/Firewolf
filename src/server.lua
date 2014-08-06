@@ -739,12 +739,12 @@
 		end
 
 
-		function SecureConnection:sendMessage(msg, rednetProtocol)
+		function SecureConnection:sendMessage(msg, rednetProtcol)
 			local rawEncryptedMsg = Cryptography.aes.encrypt(self.packetHeader .. msg, self.secret)
 			local encryptedMsg = self.packetHeader .. rawEncryptedMsg
 
 			if self.isRednet then
-				rednet.send(self.rednet_id, encryptedMsg, rednetProtocol)
+				rednet.send(self.rednet_id, encryptedMsg, rednetPrtocol)
 				return true
 			else
 				return Modem.transmit(self.channel, encryptedMsg)
@@ -779,19 +779,19 @@ channel.dnsResponse = 9998
 
 local config = {}
 config.visibleLoggingLevel = 1
-config.directory = ""
-config.domain = ""
 config.writtenLoggingLevel = 1
-config.loggingLocation = "fwserver-logs"
+config.loggingLocation = "/fwserver-logs"
 config.enableLogging = false
-config.password = "password"
-config.hideWhenLocked = false
-config.lockByDefault = false
+config.password = null
 config.allowRednetConnections = true
 config.actAsRednetRepeater = true
+--config.actAsGPS = false
+--config.gpsLocation = {}
 
-local configLocation = "fwserver-config"
+local configLocation = "/.fwserver-config"
+local serverLocation = "/fw_servers"
 local locked = false
+local domain = ...
 local responseStack = {}
 local terminalLog = {}
 local repeatedMessages = {}
@@ -804,6 +804,7 @@ local pageRequestMatch = ""
 local pageResposneHeader = ""
 local closeMatch = ""
 local connections = {}
+local updateURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/server.lua"
 
 local version = "3.1 Beta"
 
@@ -832,43 +833,26 @@ local resetServerEvent = "firewolf-server-reset-event"
 
 local theme = {}
 theme.error = colors.red
-theme.background = colors.black
+theme.background = colors.gray
 theme.text = colors.white
-theme.notice = colors.yellow
-theme.barColor = colors.white
-theme.barText = colors.gray
-theme.inputBar = colors.green
-theme.inputColor = colors.yellow
-theme.clock = colors.green
-theme.lock = colors.green
-theme.userResponse = colors.blue
-
-local checkDirectory = function(directory)
-	if fs.exists(directory) and fs.isDir(directory) then
-		return true
-	else
-		return false
-	end
-end
+theme.notice = colors.white
+theme.barColor = colors.red
+theme.barText = colors.white
+theme.inputColor = colors.white
+theme.clock = colors.white
+theme.lock = colors.orange
+theme.userResponse = colors.orange
 
 local makeDirectory = function(path)
-	if not fs.isReadOnly(path) then
-		pcall(function()fs.makeDir(path)end)
-	end
-	if checkDirectory(path) then
-		local function createIndex(path)
-			if not fs.exists(path.."/index") then
-				f = io.open(path.."/index", "w")
-				f:write("print('')\ncenter('Firewolf Server running! It works!')")
-				f:close()
-			end
+	fs.makeDir(path)
+	local function createIndex(path)
+		if not fs.exists(path.."/index") then
+			f = io.open(path.."/index", "w")
+			f:write("print('')\ncenter('Welcome to "..domain.."!')")
+			f:close()
 		end
-		pcall(function()createIndex(path)end)
-		config.directory = path
-		return true
-	else
-		return false
 	end
+	pcall(function() createIndex(path) end)
 end
 
 local checkDomain = function(domain)
@@ -905,23 +889,10 @@ local checkConfig = function()
 		table.insert(errorReport, "Corrupted configuration file!")
 		return errorReport
 	end
-	if not(checkDirectory(config.directory)) then
-		table.insert(errorReport, "Invalid server directory location")
-	end
 	if config.enableLogging then
 		if fs.isReadOnly(config.loggingLocation) or fs.isDir(config.loggingLocation) then
 			table.insert(errorReport, "Invalid logging location!")
 		end
-	end
-	
-	local domainReport = checkDomain(config.domain)
-	
-	if domainReport == "symbols" then
-		table.insert(errorReport, "Domain cannot contains \":\" or \"/\"s")
-	elseif domainReport == "short" then
-		table.insert(errorReport, "Domain is too short")
-	elseif domainReport == "taken" then
-		table.insert(errorReport, "Domain has already been taken!")
 	end
 
 	if #errorReport > 0 then
@@ -1016,6 +987,50 @@ local getActiveConnection = function(channel, distance)
 	end
 end
 
+local fetchPage = function(domain, page)
+	if (page:match("(.+)%.fwml$")) then
+		page = page:match("(.+)%.fwml$")
+	end
+
+	page = page:gsub("%.%.", "")
+
+	local path = serverLocation .. "/" .. domain .. "/" .. page
+	if fs.exists(path) and not fs.isDir(path) then
+		local f = io.open(path, "r")
+		local contents = f:read("*a")
+		f:close()
+
+		return contents, "lua"
+	else
+		if fs.exists(path..".fwml") and not fs.isDir(path..".fwml") then
+			local f = io.open(path..".fwml", "r")
+			local contents = f:read("*a")
+			f:close()
+
+			return contents, "fwml"
+		end
+	end
+
+	return nil
+end
+
+local sendPage = function(connection, body, head)
+	if head == "fwml" then
+		connection:sendMessage(pageResposneHeader..'{["language"]="Firewolf Markup"}'..header.pageResponseHeaderC..body, header.rednetHeader .. connection.channel)
+	else
+		connection:sendMessage(pageResposneHeader..'{["language"]="Lua"}'..header.pageResponseHeaderC..body, header.rednetHeader .. connection.channel)
+	end
+end
+
+local defaultNotFound = [[
+[br]
+[br]
+[=]
+The page you requested could not be found!
+[br]
+Make sure you typed the URL correctly.
+]]
+
 local responseDaemon = function(domain)
 	while true do
 		os.pullEventRaw()
@@ -1078,12 +1093,27 @@ local responseDaemon = function(domain)
 						local resp, data = connection:decryptMessage(v.message)
 						if not resp then
 							-- Decryption Error
+							writeLog("Decryption error!", theme.notice, 0)
 						else
 							-- Process Request
 							if data:match(pageRequestMatch) then
 								local page = data:match(pageRequestMatch)
-								writeLog("Page requested: "..page:sub(1,20), theme.text, 1)
-								--connection:sendMessage(pageResposneHeader..'{["language"]="Firewolf Markup"}'..header.pageResponseHeaderC.."print('it works!')", header.rednetHeader .. connection.channel)
+								if page == "" or page == "/" then
+									page = "index"
+								end
+								local body, head = fetchPage(domain, page)
+								if body then
+									sendPage(connection, body, header)
+									writeLog("Successful request: "..page:sub(1,20), theme.text, 1)
+								else
+									body, head = fetchPage(domain, "not-found")
+									if body then
+										sendPage(connection, body, header)
+									else
+										sendPage(connection, defaultNotFound, "fwml")
+									end
+									writeLog("Unsuccessful request: "..page:sub(1,20), theme.text, 1)
+								end
 							elseif data == closeMatch then
 								writeLog("Secure connection closed", theme.text, 0)
 								Modem.close(connection.channel)
@@ -1101,6 +1131,7 @@ end
 
 
 local commands = {}
+local helpDocs = {}
 
 commands["password"] = function(newPassword)
 	if not newPassword or newPassword == "" then
@@ -1113,9 +1144,14 @@ commands["password"] = function(newPassword)
 end
 
 commands["lock"] = function()
-	locked = true
-	writeLog("Server locked", theme.userResponse, math.huge)
-	os.queueEvent("firewolf-lock-state-update")
+	if config.password then
+		locked = true
+		writeLog("Server locked", theme.userResponse, math.huge)
+		os.queueEvent("firewolf-lock-state-update")
+	else
+		writeLog("No password has been set! Set a", theme.userResponse, math.huge)
+		writeLog("password with: password <password>", theme.userResponse, math.huge)
+	end
 end
 
 commands["exit"] = function()
@@ -1131,42 +1167,9 @@ commands["startup"] = function()
 	local f = io.open("/startup", "w")
 	f:write([[
 	sleep(0.1)
-	shell.run("]]..shell.getRunningProgram()..[[")]])
+	shell.run("]]..shell.getRunningProgram().." "..domain.."\")")
 	f:close()
 	writeLog("Server will now run on startup!", theme.userResponse, math.huge)
-end
-
-commands["domain"] = function(domain)
-	if not domain or domain == "" then
-		writeLog("Usage: domain <new-domain>", theme.userResponse, math.huge)
-	else
-		local domainReport = checkDomain(domain)
-		if domainReport == "symbols" then
-			writeLog("Domain cannot contain \":\" \"/\"s!", theme.userResponse, math.huge)
-		elseif domainReport == "short" then
-			writeLog("Domain name too short!", theme.userResponse, math.huge)
-		elseif domainReport == "taken" then
-			writeLog("Domain already taken!", theme.userResponse, math.huge)
-		else
-			config.domain = domain
-			saveConfig()
-			error("firewolf-restart")
-		end
-	end
-end
-
-commands["directory"] = function(dir)
-	if not dir or dir == "" then
-		writeLog("Usage: directory <new-directory>", theme.userResponse, math.huge)
-	else
-		if makeDirectory(dir) then
-			config.directory = dir
-			saveConfig()
-			error("firewolf-restart")
-		else
-			writeLog("Failed to change directory!", theme.userResponse, math.huge)
-		end
-	end
 end
 
 commands["rednet"] = function(set)
@@ -1179,8 +1182,6 @@ commands["rednet"] = function(set)
 		saveConfig()
 		writeLog("Now dis-allowing rednet connections", theme.userResponse, math.huge)
 	else
-		writeLog("Whether to allow rednet connections", theme.userResponse, 1)
-		writeLog("Usage: rednet <on or off>", theme.userResponse, math.huge)
 		if config.allowRednetConnections then
 			writeLog("Rednet conn. are currently allowed", theme.userResponse, math.huge)
 		else
@@ -1209,8 +1210,6 @@ commands["repeat"] = function(set)
 		saveConfig()
 		writeLog("Rednet repeating is now off", theme.userResponse, math.huge)
 	else
-		writeLog("Whether to act as a rednet repeater", theme.userResponse, 1)
-		writeLog("Usage: repeat <on or off>", theme.userResponse, math.huge)
 		if config.actAsRednetRepeater then
 			writeLog("Rednet repeating is currently turned on", theme.userResponse, math.huge)
 		else
@@ -1219,7 +1218,25 @@ commands["repeat"] = function(set)
 	end
 end
 
-commands["lockdefault"] = function(set)
+commands["update"] = function()
+	writeLog("Updating...", theme.userResponse, math.huge)
+	local handle = http.get(updateURL)
+	if not handle then
+		writeLog("Failed to connect to update server!", theme.error, math.huge)
+	else
+		data = handle.readAll()
+		if #data < 1000 then
+			writeLog("Failed to update server!", theme.error, math.huge)
+		else
+			local f = io.open(shell.getRunningProgram(), "w")
+			f:write(data)
+			f:close()
+			error("firewolf-restart")
+		end
+	end
+end
+
+--[[ commands["lockdefault"] = function(set)
 	if set == "on" then
 		config.lockByDefault = true
 		saveConfig()
@@ -1238,9 +1255,9 @@ commands["lockdefault"] = function(set)
 			writeLog("Currently not locked by default", theme.userResponse, math.huge)
 		end
 	end
-end
+end]]
 
-commands["hidelock"] = function(set)
+--[[ commands["hidelock"] = function(set)
 	if set == "hide" then
 		config.hideWhenLocked = true
 		saveConfig()
@@ -1258,9 +1275,9 @@ commands["hidelock"] = function(set)
 			writeLog("Console currently shown when locked", theme.userResponse, math.huge)
 		end
 	end
-end
+end]]
 
-commands["logging"] = function(set, location)
+--[[ commands["logging"] = function(set, location)
 	if set == "on" then
 		config.logging = true
 		saveConfig()
@@ -1283,9 +1300,9 @@ commands["logging"] = function(set, location)
 			writeLog("Logging to a file is currently off", theme.userResponse, math.huge)
 		end
 	end
-end
+end]]
 
-commands["loglevel"] = function(logType, level)
+--[[ commands["loglevel"] = function(logType, level)
 	level = tonumber(level)
 	if logType == "visible" and tonumber(level) >= 0 and tonumber(level) <= 5 then
 		config.visibleLoggingLevel = tonumber(level)
@@ -1303,7 +1320,7 @@ commands["loglevel"] = function(logType, level)
 		writeLog("Current file log level: "..config.writtenLoggingLevel, theme.userResponse, math.huge)
 		writeLog("Current visible log level: "..config.visibleLoggingLevel, theme.userResponse, math.huge)
 	end
-end
+end]]
 
 commands["clear"] = function()
 	terminalLog = {}
@@ -1311,17 +1328,32 @@ commands["clear"] = function()
 	os.queueEvent("firewolf-lock-state-update")
 end
 
-commands["help"] = function()
-	writeLog("The web server index is stored as", theme.notice, 1)
-	writeLog("\"index\" in the webserver directory.", theme.notice, 1)
-	writeLog("Files that end with \".fwml\" are", theme.notice, 1)
-	writeLog("Firewolf Markup files. You need to edit", theme.notice, 1)
-	writeLog("the files outside of firewolf server", theme.notice, 1)
-	writeLog("Available commands: password, lock, exit", theme.userResponse, math.huge)
-	writeLog("quit, restart, reboot, refresh, clear,", theme.userResponse, math.huge)
-	writeLog("startup, domain, directory, rednet,", theme.userResponse, math.huge)
-	writeLog("repeat, lockdefault, logging, loglevel", theme.userResponse, math.huge)
-	writeLog("hidelock", theme.userResponse, math.huge)
+helpDocs["password"] = {"Change the lock password", "Usage: password <new-password>"}
+helpDocs["lock"] = {"Lock the server with a password"}
+helpDocs["exit"] = {"Exits and stops Firewolf Server"}
+helpDocs["quit"] = helpDocs["exit"]
+helpDocs["restart"] = {"Fully restarts Firewolf Server"}
+helpDocs["reboot"] = helpDocs["restart"]
+helpDocs["clear"] = {"Clears the displayed log"}
+helpDocs["rednet"] = {"Whether to allow rednet connections", "Usage: rednet <on or off>"}
+helpDocs["startup"] = {"Runs the server for the current domain", "on startup"}
+helpDocs["repeat"] = {"Whether to act as a rednet repeater", "Usage: repeat <on or off>"}
+helpDocs["update"] = {"Updates Firewolf Server"}
+
+commands["help"] = function(command)
+	if command then
+		if helpDocs[command] then
+			for _, v in pairs(helpDocs[command]) do
+				writeLog(v, theme.userResponse, math.huge)
+			end
+		else
+			writeLog("Command does not exist!", theme.userResponse, math.huge)
+		end
+	else
+		writeLog("Use \"help <command>\" for more info", theme.userResponse, math.huge)
+		writeLog("Commands: password, lock, exit, update,", theme.userResponse, math.huge)
+		writeLog("restart, clear, rednet, repeat, startup", theme.userResponse, math.huge)
+	end
 end
 
 local lockArt = [[
@@ -1339,6 +1371,8 @@ local lockArt = [[
 
 local terminalDaemon = function(domain)
 	local enteredText = ""
+	local history = {}
+	local scrollingHistory = false
 	local cursorPosition = 1
 	local offsetPosition = 1
 	local w, h = term.getSize()
@@ -1362,9 +1396,10 @@ local terminalDaemon = function(domain)
 
 		term.setBackgroundColor(theme.background)
 
-		if locked and config.hideWhenLocked then
+		if locked then
 			local lockX = math.ceil((w/2) - 4)
 			local lineNum = 4
+			term.setTextColor(theme.lock)
 			for line in lockArt:gmatch("[^\n]+") do
 				term.setCursorPos(lockX, lineNum)
 				term.write(line)
@@ -1372,12 +1407,8 @@ local terminalDaemon = function(domain)
 			end
 			inputName = "Password: "
 		else
-			if locked then
-				inputName = "Password: "
-			else
-				lockedInputState = false
-			end
-			if #terminalLog < h - 2 then
+			lockedInputState = false
+			if #terminalLog < h - 1 then
 				term.setCursorPos(1, 2)
 				for i = 1, #terminalLog do
 					term.setTextColor(theme.clock)
@@ -1388,19 +1419,16 @@ local terminalDaemon = function(domain)
 				end
 			else
 				term.setCursorPos(1, 2)
-				for i = 1, h - 2 do
+				for i = 1, h - 1 do
 					term.setTextColor(theme.clock)
-					term.write(terminalLog[#terminalLog - (h - 2) + i][3])
-					term.setTextColor(terminalLog[#terminalLog - (h - 2) + i][2])
-					term.write(terminalLog[#terminalLog - (h - 2) + i][1])
+					term.write(terminalLog[#terminalLog - (h - 1) + i][3])
+					term.setTextColor(terminalLog[#terminalLog - (h - 1) + i][2])
+					term.write(terminalLog[#terminalLog - (h - 1) + i][1])
 					term.setCursorPos(1, i + 1)
 				end
 			end
 		end
 
-		term.setTextColor(theme.inputBar)
-		term.setCursorPos(1, h - 1)
-		term.write(string.rep("-", w))
 		term.setCursorPos(1, h)
 
 		if lockedInputState then
@@ -1473,8 +1501,9 @@ local terminalDaemon = function(domain)
 						writeLog(msg, theme.error, math.huge)
 					end
 				else
-					writeLog("No such command!", theme.userResponse, math.huge)
+					writeLog("No such command!", theme.error, math.huge)
 				end
+				table.insert(history, enteredText)
 				enteredText = ""
 				offsetPosition = 1
 				cursorPosition = 1
@@ -1493,6 +1522,39 @@ local terminalDaemon = function(domain)
 				end
 				if cursorPosition - offsetPosition >= width then
 					offsetPosition = offsetPosition + 1
+				end
+			elseif key == 208 and #history > 0 then
+				-- Down
+				if type(scrollingHistory) == "number" then
+					scrollingHistory = scrollingHistory - 1
+					if scrollingHistory > 0 then
+						enteredText = history[#history - scrollingHistory + 1]
+						cursorPosition = #enteredText + 1
+					else
+						scrollingHistory = false
+						enteredText = ""
+						cursorPosition = 1
+					end
+				end
+			elseif key == 200 and #history > 0 then
+				-- Up
+				if type(scrollingHistory) == "number" then
+					scrollingHistory = scrollingHistory + 1
+					if scrollingHistory > #history then
+						scrollingHistory = #history
+					end
+					enteredText = history[#history - scrollingHistory + 1]
+					cursorPosition = #enteredText + 1
+					if cursorPosition > width then
+						cursorPosition = 1
+					end
+				else
+					scrollingHistory = 1
+					enteredText = history[#history - scrollingHistory + 1]
+					cursorPosition = #enteredText + 1
+					if cursorPosition > width then
+						cursorPosition = 1
+					end
 				end
 			end
 		elseif event == "timer" and key == timer then
@@ -1562,9 +1624,10 @@ local runOnDomain = function(domain)
 		err, msg = coroutine.resume(terminalThread, unpack(events))
 		if not err and msg:find("firewolf-exit", nil, true) then
 			writeLog("Normal exit", theme.text, math.huge)
+			term.setBackgroundColor(colors.black)
 			term.clear()
 			term.setCursorPos(1, 1)
-			term.setTextColor(theme.text)
+			term.setTextColor(colors.white)
 			center("Thank you for using Firewolf Server")
 			center("Made by 1lann and GravityScore")
 			return
@@ -1588,16 +1651,13 @@ local runOnDomain = function(domain)
 
 end
 
-local init = function()
+local init = function(domain)
 	Modem.closeAll()
 	term.setBackgroundColor(theme.background)
 	term.setTextColor(theme.notice)
 	term.clear()
 	term.setCursorPos(1,1)
 	term.setCursorBlink(false)
-
-	print("Intializing Firewolf Server...")
-
 	term.setTextColor(theme.text)
 
 	if fs.isDir(configLocation) then
@@ -1605,96 +1665,86 @@ local init = function()
 	end
 
 	if not fs.exists(configLocation) then
-		print("Welcome to Firewolf Server!")
-		print("Where are the server files located?")
-		print("Ex: If I have my index at /webserver/index,")
-		print("I would type \"/webserver\"")
-		while true do
-			term.setTextColor(theme.inputColor)
-			write("Path: ")
-			local path = read()
-			if makeDirectory(path) then
-				break
-			else
-				term.setTextColor(theme.error)
-				print("Invalid directory, try a different directory")
-			end
-		end
-		term.setTextColor(theme.text)
-		print("Choose a domain name")
-		while true do
-			term.setTextColor(theme.inputColor)
-			write("Domain: ")
-			local domain = read()
-			local report = checkDomain(domain)
-			term.setTextColor(theme.error)
-			if report == "ok" then
-				config.domain = domain
-				break
-			elseif report == "symbols" then
-				print("Domain cannot contain \":\" or \"/\"s!")
-			elseif report == "short" then
-				print("The domain name is too short!")
-			elseif report == "taken" then
-				print("The domain has already been taken!")
-				print("Choose a different domain")
-			end
-		end
-
 		saveConfig()
+	end
 
-		term.setTextColor(theme.text)
-		print("Note: The web server index is stored as \"index\"")
-		print("in the webserver directory. Files that end with")
-		print("\".fwml\" are Firewolf Markup files, type \"help\"")
-		print("into the server terminal for a list of commands")
-		print("")
-		print("The default password is \"password\"")
-		term.setTextColor(theme.notice)
-		print("Press any key to continue...")
-		os.pullEvent("key")
-		term.clear()
+	if not fs.exists(serverLocation .. "/" .. domain) then
+		makeDirectory(serverLocation .. "/" .. domain)
+	else
+		if not fs.isDir(serverLocation .. "/" .. domain) then
+			fs.delete(serverLocation .. "/" .. domain)
+		end
+		makeDirectory(serverLocation .. "/" .. domain)
 	end
 
 	loadConfig()
 
 	local report = checkConfig()
 	if report then
+		term.setBackgroundColor(colors.black)
 		term.setTextColor(theme.error)
-		print("There were problems with your config file")
-		print("To reset the config file, just delete it")
-		print("------------------------------------------")
+		term.clear()
+		term.setCursorPos(1, 1)
+		print("There was an error loading your config file")
+		print("The config file is located at: "..configLocation)
+		print("-------------------------------------------------")
 		for k,v in pairs(report) do
 			print(v)
 		end
 		return
 	end
 
-	if not Modem.exists() then
-		term.setTextColor(theme.error)
-		print("Error: No modems found!")
-		return
-	end
-
-	if config.lockByDefault then
+	if config.password then
 		locked = true
 	end
 
-	local err, msg = pcall(function()runOnDomain(config.domain)end)
+	local err, msg = pcall(function()runOnDomain(domain)end)
 	if not err and msg:find("firewolf-restart", nil, true) then
 		term.clear()
-		return shell.run(shell.getRunningProgram())
+		term.setCursorPos(1, 1)
+		return shell.run(shell.getRunningProgram(), domain)
 	elseif not err then
+		term.setBackgroundColor(colors.black)
 		term.clear()
 		term.setCursorPos(1, 1)
-		term.setBackgroundColor(colors.black)
 		term.setTextColor(colors.red)
 		print("Sorry, Firewolf Server has crashed! Error:")
 		print(msg)
 		print("Firewolf Server will reboot in 3 seconds...")
 		sleep(3)
-		return shell.run(shell.getRunningProgram())
+		return shell.run(shell.getRunningProgram(), domain)
 	end
 end
 
-init()
+if pocket or turtle then
+	term.setTextColor(theme.error)
+	print("Sorry, Firewolf Server can")
+	print("only be ran on computers.")
+	return
+end
+
+if not Modem.exists() then
+	term.setTextColor(theme.error)
+	print("Error: No modems found!")
+	return
+end
+
+if domain then
+	term.setTextColor(colors.yellow)
+	term.setCursorBlink(false)
+	print("Intializing Firewolf Server...")
+	local report = checkDomain(domain)
+	term.setTextColor(colors.red)
+	if report == "symbols" then
+		print("Domain cannot contain \":\" and \"/\"s")
+	elseif report == "short" then
+		print("Domain name too short!")
+	elseif report == "taken" then
+		print("Domain already taken!")
+	else
+		init(domain)
+	end
+else
+	term.setTextColor(colors.white)
+	print("Usage: "..shell.getRunningProgram().." <domain>")
+end

@@ -9,7 +9,7 @@
 
 
 local version = "3.0"
-local build = 2
+local build = 3
 
 local w, h = term.getSize()
 
@@ -52,6 +52,8 @@ local baseURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src"
 local buildURL = baseURL .. "/build.txt"
 local firewolfURL = baseURL .. "/client.lua"
 local serverURL = baseURL .. "/server.lua"
+
+local originalTerminal = term.current()
 
 local firewolfLocation = "/" .. shell.getRunningProgram()
 
@@ -871,9 +873,9 @@ end
 
 local setupMenubar = function()
 	if enableTabBar then
-		menubarWindow = window.create(term.native(), 1, 1, w, 2, false)
+		menubarWindow = window.create(originalTerminal, 1, 1, w, 2, false)
 	else
-		menubarWindow = window.create(term.native(), 1, 1, w, 1, false)
+		menubarWindow = window.create(originalTerminal, 1, 1, w, 1, false)
 	end
 end
 
@@ -1669,12 +1671,12 @@ protocols["rdnt"] = {}
 		end
 
 
-		function SecureConnection:sendMessage(msg, rednetProtocol)
+		function SecureConnection:sendMessage(msg, rednetProtcol)
 			local rawEncryptedMsg = Cryptography.aes.encrypt(self.packetHeader .. msg, self.secret)
 			local encryptedMsg = self.packetHeader .. rawEncryptedMsg
 
 			if self.isRednet then
-				rednet.send(self.rednet_id, encryptedMsg, rednetProtocol)
+				rednet.send(self.rednet_id, encryptedMsg, rednetPrtocol)
 				return true
 			else
 				return Modem.transmit(self.channel, encryptedMsg)
@@ -2089,13 +2091,13 @@ local fetchExternal = function(url, connection)
 	end
 
 	local page = normalizePage(url:match("^[^/]+/(.+)"))
-	local contents, header = connection.fetchPage(page)
+	local contents, head = connection.fetchPage(page)
 	connection.close()
 	if contents then
 		if type(contents) ~= "string" then
 			return fetchNone()
 		else
-			local language = determineLanguage(header)
+			local language = determineLanguage(head)
 			return languages[language]["run"](contents, page)
 		end
 	else
@@ -2148,7 +2150,7 @@ local switchTab = function(index, shouldntResume)
 	isMenubarOpen = tabs[currentTab].isMenubarOpen
 	currentWebsiteURL = tabs[currentTab].url
 
-	term.redirect(term.native())
+	term.redirect(originalTerminal)
 	clear(theme.background, theme.text)
 	drawMenubar()
 
@@ -2205,7 +2207,7 @@ local loadTab = function(index, url, givenFunc)
 
 		tabs[index] = {}
 		tabs[index].url = url
-		tabs[index].win = window.create(term.native(), 1, 1, w, h, false)
+		tabs[index].win = window.create(originalTerminal, 1, 1, w, h, false)
 
 		tabs[index].thread = coroutine.create(func)
 		tabs[index].isMenubarOpen = isOpen
@@ -3033,8 +3035,6 @@ local handleError = function(err)
 	os.pullEvent()
 end
 
-
-local originalTerminal = term.current()
 local _, err = pcall(main)
 term.redirect(originalTerminal)
 
