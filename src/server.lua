@@ -873,7 +873,7 @@ local checkDomain = function(domain)
 			local event, id, channel, protocol, message, dist = os.pullEventRaw()
 			if event == "modem_message" and channel == dnsResponseChannel and message:match(header.dnsHeaderMatch) == domain then
 				return "taken"
-			elseif event == "rednet_message" and tonumber(protocol:match(header.rednetMatch)) == dnsResponseChannel and channel:match(header.dnsHeaderMatch) == domain then
+			elseif event == "rednet_message" and protocol and tonumber(protocol:match(header.rednetMatch)) == dnsResponseChannel and channel:match(header.dnsHeaderMatch) == domain then
 				return "taken"
 			elseif event == "timer" and id == timer then
 				break
