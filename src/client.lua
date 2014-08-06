@@ -8,7 +8,7 @@
 --    Variables
 
 
-local version = "3.0"
+local version = "3.2"
 local build = 3
 
 local w, h = term.getSize()
@@ -86,22 +86,22 @@ local grayscaleTheme = {
 
 
 local debugLog = function(...)
-	if not fs.exists("/firewolf-log") then
-		local f = io.open("/firewolf-log", "w")
-		f:write("")
-		f:close()
-	end
+	-- if not fs.exists("/firewolf-log") then
+	-- 	local f = io.open("/firewolf-log", "w")
+	-- 	f:write("")
+	-- 	f:close()
+	-- end
 
-	local args = {...}
-	local construct = ""
+	-- local args = {...}
+	-- local construct = ""
 
-	for k,v in pairs(args) do
-		construct = construct .. " : " .. tostring(v)
-	end
+	-- for k,v in pairs(args) do
+	-- 	construct = construct .. " : " .. tostring(v)
+	-- end
 
-	local f = io.open("/firewolf-log", "a")
-	f:write(construct.."\n")
-	f:close()
+	-- local f = io.open("/firewolf-log", "a")
+	-- f:write(construct.."\n")
+	-- f:close()
 end
 
  debugLog("-- New firewolf session")

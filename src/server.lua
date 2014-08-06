@@ -806,7 +806,7 @@ local closeMatch = ""
 local connections = {}
 local updateURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/server.lua"
 
-local version = "3.1 Beta"
+local version = "3.2"
 
 local header = {}
 header.dnsPacket = "[Firewolf-DNS-Packet]"
