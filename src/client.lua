@@ -1762,7 +1762,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 				end
 			end
 		elseif event == "rednet_message" and allowUnencryptedConnections then
-			if tonumber(protocol:match(header.rednetMatch)) == publicResponseChannel and channel:match(header.dnsHeaderMatch) then
+			if protocol and tonumber(protocol:match(header.rednetMatch)) == publicResponseChannel and channel:match(header.dnsHeaderMatch) then
 				if not uniqueServers[tostring(id)] then
 					uniqueServers[tostring(id)] = true
 					local domain = channel:match(header.dnsHeaderMatch)
@@ -1856,7 +1856,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 			end
 		elseif event == "rednet_message" then
 			local fullMatch = responseMatch .. os.getComputerID() .. header.responseMatchC
-			if tonumber(protocol:match(header.rednetMatch)) == serverChannel and channel:match(fullMatch) and type(textutils.unserialize(channel:match(fullMatch))) == "table" then
+			if protocol and tonumber(protocol:match(header.rednetMatch)) == serverChannel and channel:match(fullMatch) and type(textutils.unserialize(channel:match(fullMatch))) == "table" then
 				local key = Handshake.generateResponseData(textutils.unserialize(channel:match(fullMatch)))
 				if key then
 					local connection = SecureConnection.new(key, url, url, id, true)
@@ -1876,7 +1876,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 							while true do
 								local event, id, channel, protocol, message, dist = os.pullEventRaw()
-								if event == "rednet_message" and tonumber(protocol:match(header.rednetMatch)) == connection.channel and connection:verifyHeader(channel) then
+								if event == "rednet_message" and protocol and tonumber(protocol:match(header.rednetMatch)) == connection.channel and connection:verifyHeader(channel) then
 									local resp, data = connection:decryptMessage(channel)
 									if not resp then
 										-- Decryption error
