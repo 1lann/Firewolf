@@ -9,7 +9,7 @@
 
 
 local version = "3.2"
-local build = 3
+local build = 4
 
 local w, h = term.getSize()
 
