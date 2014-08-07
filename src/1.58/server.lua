@@ -1,21 +1,22 @@
+
 --
 --  Firewolf Server
 --  Made by GravityScore and 1lann
 --
 
 -- 1.58 Wrapper
- 
+
 -- Rednet
- 
+
 local rednet = {}
- 
+
 rednet.CHANNEL_BROADCAST = 65535
 rednet.CHANNEL_REPEAT = 65533
- 
+
 local tReceivedMessages = {}
 local tReceivedMessageTimeouts = {}
 local tHostnames = {}
- 
+
 function rednet.open( sModem )
         if type( sModem ) ~= "string" then
                 error( "expected string", 2 )
@@ -26,7 +27,7 @@ function rednet.open( sModem )
         peripheral.call( sModem, "open", os.getComputerID() )
         peripheral.call( sModem, "open", rednet.CHANNEL_BROADCAST )
 end
- 
+
 function rednet.close( sModem )
     if sModem then
         -- Close a specific modem
@@ -47,7 +48,7 @@ function rednet.close( sModem )
         end
     end
 end
- 
+
 function rednet.isOpen( sModem )
     if sModem then
         -- Check if a specific modem is open
@@ -67,7 +68,7 @@ function rednet.isOpen( sModem )
     end
         return false
 end
- 
+
 function rednet.send( nRecipient, message, sProtocol )
     -- Generate a (probably) unique message ID
     -- We could do other things to guarantee uniqueness, but we really don't need to
@@ -75,7 +76,7 @@ function rednet.send( nRecipient, message, sProtocol )
     local nMessageID = math.random( 1, 2147483647 )
     tReceivedMessages[ nMessageID ] = true
     tReceivedMessageTimeouts[ os.startTimer( 30 ) ] = nMessageID
- 
+
     -- Create the message
     local nReplyChannel = os.getComputerID()
     local tMessage = {
@@ -84,11 +85,11 @@ function rednet.send( nRecipient, message, sProtocol )
         message = message,
         sProtocol = sProtocol,
     }
- 
+
     if nRecipient == os.getComputerID() then
         -- Loopback to ourselves
         os.queueEvent( "rednet_message", nReplyChannel, message, sProtocol )
- 
+
     else
         -- Send on all open modems, to the target and to repeaters
         local sent = false
@@ -101,17 +102,17 @@ function rednet.send( nRecipient, message, sProtocol )
         end
     end
 end
- 
+
 function rednet.broadcast( message, sProtocol )
         rednet.send( rednet.CHANNEL_BROADCAST, message, sProtocol )
 end
- 
+
 function rednet.receive( sProtocolFilter, nTimeout )
     -- The parameters used to be ( nTimeout ), detect this case for backwards compatibility
     if type(sProtocolFilter) == "number" and nTimeout == nil then
         sProtocolFilter, nTimeout = nil, sProtocolFilter
     end
- 
+
     -- Start the timer
         local timer = nil
         local sFilter = nil
@@ -121,7 +122,7 @@ function rednet.receive( sProtocolFilter, nTimeout )
         else
                 sFilter = "rednet_message"
         end
- 
+
         -- Wait for events
         while true do
                 local sEvent, p1, p2, p3 = os.pullEvent( sFilter )
@@ -139,7 +140,7 @@ function rednet.receive( sProtocolFilter, nTimeout )
                 end
         end
 end
- 
+
 function rednet.host( sProtocol, sHostname )
     if type( sProtocol ) ~= "string" or type( sHostname ) ~= "string" then
         error( "expected string, string", 2 )
@@ -154,25 +155,25 @@ function rednet.host( sProtocol, sHostname )
         tHostnames[ sProtocol ] = sHostname
     end
 end
- 
+
 function rednet.unhost( sProtocol )
     if type( sProtocol ) ~= "string" then
         error( "expected string", 2 )
     end
     tHostnames[ sProtocol ] = nil
 end
- 
+
 function rednet.lookup( sProtocol, sHostname )
     if type( sProtocol ) ~= "string" then
         error( "expected string", 2 )
     end
- 
+
     -- Build list of host IDs
     local tResults = nil
     if sHostname == nil then
         tResults = {}
     end
- 
+
     -- Check localhost first
     if tHostnames[ sProtocol ] then
         if sHostname == nil then
@@ -181,24 +182,24 @@ function rednet.lookup( sProtocol, sHostname )
             return os.getComputerID()
         end
     end
- 
+
     if not rednet.isOpen() then
         if tResults then
             return unpack( tResults )
         end
         return nil
     end
- 
+
     -- Broadcast a lookup packet
     rednet.broadcast( {
         sType = "lookup",
         sProtocol = sProtocol,
         sHostname = sHostname,
     }, "dns" )
- 
+
     -- Start a timer
     local timer = os.startTimer( 2 )
- 
+
     -- Wait for events
     while true do
         local event, p1, p2, p3 = os.pullEvent()
@@ -226,14 +227,14 @@ function rednet.lookup( sProtocol, sHostname )
     end
     return nil
 end
- 
+
 local bRunning = false
 function rednet.run()
         if bRunning then
                 error( "rednet is already running", 2 )
         end
         bRunning = true
-       
+
         while bRunning do
                 local sEvent, p1, p2, p3, p4 = os.pullEventRaw()
         if sEvent == "modem_message" then
@@ -261,7 +262,7 @@ function rednet.run()
                             }, "dns" )
                         end
                     end
- 
+
                 elseif sEvent == "timer" then
             -- Got a timer event, use it to clear the event queue
             local nTimer = p1
@@ -273,20 +274,20 @@ function rednet.run()
                 end
         end
 end
- 
+
 -- Window Display
- 
+
 local native = (term.native)
 local redirectTarget = native
- 
+
 local function wrap( _sFunction )
         return function( ... )
                 return redirectTarget[ _sFunction ]( ... )
         end
 end
- 
+
 local term = {}
- 
+
 term.redirect = function( target )
         if target == nil or type( target ) ~= "table" then
                 error( "Invalid redirect target", 2 )
@@ -307,18 +308,18 @@ term.redirect = function( target )
         redirectTarget = target
         return oldRedirectTarget
 end
- 
+
 term.current = function()
     return redirectTarget
 end
- 
+
 term.native = function()
     -- NOTE: please don't use this function unless you have to.
     -- If you're running in a redirected or multitasked enviorment, term.native() will NOT be
     -- the current terminal when your program starts up. It is far better to use term.current()
     return native
 end
- 
+
 for k,v in pairs( native ) do
         if type( k ) == "string" and type( v ) == "function" then
                 if term[k] == nil then
@@ -326,17 +327,17 @@ for k,v in pairs( native ) do
                 end
         end
 end
-       
+
 local env = getfenv()
 for k,v in pairs( term ) do
         env[k] = v
 end
- 
- 
+
+
 local window = {}
- 
+
 function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
- 
+
     if type( parent ) ~= "table" or
        type( nX ) ~= "number" or
        type( nY ) ~= "number" or
@@ -345,11 +346,11 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
        (bStartVisible ~= nil and type( bStartVisible ) ~= "boolean") then
         error( "Expected object, number, number, number, number, [boolean]", 2 )
     end
- 
+
     if parent == term then
         error( "term is not a recommended window parent, try term.current() instead", 2 )
     end
- 
+
     -- Setup
     local bVisible = (bStartVisible ~= false)
     local nCursorX = 1
@@ -365,7 +366,7 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
             tLines[y] = tEmpty
         end
     end
- 
+
     -- Helper functions
     local function updateCursorPos()
         if nCursorX >= 1 and nCursorY >= 1 and
@@ -375,15 +376,15 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
             parent.setCursorPos( 0, 0 )
         end
     end
-   
+
     local function updateCursorBlink()
         parent.setCursorBlink( bCursorBlink )
     end
-   
+
     local function updateCursorColor()
         parent.setTextColor( nTextColor )
     end
-   
+
     local function redrawLine( n )
         parent.setCursorPos( nX, nY + n - 1 )
         local tLine = tLines[ n ]
@@ -394,7 +395,7 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
             parent.write( tBit[1] )
         end
     end
- 
+
     local function lineLen( tLine )
         local nLength = 0
         for n=1,#tLine do
@@ -402,7 +403,7 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
         end
         return nLength
     end
- 
+
     local function lineSub( tLine, nStart, nEnd )
         --assert( math.floor(nStart) == nStart )
         --assert( math.floor(nEnd) == nEnd )
@@ -448,7 +449,7 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
         --assert( lineLen( tSubLine ) == (nEnd - nStart + 1) )
         return tSubLine
     end
- 
+
     local function lineJoin( tLine1, tLine2 )
         local tNewLine = {}
         if tLine1[#tLine1][2] == tLine2[1][2] and
@@ -477,15 +478,15 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
         end
         return tNewLine
     end
- 
+
     local function redraw()
         for n=1,nHeight do
             redrawLine( n )
         end
     end
- 
+
     local window = {}
- 
+
     -- Terminal implementation
     function window.write( sText )
         local nLen = string.len( sText )
@@ -535,7 +536,7 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
                     )
                     --assert( lineLen( tLine ) == nWidth )
                 end
- 
+
                 -- Store and redraw new line
                 tLines[ nCursorY ] = tLine
                 if bVisible then
@@ -543,7 +544,7 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
                 end
             end
         end
- 
+
         -- Move and redraw cursor
         nCursorX = nEnd + 1
         if bVisible then
@@ -551,7 +552,7 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
             updateCursorPos()
         end
     end
- 
+
     function window.clear()
         local tEmpty = { { sEmpty, nTextColor, nBackgroundColor } }
         for y=1,nHeight do
@@ -563,7 +564,7 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
             updateCursorPos()
         end
     end
- 
+
     function window.clearLine()
         if nCursorY >= 1 and nCursorY <= nHeight then
             tLines[ nCursorY ] = { { sEmpty, nTextColor, nBackgroundColor } }
@@ -574,11 +575,11 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
             end
         end
     end
- 
+
     function window.getCursorPos()
         return nCursorX, nCursorY
     end
- 
+
     function window.setCursorPos( x, y )
         nCursorX = math.floor( x )
         nCursorY = math.floor( y )
@@ -586,22 +587,22 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
             updateCursorPos()
         end
     end
- 
+
     function window.setCursorBlink( blink )
         bCursorBlink = blink
         if bVisible then
             updateCursorBlink()
         end
     end
- 
+
     function window.isColor()
         return parent.isColor()
     end
- 
+
     function window.isColour()
         return parent.isColor()
     end
- 
+
     local function setTextColor( color )
         if not parent.isColor() then
             if color ~= colors.white and color ~= colors.black then
@@ -613,15 +614,15 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
             updateCursorColor()
         end
     end
- 
+
     function window.setTextColor( color )
         setTextColor( color )
     end
- 
+
     function window.setTextColour( color )
         setTextColor( color )
     end
- 
+
     local function setBackgroundColor( color )
         if not parent.isColor() then
             if color ~= colors.white and color ~= colors.black then
@@ -630,19 +631,19 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
         end
         nBackgroundColor = color
     end
- 
+
     function window.setBackgroundColor( color )
         setBackgroundColor( color )
     end
- 
+
     function window.setBackgroundColour( color )
         setBackgroundColor( color )
     end
- 
+
     function window.getSize()
         return nWidth, nHeight
     end
- 
+
     function window.scroll( n )
         if n ~= 0 then
             local tNewLines = {}
@@ -663,7 +664,7 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
             end
         end
     end
- 
+
     -- Other functions
     function window.setVisible( bVis )
         if bVisible ~= bVis then
@@ -673,7 +674,7 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
             end
         end
     end
- 
+
     function window.redraw()
         if bVisible then
             redraw()
@@ -682,7 +683,7 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
             updateCursorPos()
         end
     end
- 
+
     function window.restoreCursor()
         if bVisible then
             updateCursorBlink()
@@ -690,11 +691,11 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
             updateCursorPos()
         end
     end
- 
+
     function window.getPosition()
         return nX, nY
     end
- 
+
     function window.reposition( nNewX, nNewY, nNewWidth, nNewHeight )
         nX = nNewX
         nY = nNewY
@@ -723,13 +724,13 @@ function window.create( parent, nX, nY, nWidth, nHeight, bStartVisible )
             window.redraw()
         end
     end
- 
+
     if bVisible then
         window.redraw()
     end
     return window
 end
- 
+
 
 
 --    Variables

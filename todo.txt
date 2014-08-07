@@ -1,5 +1,0 @@
-TODO:
-New secure connection system
-Fix rdnt://update and server
-fix server page not updating on tab change
-fix logs going off the screen
