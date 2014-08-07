@@ -2890,7 +2890,7 @@ languages["fwml"]["run"] = function(contents, page, connection, ...)
 						clear(theme.background, theme.text)
 						links = render.render(data, currentScroll)
 					end
-				elseif e == "key" and (scroll == keys.up or scroll == keys.down) then
+				elseif e == "key" and scroll == keys.up or scroll == keys.down then
 					local scrollAmount
 
 					if scroll == keys.up then
@@ -2899,7 +2899,9 @@ languages["fwml"]["run"] = function(contents, page, connection, ...)
 						scrollAmount = -1
 					end
 
-					if currentScroll + scrollAmount - h >= -pageHeight and currentScroll + scrollAmount <= 0 then
+					local scrollLessHeight = currentScroll + scrollAmount - h >= -pageHeight
+					local scrollZero = currentScroll + scrollAmount <= 0
+					if scrollLessHeight and scrollZero then
 						currentScroll = currentScroll + scrollAmount
 						clear(theme.background, theme.text)
 						links = render.render(data, currentScroll)
