@@ -1080,14 +1080,14 @@ local handleHandshakeRequest = function(handler)
 		if type(data) == "table" then
 			local connection
 
-			if v.type == "direct" then
+			if handler.type == "direct" then
 				connection = SecureConnection.new(key, domain, domain, handler.dist)
 
 				Modem.transmit(serverChannel, responseHeader .. tostring(handler.dist) .. header.responseHeaderC .. textutils.serialize(data))
 			else
 				connection = SecureConnection.new(key, domain, domain, handler.rednet_id, true)
 
-				rednet.send(v.rednet_id, responseHeader .. tostring(handler.rednet_id) .. header.responseHeaderC .. textutils.serialize(data), header.rednetHeader .. serverChannel)
+				rednet.send(handler.rednet_id, responseHeader .. tostring(handler.rednet_id) .. header.responseHeaderC .. textutils.serialize(data), header.rednetHeader .. serverChannel)
 			end
 
 			writeLog("Secure connection opened", theme.text, 0)
@@ -1241,7 +1241,7 @@ commands["update"] = function()
 		if #data < 1000 then
 			writeLog("Failed to update server!", theme.error, math.huge)
 		else
-			local f = io.open(shell.getRunningProgram(), "w")
+			local f = io.open("/"..shell.getRunningProgram(), "w")
 			f:write(data)
 			f:close()
 			error("firewolf-restart")
@@ -1316,7 +1316,7 @@ local lockArt = [[
 --------
 ########
 ########
-
+ 
 [LOCKED]
 ]]
 
@@ -1661,7 +1661,7 @@ local init = function()
 	if not err and msg:find("firewolf-restart", nil, true) then
 		term.clear()
 		term.setCursorPos(1, 1)
-		return shell.run(shell.getRunningProgram(), domain)
+		return shell.run("/"..shell.getRunningProgram(), domain)
 	elseif not err then
 		term.setBackgroundColor(colors.black)
 		term.clear()
@@ -1671,7 +1671,7 @@ local init = function()
 		print(msg)
 		print("Firewolf Server will reboot in 3 seconds...")
 		sleep(3)
-		return shell.run(shell.getRunningProgram(), domain)
+		return shell.run("/"..shell.getRunningProgram(), domain)
 	end
 end
 
