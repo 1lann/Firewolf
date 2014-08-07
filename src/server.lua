@@ -1129,7 +1129,7 @@ local responseDaemon = function()
 						end
 						writeLog("Repeated rednet message", theme.text, 0)
 					end
-				elseif v.channel == serverChannel then
+				elseif v.channel == serverChannel and v.message then
 					handleHandshakeRequest(v)
 				elseif getActiveConnection(v.channel, v.dist) then
 					handlePageRequest(v)
