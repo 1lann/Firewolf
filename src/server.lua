@@ -1236,6 +1236,18 @@ commands["update"] = function()
 	end
 end
 
+commands["edit"] = function()
+	writeLog("Editing server files", theme.userResponse, math.huge)
+	term.setBackgroundColor(colors.black)
+	term.setTextColor(colors.yellow)
+	term.clear()
+	term.setCursorPos(1, 1)
+	print("Use exit to finish editing")
+	shell.setDir(serverLocation .. "/" .. domain)
+	shell.run("/rom/programs/shell")
+	os.queueEvent("firewolf-lock-state-update")
+end
+
 --[[ commands["lockdefault"] = function(set)
 	if set == "on" then
 		config.lockByDefault = true
@@ -1339,6 +1351,7 @@ helpDocs["rednet"] = {"Whether to allow rednet connections", "Usage: rednet <on 
 helpDocs["startup"] = {"Runs the server for the current domain", "on startup"}
 helpDocs["repeat"] = {"Whether to act as a rednet repeater", "Usage: repeat <on or off>"}
 helpDocs["update"] = {"Updates Firewolf Server"}
+helpDocs["edit"] = {"Opens shell in server directory"}
 
 commands["help"] = function(command)
 	if command then
@@ -1353,6 +1366,7 @@ commands["help"] = function(command)
 		writeLog("Use \"help <command>\" for more info", theme.userResponse, math.huge)
 		writeLog("Commands: password, lock, exit, update,", theme.userResponse, math.huge)
 		writeLog("restart, clear, rednet, repeat, startup", theme.userResponse, math.huge)
+		writeLog("edit", theme.userResponse, math.huge)
 	end
 end
 
@@ -1628,6 +1642,7 @@ local runOnDomain = function(domain)
 		if not err and msg:find("firewolf-exit", nil, true) then
 			writeLog("Normal exit", theme.text, math.huge)
 			Modem.closeAll()
+			shell.setDir("/")
 			term.setBackgroundColor(colors.black)
 			term.clear()
 			term.setCursorPos(1, 1)

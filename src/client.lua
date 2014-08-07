@@ -10,7 +10,7 @@
 
 
 local version = "3.2"
-local build = 6
+local build = 7
 
 local w, h = term.getSize()
 
@@ -43,7 +43,7 @@ local httpTimeout = 10
 local searchResultTimeout = 2
 local initiationTimeout = 2
 local animationInterval = 0.125
-local fetchTimeout = 2
+local fetchTimeout = 3
 local serverLimitPerComputer = 1
 
 local websiteErrorEvent = "firewolf_websiteErrorEvent"
@@ -57,6 +57,7 @@ local serverURL = baseURL .. "/server.lua"
 local originalTerminal = term.current()
 
 local firewolfLocation = "/" .. shell.getRunningProgram()
+local downloadsLocation = "/downloads"
 
 
 local theme = {}
@@ -2093,13 +2094,12 @@ local fetchExternal = function(url, connection)
 
 	local page = normalizePage(url:match("^[^/]+/(.+)"))
 	local contents, head = connection.fetchPage(page)
-	connection.close()
 	if contents then
 		if type(contents) ~= "string" then
 			return fetchNone()
 		else
 			local language = determineLanguage(head)
-			return languages[language]["run"](contents, page)
+			return languages[language]["run"](contents, page, connection)
 		end
 	else
 		return fetchError("A connection error/timeout has occurred!")
@@ -2112,9 +2112,13 @@ local fetchNone = function()
 end
 
 
-local fetchURL = function(url)
+local fetchURL = function(url, inheritConnection)
 	url = normalizeURL(url)
 	currentWebsiteURL = url
+
+	if inheritConnection then
+		return fetchExternal(url, inheritConnection), false, inheritConnection
+	end
 
 	local action, connection = determineActionForURL(url)
 
@@ -2123,7 +2127,7 @@ local fetchURL = function(url)
 	elseif action == "internal website" then
 		return fetchInternal(url), true
 	elseif action == "external website" then
-		return fetchExternal(url, connection), false
+		return fetchExternal(url, connection), false, connection
 	elseif action == "none" then
 		return fetchNone(), true
 	elseif action == "exit" then
@@ -2183,16 +2187,26 @@ local loadTab = function(index, url, givenFunc)
 
 	local func = nil
 	local isOpen = true
+	local currentConnection = false
 
 	isMenubarOpen = true
 	currentWebsiteURL = url
 	drawMenubar()
 
+	if tabs[index] and tabs[index].connection and tabs[index].url then
+		if url:match("^([^/]+)") == tabs[index].url:match("^([^/]+)") then
+			currentConnection = tabs[index].connection
+		else
+			tabs[index].connection.close()
+			tabs[index].connection = nil
+		end
+	end
+
 	if givenFunc then
 		func = givenFunc
 	else
 		parallel.waitForAny(function()
-			func, isOpen = fetchURL(url)
+			func, isOpen, connection = fetchURL(url, currentConnection)
 		end, function()
 			while true do
 				local event, key = os.pullEvent()
@@ -2208,6 +2222,7 @@ local loadTab = function(index, url, givenFunc)
 
 		tabs[index] = {}
 		tabs[index].url = url
+		tabs[index].connection = connection
 		tabs[index].win = window.create(originalTerminal, 1, 1, w, h, false)
 
 		tabs[index].thread = coroutine.create(func)
@@ -2341,7 +2356,7 @@ local overrideEnvironment = function(env)
 end
 
 
-local applyAPIFunctions = function(env)
+local applyAPIFunctions = function(env, connection)
 	env["firewolf"] = {}
 	env["firewolf"]["version"] = version
 
@@ -2354,12 +2369,64 @@ local applyAPIFunctions = function(env)
 		coroutine.yield()
 	end
 
+	env["firewolf"]["download"] = function(url)
+		local bannedNames = {"ls", "dir", "delete", "copy", "move", "list", "rm", "cp", "mv", "clear", "cd", "lua"}
+		local filename = url:match("/([^/]+)$")
+		if not filename then
+			return false, "Cannot download index"
+		end
+		for k,v in pairs(bannedNames) do
+			if filename == v then
+				return false, "Filename prohibited!"
+			end
+		end
+		if not fs.exists(downloadsLocation) then
+			fs.makeDir(downloadsLocation)
+			contents = connection.fetchPage(normalizePage(url:match("^[^/]+/(.+)")))
+			if type(contents) ~= "string" then
+				return false, "Download error!"
+			else
+				local f = io.open(downloadsLocation .. "/" .. filename, "w")
+				f:write(contents)
+				f:close()
+				return true, downloadsLocation .. "/" .. filename
+			end
+		elseif not fs.isDir(downloadsLocation) then
+			return false, "Downloads disabled!"
+		end
+	end
+
+	env["firewolf"]["loadImage"] = function(url)
+		local filename = url:match("/([^/]+)$")
+		if not filename then
+			return false, "Cannot load index as an image!"
+		end
+		contents = connection.fetchPage(normalizePage(url:match("^[^/]+/(.+)")))
+		if type(contents) ~= "string" then
+			return false, "Download error!"
+		else
+			local tColourLookup = {}
+			for n=1,16 do
+				tColourLookup[ string.byte( "0123456789abcdef",n,n ) ] = 2^(n-1)
+			end
+			local image = {}
+			for sLine in contents:gmatch("[^\n]+") do
+				local tLine = {}
+				for x=1,sLine:len() do
+					tLine[x] = tColourLookup[ string.byte(sLine,x,x) ] or 0
+				end
+				table.insert( image, tLine )
+			end
+			return image
+		end
+	end
+
 	env["center"] = center
 	env["fill"] = fill
 end
 
 
-local getWebsiteEnvironment = function(antivirus)
+local getWebsiteEnvironment = function(antivirus, connection)
 	local env = {}
 
 	if antivirus then
@@ -2369,7 +2436,7 @@ local getWebsiteEnvironment = function(antivirus)
 		setmetatable(env, {__index = _G})
 	end
 
-	applyAPIFunctions(env)
+	applyAPIFunctions(env, connection)
 
 	return env
 end
@@ -2780,13 +2847,13 @@ languages["lua"]["runWithoutAntivirus"] = function(func, ...)
 end
 
 
-languages["lua"]["run"] = function(contents, page, ...)
+languages["lua"]["run"] = function(contents, page, connection, ...)
 	local func, err = loadstring(contents, page)
 	if err then
 		return languages["lua"]["runWithoutAntivirus"](builtInSites["crash"], err)
 	else
 		local args = {...}
-		local env = getWebsiteEnvironment(true)
+		local env = getWebsiteEnvironment(true, connection)
 		setfenv(func, env)
 		return function()
 			languages["lua"]["runWithErrorCatching"](func, unpack(args))
@@ -2795,7 +2862,7 @@ languages["lua"]["run"] = function(contents, page, ...)
 end
 
 
-languages["fwml"]["run"] = function(contents, page, ...)
+languages["fwml"]["run"] = function(contents, page, connection, ...)
 	local err, data = pcall(parse, contents)
 	if not err then
 		return languages["lua"]["runWithoutAntivirus"](builtInSites["crash"], data)
