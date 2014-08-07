@@ -2401,22 +2401,25 @@ local applyAPIFunctions = function(env, connection)
 		if not filename then
 			return false, "Cannot load index as an image!"
 		end
+
 		contents = connection.fetchPage(normalizePage(url:match("^[^/]+/(.+)")))
 		if type(contents) ~= "string" then
 			return false, "Download error!"
 		else
 			local tColourLookup = {}
-			for n=1,16 do
-				tColourLookup[ string.byte( "0123456789abcdef",n,n ) ] = 2^(n-1)
+			for n = 1, 16 do
+				tColourLookup[string.byte("0123456789abcdef", n, n)] = 2 ^ (n - 1)
 			end
+
 			local image = {}
-			for sLine in contents:gmatch("[^\n]+") do
-				local tLine = {}
-				for x=1,sLine:len() do
-					tLine[x] = tColourLookup[ string.byte(sLine,x,x) ] or 0
+			for line in contents:gmatch("[^\n]+") do
+				local lines = {}
+				for x = 1, line:len() do
+					lines[x] = tColourLookup[string.byte(line, x, x)] or 0
 				end
-				table.insert( image, tLine )
+				table.insert(image, lines)
 			end
+
 			return image
 		end
 	end
