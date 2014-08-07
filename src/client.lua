@@ -1,3 +1,4 @@
+
 --
 --  Firewolf
 --  Made by GravityScore and 1lann
@@ -1752,7 +1753,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 					uniqueServers[tostring(dist)] = true
 					local domain = message:match(header.dnsHeaderMatch)
 					if not uniqueDomains[domain] then
-						if not(domain:find("/") or domain:find(":")) and #domain > 4 then 
+						if not(domain:find("/") or domain:find(":")) and #domain > 4 then
 							uniqueDomains[message:match(header.dnsHeaderMatch)] = tostring(dist)
 						end
 					else
@@ -1768,7 +1769,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 					uniqueServers[tostring(id)] = true
 					local domain = channel:match(header.dnsHeaderMatch)
 					if not uniqueDomains[domain] then
-						if not(domain:find("/") or domain:find(":")) and #domain > 4 then 
+						if not(domain:find("/") or domain:find(":")) and #domain > 4 then
 							uniqueDomains[domain] = tostring(id)
 						end
 					else

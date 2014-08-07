@@ -1,6 +1,0 @@
-TODO:
-Better modem detection/modem messages
-Server needs to be completed, planned config file with crap like:
-Allow rednet connections
-Run rednet repeat (Needs to be implemented)
-Run as GPS
