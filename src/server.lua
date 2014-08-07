@@ -843,6 +843,10 @@ theme.clock = colors.white
 theme.lock = colors.orange
 theme.userResponse = colors.orange
 
+local w, h = term.getSize()
+
+--  Utilities
+
 local makeDirectory = function(path)
 	fs.makeDir(path)
 	local function createIndex(path)
@@ -920,7 +924,6 @@ end
 
 local center = function(text)
 	local x, y = term.getCursorPos()
-	local w, h = term.getSize()
 	term.setCursorPos(math.floor(w / 2 - text:len() / 2) + (text:len() % 2 == 0 and 1 or 0), y)
 	term.write(text)
 	term.setCursorPos(1, y + 1)
@@ -956,6 +959,8 @@ local writeLog = function(text, color, level)
 	end
 end
 
+--  Message handling
+
 local receiveDaemon = function()
 	while true do
 		local event, id, channel, protocol, message, dist = os.pullEventRaw()
@@ -987,7 +992,7 @@ local getActiveConnection = function(channel, distance)
 	end
 end
 
-local fetchPage = function(domain, page)
+local fetchPage = function(page)
 	if (page:match("(.+)%.fwml$")) then
 		page = page:match("(.+)%.fwml$")
 	end
@@ -1031,7 +1036,76 @@ The page you requested could not be found!
 Make sure you typed the URL correctly.
 ]]
 
-local responseDaemon = function(domain)
+local handlePageRequest = function(handler)
+	local connection = getActiveConnection(handler.channel, handler.dist)
+	if connection:verifyHeader(handler.message) then
+		local resp, data = connection:decryptMessage(handler.message)
+		if not resp then
+			-- Decryption Error
+			writeLog("Decryption error!", theme.notice, 0)
+		else
+			-- Process Request
+			if data:match(pageRequestMatch) then
+				local page = data:match(pageRequestMatch)
+				if page == "" or page == "/" then
+					page = "index"
+				end
+				local body, head = fetchPage(page)
+				if body then
+					sendPage(connection, body, head)
+					writeLog("Successful request: "..page:sub(1,20), theme.text, 1)
+				else
+					body, head = fetchPage("not-found")
+					if body then
+						sendPage(connection, body, head)
+					else
+						sendPage(connection, defaultNotFound, "fwml")
+					end
+					writeLog("Unsuccessful request: "..page:sub(1,20), theme.text, 1)
+				end
+			elseif data == closeMatch then
+				writeLog("Secure connection closed", theme.text, 0)
+				Modem.close(connection.channel)
+				table.remove(connections, k)
+			end
+		end
+	end
+end
+
+local handleHandshakeRequest = function(handler)
+	local requestData = handler.message:match(requestMatch)
+	if requestData and type(textutils.unserialize(requestData)) == "table" then
+		local receivedHandshake = textutils.unserialize(requestData)
+		local data, key = Handshake.generateResponseData(receivedHandshake)
+		if type(data) == "table" then
+			local connection
+
+			if v.type == "direct" then
+				connection = SecureConnection.new(key, domain, domain, handler.dist)
+
+				Modem.transmit(serverChannel, responseHeader .. tostring(handler.dist) .. header.responseHeaderC .. textutils.serialize(data))
+			else
+				connection = SecureConnection.new(key, domain, domain, handler.rednet_id, true)
+
+				rednet.send(v.rednet_id, responseHeader .. tostring(handler.rednet_id) .. header.responseHeaderC .. textutils.serialize(data), header.rednetHeader .. serverChannel)
+			end
+
+			writeLog("Secure connection opened", theme.text, 0)
+
+			table.insert(connections, connection)
+
+			if #connections >= 200 then
+				Modem.close(connections[1].channel)
+				table.remove(connections, 1)
+			end
+		end
+	elseif handler.message:match(maliciousMatch) then
+		-- Hijacking Detected
+		writeLog("Warning: Connection Hijacking Detected", theme.error, 2)
+	end
+end
+
+local responseDaemon = function()
 	while true do
 		os.pullEventRaw()
 
@@ -1040,10 +1114,10 @@ local responseDaemon = function(domain)
 				if v.channel == dnsListenChannel and v.message == header.dnsPacket then
 					-- DNS Request
 					if v.type == "rednet" then
-						rednet.send(v.rednet_id, header.dnsHeader..domain, header.rednetHeader..dnsResponseChannel)
+						rednet.send(v.rednet_id, header.dnsHeader .. domain, header.rednetHeader .. dnsResponseChannel)
 					else
 						Modem.open(dnsResponseChannel)
-						Modem.transmit(dnsResponseChannel ,header.dnsHeader..domain)
+						Modem.transmit(dnsResponseChannel, header.dnsHeader .. domain)
 						Modem.close(dnsResponseChannel)
 					end
 				elseif v.channel == rednet.CHANNEL_REPEAT and config.actAsRednetRepeater and type(v.message) == "table" and v.message.nMessageID and v.message.nRecipient then
@@ -1056,71 +1130,9 @@ local responseDaemon = function(domain)
 						writeLog("Repeated rednet message", theme.text, 0)
 					end
 				elseif v.channel == serverChannel then
-					-- Handshake Request
-					local requestData = v.message:match(requestMatch)
-					if requestData and type(textutils.unserialize(requestData)) == "table" then
-						local receivedHandshake = textutils.unserialize(requestData)
-						local data, key = Handshake.generateResponseData(receivedHandshake)
-						if type(data) == "table" then
-							local connection
-
-							if v.type == "direct" then
-								connection = SecureConnection.new(key, domain, domain, v.dist)
-
-								Modem.transmit(serverChannel, responseHeader .. tostring(v.dist) .. header.responseHeaderC .. textutils.serialize(data))
-							else
-								connection = SecureConnection.new(key, domain, domain, v.rednet_id, true)
-
-								rednet.send(v.rednet_id, responseHeader .. tostring(v.rednet_id) .. header.responseHeaderC .. textutils.serialize(data), header.rednetHeader .. serverChannel)
-							end
-
-							writeLog("Secure connection opened", theme.text, 0)
-
-							table.insert(connections, connection)
-
-							if #connections >= 200 then
-								Modem.close(connections[1].channel)
-								table.remove(connections, 1)
-							end
-						end
-					elseif v.message:match(maliciousMatch) then
-						-- Hijacking Detected
-						writeLog("Warning: Connection Hijacking Detected", theme.error, 2)
-					end
+					handleHandshakeRequest(v)
 				elseif getActiveConnection(v.channel, v.dist) then
-					local connection = getActiveConnection(v.channel, v.dist)
-					if connection:verifyHeader(v.message) then
-						local resp, data = connection:decryptMessage(v.message)
-						if not resp then
-							-- Decryption Error
-							writeLog("Decryption error!", theme.notice, 0)
-						else
-							-- Process Request
-							if data:match(pageRequestMatch) then
-								local page = data:match(pageRequestMatch)
-								if page == "" or page == "/" then
-									page = "index"
-								end
-								local body, head = fetchPage(domain, page)
-								if body then
-									sendPage(connection, body, head)
-									writeLog("Successful request: "..page:sub(1,20), theme.text, 1)
-								else
-									body, head = fetchPage(domain, "not-found")
-									if body then
-										sendPage(connection, body, head)
-									else
-										sendPage(connection, defaultNotFound, "fwml")
-									end
-									writeLog("Unsuccessful request: "..page:sub(1,20), theme.text, 1)
-								end
-							elseif data == closeMatch then
-								writeLog("Secure connection closed", theme.text, 0)
-								Modem.close(connection.channel)
-								table.remove(connections, k)
-							end
-						end
-					end
+					handlePageRequest(v)
 				end
 			end
 		end
@@ -1129,6 +1141,7 @@ local responseDaemon = function(domain)
 	end
 end
 
+--  Commands and Help
 
 local commands = {}
 local helpDocs = {}
@@ -1248,92 +1261,6 @@ commands["edit"] = function()
 	os.queueEvent("firewolf-lock-state-update")
 end
 
---[[ commands["lockdefault"] = function(set)
-	if set == "on" then
-		config.lockByDefault = true
-		saveConfig()
-		writeLog("Will now be locked by default", theme.userResponse, math.huge)
-	elseif set == "off" then
-		config.lockByDefault = false
-		saveConfig()
-		writeLog("Will now be not locked by default", theme.userResponse, math.huge)
-	else
-		writeLog("Whether to lock the server by default", theme.userResponse, 1)
-		writeLog("(To lock the server on start/boot)", theme.userResponse, 1)
-		writeLog("Usage: lockdefault <on or off>", theme.userResponse, math.huge)
-		if config.lockByDefault then
-			writeLog("Currently locked by default", theme.userResponse, math.huge)
-		else
-			writeLog("Currently not locked by default", theme.userResponse, math.huge)
-		end
-	end
-end]]
-
---[[ commands["hidelock"] = function(set)
-	if set == "hide" then
-		config.hideWhenLocked = true
-		saveConfig()
-		writeLog("Console will be hidden when locked", theme.userResponse, math.huge)
-	elseif set == "show" then
-		config.hideWhenLocked = false
-		saveConfig()
-		writeLog("Console will be shown when locked", theme.userResponse, math.huge)
-	else
-		writeLog("Whether to show the console when locked", theme.userResponse, 1)
-		writeLog("Usage: hidelock <show or hide>", theme.userResponse, math.huge)
-		if config.hideWhenLocked then
-			writeLog("Console currently hidden when locked", theme.userResponse, math.huge)
-		else
-			writeLog("Console currently shown when locked", theme.userResponse, math.huge)
-		end
-	end
-end]]
-
---[[ commands["logging"] = function(set, location)
-	if set == "on" then
-		config.logging = true
-		saveConfig()
-		writeLog("Will now be locked by default", theme.userResponse, math.huge)
-	elseif set == "off" then
-		config.logging = false
-		saveConfig()
-		writeLog("Will now be not locked by default", theme.userResponse, math.huge)
-	elseif set == "set" then
-		config.loggingLocation = location
-		saveConfig()
-		writeLog("Log file location changed", theme.userResponse, math.huge)
-	else
-		writeLog("Whether to enable logging to a file", theme.userResponse, 1)
-		writeLog("Use \"set\" to set the log file location", theme.userResponse, 1)
-		writeLog("Usage: logging <on, off or set> [location]", theme.userResponse, math.huge)
-		if config.logging then
-			writeLog("Logging to a file is currently on", theme.userResponse, math.huge)
-		else
-			writeLog("Logging to a file is currently off", theme.userResponse, math.huge)
-		end
-	end
-end]]
-
---[[ commands["loglevel"] = function(logType, level)
-	level = tonumber(level)
-	if logType == "visible" and tonumber(level) >= 0 and tonumber(level) <= 5 then
-		config.visibleLoggingLevel = tonumber(level)
-		saveConfig()
-		writeLog("Visible log level set to: "..level, theme.userResponse, math.huge)
-	elseif logType == "file" and tonumber(level) >= 0 and tonumber(level) <= 5 then
-		config.writtenLoggingLevel = tonumber(level)
-		saveConfig()
-		writeLog("File log level set to: "..level, theme.userResponse, math.huge)
-	else
-		writeLog("Set the log level of the log file or", theme.userResponse, 1)
-		writeLog("what's being displayed from 0 to 5", theme.userResponse, 1)
-		writeLog("0 containg more useless information", theme.userResponse, 1)
-		writeLog("Usage: loglevel <visible or file> <0-5>", theme.userResponse, math.huge)
-		writeLog("Current file log level: "..config.writtenLoggingLevel, theme.userResponse, math.huge)
-		writeLog("Current visible log level: "..config.visibleLoggingLevel, theme.userResponse, math.huge)
-	end
-end]]
-
 commands["clear"] = function()
 	terminalLog = {}
 	term.clear()
@@ -1365,10 +1292,21 @@ commands["help"] = function(command)
 	else
 		writeLog("Use \"help <command>\" for more info", theme.userResponse, math.huge)
 		writeLog("Commands: password, lock, exit, update,", theme.userResponse, math.huge)
-		writeLog("restart, clear, rednet, repeat, startup", theme.userResponse, math.huge)
+		writeLog("restart, clear, rednet, repeat, startup,", theme.userResponse, math.huge)
 		writeLog("edit", theme.userResponse, math.huge)
 	end
 end
+
+--  Display manager
+
+local enteredText = ""
+local history = {}
+local scrollingHistory = false
+local cursorPosition = 1
+local offsetPosition = 1
+local inputName = "> "
+local lockTimer = 0
+local lockedInputState = false
 
 local lockArt = [[
   ####
@@ -1382,84 +1320,186 @@ local lockArt = [[
 [LOCKED]
 ]]
 
+local drawBar = function()
+	term.clear()
+	term.setTextColor(theme.barText)
+	term.setBackgroundColor(theme.barColor)
+	term.setCursorPos(1,1)
+	term.clearLine()
+	term.write(" "..version)
+	center("["..domain.."]")
+	local time = textutils.formatTime(os.time(), true)
+	term.setCursorPos(w - #time, 1)
+	term.setTextColor(theme.clock)
+	term.write(time)
 
-local terminalDaemon = function(domain)
-	local enteredText = ""
-	local history = {}
-	local scrollingHistory = false
-	local cursorPosition = 1
-	local offsetPosition = 1
-	local w, h = term.getSize()
+	term.setBackgroundColor(theme.background)
+end
+
+local drawLogs = function()
+	if locked then
+		local lockX = math.ceil((w/2) - 4)
+		local lineNum = 4
+		term.setTextColor(theme.lock)
+		for line in lockArt:gmatch("[^\n]+") do
+			term.setCursorPos(lockX, lineNum)
+			term.write(line)
+			lineNum = lineNum + 1
+		end
+		inputName = "Password: "
+	else
+		lockedInputState = false
+		if #terminalLog < h - 1 then
+			term.setCursorPos(1, 2)
+			for i = 1, #terminalLog do
+				term.setTextColor(theme.clock)
+				term.write(terminalLog[i][3])
+				term.setTextColor(terminalLog[i][2])
+				term.write(terminalLog[i][1])
+				term.setCursorPos(1, i + 2)
+			end
+		else
+			term.setCursorPos(1, 2)
+			for i = 1, h - 1 do
+				term.setTextColor(theme.clock)
+				term.write(terminalLog[#terminalLog - (h - 1) + i][3])
+				term.setTextColor(terminalLog[#terminalLog - (h - 1) + i][2])
+				term.write(terminalLog[#terminalLog - (h - 1) + i][1])
+				term.setCursorPos(1, i + 1)
+			end
+		end
+	end
+end
+
+local drawInputBar = function()
+	term.setCursorPos(1, h)
+
+	if lockedInputState then
+		term.setCursorBlink(false)
+		term.setTextColor(theme.error)
+		term.write("Incorrect Password!")
+	else
+		term.setCursorBlink(true)
+		term.setTextColor(theme.inputColor)
+		term.write(inputName)
+		width = w - #inputName
+		if locked then
+			term.write(string.rep("*", (#enteredText:sub(offsetPosition, offsetPosition + width))))
+		else
+			term.write(enteredText:sub(offsetPosition, offsetPosition + width))
+		end
+	end
+end
+
+local handleKeyEvents = function(event, key)
+	if key == 14 then
+		if enteredText ~= "" then
+			enteredText = enteredText:sub(1, cursorPosition - 2) .. enteredText:sub(cursorPosition, -1)
+			cursorPosition = cursorPosition-1
+			if cursorPosition >= width then
+				offsetPosition = offsetPosition - 1
+			end
+		end
+	elseif key == 28 and enteredText ~= "" and locked then
+		if enteredText == config.password then
+			writeLog("Successful login", theme.userResponse, math.huge)
+			inputName = "> "
+			locked = false
+			os.queueEvent("firewolf-lock-state-update")
+		else
+			writeLog("Failed login attempt", theme.userResponse, math.huge)
+			lockedInputState = true
+			lockTimer = os.startTimer(2)
+			os.queueEvent("firewolf-lock-state-update")
+		end
+		enteredText = ""
+		cursorPosition = 1
+		offsetPosition = 1
+	elseif key == 28 and enteredText ~= "" and not locked then
+		local commandWord = false
+		local arguments = {}
+		for word in enteredText:gmatch("%S+") do
+			if not commandWord then
+				commandWord = word
+			else
+				table.insert(arguments, word)
+			end
+		end
+		if commands[commandWord] then
+			local err, msg = pcall(commands[commandWord], unpack(arguments))
+			if not err and msg:find("firewolf-exit", nil, true) then
+				error("firewolf-exit")
+			elseif not err and msg:find("firewolf-restart", nil, true) then
+				error("firewolf-restart")
+			elseif not err then
+				writeLog("An error occured when executing command", theme.error, math.huge)
+				writeLog(msg, theme.error, math.huge)
+			end
+		else
+			writeLog("No such command!", theme.error, math.huge)
+		end
+		table.insert(history, enteredText)
+		enteredText = ""
+		offsetPosition = 1
+		cursorPosition = 1
+	elseif key == 203 then
+		cursorPosition = cursorPosition - 1
+		if cursorPosition < 1 then
+			cursorPosition = 1
+		end
+		if cursorPosition >= width then
+			offsetPosition = offsetPosition - 1
+		end
+	elseif key == 205 then
+		cursorPosition = cursorPosition + 1
+		if cursorPosition > #enteredText + 1 then
+			cursorPosition = #enteredText + 1
+		end
+		if cursorPosition - offsetPosition >= width then
+			offsetPosition = offsetPosition + 1
+		end
+	elseif key == 208 and #history > 0 then
+		if type(scrollingHistory) == "number" then
+			scrollingHistory = scrollingHistory - 1
+			if scrollingHistory > 0 then
+				enteredText = history[#history - scrollingHistory + 1]
+				cursorPosition = #enteredText + 1
+			else
+				scrollingHistory = false
+				enteredText = ""
+				cursorPosition = 1
+			end
+		end
+	elseif key == 200 and #history > 0 then
+		if type(scrollingHistory) == "number" then
+			scrollingHistory = scrollingHistory + 1
+			if scrollingHistory > #history then
+				scrollingHistory = #history
+			end
+			enteredText = history[#history - scrollingHistory + 1]
+			cursorPosition = #enteredText + 1
+			if cursorPosition > width then
+				cursorPosition = 1
+			end
+		else
+			scrollingHistory = 1
+			enteredText = history[#history - scrollingHistory + 1]
+			cursorPosition = #enteredText + 1
+			if cursorPosition > width then
+				cursorPosition = 1
+			end
+		end
+	end
+end
+
+
+local terminalDaemon = function()
 	local timer = os.startTimer(1)
-	local inputName = "> "
-	local lockTimer = 0
-	local lockedInputState = false
 
 	while true do
-		term.clear()
-		term.setTextColor(theme.barText)
-		term.setBackgroundColor(theme.barColor)
-		term.setCursorPos(1,1)
-		term.clearLine()
-		term.write(" "..version)
-		center("["..domain.."]")
-		local time = textutils.formatTime(os.time(), true)
-		term.setCursorPos(w - #time, 1)
-		term.setTextColor(theme.clock)
-		term.write(time)
-
-		term.setBackgroundColor(theme.background)
-
-		if locked then
-			local lockX = math.ceil((w/2) - 4)
-			local lineNum = 4
-			term.setTextColor(theme.lock)
-			for line in lockArt:gmatch("[^\n]+") do
-				term.setCursorPos(lockX, lineNum)
-				term.write(line)
-				lineNum = lineNum + 1
-			end
-			inputName = "Password: "
-		else
-			lockedInputState = false
-			if #terminalLog < h - 1 then
-				term.setCursorPos(1, 2)
-				for i = 1, #terminalLog do
-					term.setTextColor(theme.clock)
-					term.write(terminalLog[i][3])
-					term.setTextColor(terminalLog[i][2])
-					term.write(terminalLog[i][1])
-					term.setCursorPos(1, i + 2)
-				end
-			else
-				term.setCursorPos(1, 2)
-				for i = 1, h - 1 do
-					term.setTextColor(theme.clock)
-					term.write(terminalLog[#terminalLog - (h - 1) + i][3])
-					term.setTextColor(terminalLog[#terminalLog - (h - 1) + i][2])
-					term.write(terminalLog[#terminalLog - (h - 1) + i][1])
-					term.setCursorPos(1, i + 1)
-				end
-			end
-		end
-
-		term.setCursorPos(1, h)
-
-		if lockedInputState then
-			term.setCursorBlink(false)
-			term.setTextColor(theme.error)
-			term.write("Incorrect Password!")
-		else
-			term.setCursorBlink(true)
-			term.setTextColor(theme.inputColor)
-			term.write(inputName)
-			width = w - #inputName
-			if locked then
-				term.write(string.rep("*", (#enteredText:sub(offsetPosition, offsetPosition + width))))
-			else
-				term.write(enteredText:sub(offsetPosition, offsetPosition + width))
-			end
-		end
+		drawBar()
+		drawLogs()
+		drawInputBar()
 
 		term.setCursorPos(cursorPosition - offsetPosition + #inputName + 1, h)
 
@@ -1471,106 +1511,7 @@ local terminalDaemon = function(domain)
 				offsetPosition = offsetPosition + 1
 			end
 		elseif event == "key" and not lockedInputState then
-			if key == 14 then
-				if enteredText ~= "" then
-					enteredText = enteredText:sub(1, cursorPosition - 2) .. enteredText:sub(cursorPosition, -1)
-					cursorPosition = cursorPosition-1
-					if cursorPosition >= width then
-						offsetPosition = offsetPosition - 1
-					end
-				end
-			elseif key == 28 and enteredText ~= "" and locked then
-				if enteredText == config.password then
-					writeLog("Successful login", theme.userResponse, math.huge)
-					inputName = "> "
-					locked = false
-					os.queueEvent("firewolf-lock-state-update")
-				else
-					writeLog("Failed login attempt", theme.userResponse, math.huge)
-					lockedInputState = true
-					lockTimer = os.startTimer(2)
-					os.queueEvent("firewolf-lock-state-update")
-				end
-				enteredText = ""
-				cursorPosition = 1
-				offsetPosition = 1
-			elseif key == 28 and enteredText ~= "" and not locked then
-				local commandWord = false
-				local arguments = {}
-				for word in enteredText:gmatch("%S+") do
-					if not commandWord then
-						commandWord = word
-					else
-						table.insert(arguments, word)
-					end
-				end
-				if commands[commandWord] then
-					local err, msg = pcall(commands[commandWord], unpack(arguments))
-					if not err and msg:find("firewolf-exit", nil, true) then
-						error("firewolf-exit")
-					elseif not err and msg:find("firewolf-restart", nil, true) then
-						error("firewolf-restart")
-					elseif not err then
-						writeLog("An error occured when executing command", theme.error, math.huge)
-						writeLog(msg, theme.error, math.huge)
-					end
-				else
-					writeLog("No such command!", theme.error, math.huge)
-				end
-				table.insert(history, enteredText)
-				enteredText = ""
-				offsetPosition = 1
-				cursorPosition = 1
-			elseif key == 203 then
-				cursorPosition = cursorPosition - 1
-				if cursorPosition < 1 then
-					cursorPosition = 1
-				end
-				if cursorPosition >= width then
-					offsetPosition = offsetPosition - 1
-				end
-			elseif key == 205 then
-				cursorPosition = cursorPosition + 1
-				if cursorPosition > #enteredText + 1 then
-					cursorPosition = #enteredText + 1
-				end
-				if cursorPosition - offsetPosition >= width then
-					offsetPosition = offsetPosition + 1
-				end
-			elseif key == 208 and #history > 0 then
-				-- Down
-				if type(scrollingHistory) == "number" then
-					scrollingHistory = scrollingHistory - 1
-					if scrollingHistory > 0 then
-						enteredText = history[#history - scrollingHistory + 1]
-						cursorPosition = #enteredText + 1
-					else
-						scrollingHistory = false
-						enteredText = ""
-						cursorPosition = 1
-					end
-				end
-			elseif key == 200 and #history > 0 then
-				-- Up
-				if type(scrollingHistory) == "number" then
-					scrollingHistory = scrollingHistory + 1
-					if scrollingHistory > #history then
-						scrollingHistory = #history
-					end
-					enteredText = history[#history - scrollingHistory + 1]
-					cursorPosition = #enteredText + 1
-					if cursorPosition > width then
-						cursorPosition = 1
-					end
-				else
-					scrollingHistory = 1
-					enteredText = history[#history - scrollingHistory + 1]
-					cursorPosition = #enteredText + 1
-					if cursorPosition > width then
-						cursorPosition = 1
-					end
-				end
-			end
+			handleKeyEvents(event, key)
 		elseif event == "timer" and key == timer then
 			timer = os.startTimer(1)
 		elseif event == "timer" and key == lockTimer then
@@ -1581,48 +1522,26 @@ local terminalDaemon = function(domain)
 	end
 end
 
+--  Coroutine manager
 
-local runOnDomain = function(domain)
-	serverChannel = Cryptography.channel(domain)
-	requestMatch = header.requestMatchA .. Cryptography.sanatize(domain) .. header.requestMatchB
-	responseHeader = header.responseHeaderA .. domain .. header.responseHeaderB
-	pageRequestMatch = header.pageRequestMatchA .. Cryptography.sanatize(domain) .. header.pageRequestMatchB
-	pageResposneHeader = header.pageResponseHeaderA .. domain .. header.pageResponseHeaderB
-	closeMatch = header.closeMatchA .. domain .. header.closeMatchB
-	maliciousMatch = header.maliciousMatchA .. Cryptography.sanatize(domain) .. header.maliciousMatchB
+local receiveThread, responseThread, terminalThread
 
+local function resetServer()
+	connections = {}
+	Modem.closeAll()
 	Modem.open(serverChannel)
 	Modem.open(dnsListenChannel)
-
 	if config.actAsRednetRepeater then
 		Modem.open(rednet.CHANNEL_REPEAT)
 	end
-
-	writeLog("Firewolf Server "..version.." running" , theme.notice, math.huge)
-
-	local receiveThread = coroutine.create(receiveDaemon)
-	local responseThread = coroutine.create(function() responseDaemon(domain) end)
-	local terminalThread = coroutine.create(function() terminalDaemon(domain) end)
-
-	local function resetServer()
-		connections = {}
-		Modem.closeAll()
-		Modem.open(serverChannel)
-		Modem.open(dnsListenChannel)
-		if config.actAsRednetRepeater then
-			Modem.open(rednet.CHANNEL_REPEAT)
-		end
-		responseThread = coroutine.create(function() responseDaemon(domain) end)
-		receiveThread = coroutine.create(receiveDaemon)
-		coroutine.resume(responseThread)
-		coroutine.resume(receiveThread)
-		writeLog("The server has been refreshed", theme.notice, 3)
-	end
-
-	coroutine.resume(receiveThread)
+	responseThread = coroutine.create(function() responseDaemon() end)
+	receiveThread = coroutine.create(receiveDaemon)
 	coroutine.resume(responseThread)
-	coroutine.resume(terminalThread)
+	coroutine.resume(receiveThread)
+	writeLog("The server has been refreshed", theme.notice, 3)
+end
 
+local function runThreads()
 	while true do
 		local shouldResetServer = false
 		local events = {os.pullEventRaw()}
@@ -1642,7 +1561,7 @@ local runOnDomain = function(domain)
 		if not err and msg:find("firewolf-exit", nil, true) then
 			writeLog("Normal exit", theme.text, math.huge)
 			Modem.closeAll()
-			shell.setDir("/")
+			shell.setDir("")
 			term.setBackgroundColor(colors.black)
 			term.clear()
 			term.setCursorPos(1, 1)
@@ -1667,10 +1586,41 @@ local runOnDomain = function(domain)
 			resetServer()
 		end
 	end
-
 end
 
-local init = function(domain)
+
+local runOnDomain = function()
+	serverChannel = Cryptography.channel(domain)
+	requestMatch = header.requestMatchA .. Cryptography.sanatize(domain) .. header.requestMatchB
+	responseHeader = header.responseHeaderA .. domain .. header.responseHeaderB
+	pageRequestMatch = header.pageRequestMatchA .. Cryptography.sanatize(domain) .. header.pageRequestMatchB
+	pageResposneHeader = header.pageResponseHeaderA .. domain .. header.pageResponseHeaderB
+	closeMatch = header.closeMatchA .. domain .. header.closeMatchB
+	maliciousMatch = header.maliciousMatchA .. Cryptography.sanatize(domain) .. header.maliciousMatchB
+
+	Modem.open(serverChannel)
+	Modem.open(dnsListenChannel)
+
+	if config.actAsRednetRepeater then
+		Modem.open(rednet.CHANNEL_REPEAT)
+	end
+
+	writeLog("Firewolf Server "..version.." running" , theme.notice, math.huge)
+
+	receiveThread = coroutine.create(receiveDaemon)
+	responseThread = coroutine.create(function() responseDaemon() end)
+	terminalThread = coroutine.create(function() terminalDaemon() end)
+
+	coroutine.resume(receiveThread)
+	coroutine.resume(responseThread)
+	coroutine.resume(terminalThread)
+
+	runThreads()
+end
+
+--  Server initialisation
+
+local init = function()
 	Modem.closeAll()
 	term.setBackgroundColor(theme.background)
 	term.setTextColor(theme.notice)
@@ -1767,7 +1717,7 @@ if domain then
 	else
 		config.lastDomain = domain
 		saveConfig()
-		init(domain)
+		init()
 	end
 else
 	term.setTextColor(colors.white)

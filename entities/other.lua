@@ -10,7 +10,7 @@
 
 
 local version = "3.2"
-local build = 6
+local build = 8
 
 local w, h = term.getSize()
 
@@ -43,7 +43,7 @@ local httpTimeout = 10
 local searchResultTimeout = 2
 local initiationTimeout = 2
 local animationInterval = 0.125
-local fetchTimeout = 2
+local fetchTimeout = 3
 local serverLimitPerComputer = 1
 
 local websiteErrorEvent = "firewolf_websiteErrorEvent"
@@ -57,6 +57,7 @@ local serverURL = baseURL .. "/server.lua"
 local originalTerminal = term.current()
 
 local firewolfLocation = "/" .. shell.getRunningProgram()
+local downloadsLocation = "/downloads"
 
 
 local theme = {}
@@ -84,28 +85,6 @@ local grayscaleTheme = {
 
 
 --    Utilities
-
-
-local debugLog = function(...)
-	-- if not fs.exists("/firewolf-log") then
-	-- 	local f = io.open("/firewolf-log", "w")
-	-- 	f:write("")
-	-- 	f:close()
-	-- end
-
-	-- local args = {...}
-	-- local construct = ""
-
-	-- for k,v in pairs(args) do
-	-- 	construct = construct .. " : " .. tostring(v)
-	-- end
-
-	-- local f = io.open("/firewolf-log", "a")
-	-- f:write(construct.."\n")
-	-- f:close()
-end
-
- debugLog("-- New firewolf session")
 
 
 local modifiedRead = function(properties)
@@ -332,56 +311,6 @@ local prompt = function(items, x, y, w, h)
 				os.queueEvent("key", keys.up)
 			end
 		end
-	end
-end
-
-
-
---    RC4
---    Implementation by AgentE382
-
-
-local cryptWrapper = function(plaintext, salt)
-	local key = type(salt) == "table" and {unpack(salt)} or {string.byte(salt, 1, #salt)}
-	local S = {}
-	for i = 0, 255 do
-		S[i] = i
-	end
-
-	local j, keylength = 0, #key
-	for i = 0, 255 do
-		j = (j + S[i] + key[i % keylength + 1]) % 256
-		S[i], S[j] = S[j], S[i]
-	end
-
-	local i = 0
-	j = 0
-	local chars, astable = type(plaintext) == "table" and {unpack(plaintext)} or {string.byte(plaintext, 1, #plaintext)}, false
-
-	for n = 1, #chars do
-		i = (i + 1) % 256
-		j = (j + S[i]) % 256
-		S[i], S[j] = S[j], S[i]
-		chars[n] = bit.bxor(S[(S[i] + S[j]) % 256], chars[n])
-		if chars[n] > 127 or chars[n] == 13 then
-			astable = true
-		end
-	end
-
-	return astable and chars or string.char(unpack(chars))
-end
-
-
-local crypt = function(plaintext, salt)
-	local resp, msg = pcall(cryptWrapper, plaintext, salt)
-	if resp then
-		if type(msg) == "table" then
-			return textutils.serialize(msg)
-		else
-			return msg
-		end
-	else
-		return nil
 	end
 end
 
@@ -931,8 +860,8 @@ end
 
 
 
---    RC4
---    Implementation by AgentE382
+--  RC4
+--  Implementation by AgentE382
 
 
 local cryptWrapper = function(plaintext, salt)
@@ -983,6 +912,7 @@ end
 --  By KillaVanilla
 --  http://www.computercraft.info/forums2/index.php?/topic/12450-killavanillas-various-apis/
 --  http://pastebin.com/rCYDnCxn
+--
 
 
 local alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
@@ -1157,7 +1087,6 @@ end
 
 
 local customBxor1 = make_bitop({[0] = {[0] = 0,[1] = 1}, [1] = {[0] = 1, [1] = 0}, n = 4})
-
 
 local function customBxor(a, b, c, ...)
 	local z = nil
@@ -1350,7 +1279,7 @@ local protocolName = "Firewolf"
 
 
 
---    Cryptography Wrapper
+--    Cryptography
 
 
 local Cryptography = {}
@@ -1445,7 +1374,7 @@ end
 
 
 
---    Multiple Modem Wrapper
+--  Modem
 
 
 local Modem = {}
@@ -1543,7 +1472,7 @@ end
 
 
 
---    Secure Handshake API
+--    Handshake
 
 
 local Handshake = {}
@@ -1627,6 +1556,7 @@ end
 
 local SecureConnection = {}
 SecureConnection.__index = SecureConnection
+
 
 SecureConnection.packetHeaderA = "["..protocolName.."-"
 SecureConnection.packetHeaderB = "-SecureConnection-Packet-Header]"
@@ -1814,6 +1744,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 	local rednetResults = {}
 	local directResults = {}
 
+	-- Gotta go fast!
 	local timer = os.startTimer(initiationTimeout)
 
 	Modem.open(serverChannel)
@@ -2096,7 +2027,6 @@ end
 
 
 local fetchExternal = function(url, connection)
-
 	if connection.multipleServers then
 		-- Please forgive me
 		-- GravityScore forced me to do it like this
@@ -2106,13 +2036,12 @@ local fetchExternal = function(url, connection)
 
 	local page = normalizePage(url:match("^[^/]+/(.+)"))
 	local contents, head = connection.fetchPage(page)
-	connection.close()
 	if contents then
 		if type(contents) ~= "string" then
 			return fetchNone()
 		else
 			local language = determineLanguage(head)
-			return languages[language]["run"](contents, page)
+			return languages[language]["run"](contents, page, connection)
 		end
 	else
 		return fetchError("A connection error/timeout has occurred!")
@@ -2125,9 +2054,13 @@ local fetchNone = function()
 end
 
 
-local fetchURL = function(url)
+local fetchURL = function(url, inheritConnection)
 	url = normalizeURL(url)
 	currentWebsiteURL = url
+
+	if inheritConnection then
+		return fetchExternal(url, inheritConnection), false, inheritConnection
+	end
 
 	local action, connection = determineActionForURL(url)
 
@@ -2136,7 +2069,7 @@ local fetchURL = function(url)
 	elseif action == "internal website" then
 		return fetchInternal(url), true
 	elseif action == "external website" then
-		return fetchExternal(url, connection), false
+		return fetchExternal(url, connection), false, connection
 	elseif action == "none" then
 		return fetchNone(), true
 	elseif action == "exit" then
@@ -2196,16 +2129,26 @@ local loadTab = function(index, url, givenFunc)
 
 	local func = nil
 	local isOpen = true
+	local currentConnection = false
 
 	isMenubarOpen = true
 	currentWebsiteURL = url
 	drawMenubar()
 
+	if tabs[index] and tabs[index].connection and tabs[index].url then
+		if url:match("^([^/]+)") == tabs[index].url:match("^([^/]+)") then
+			currentConnection = tabs[index].connection
+		else
+			tabs[index].connection.close()
+			tabs[index].connection = nil
+		end
+	end
+
 	if givenFunc then
 		func = givenFunc
 	else
 		parallel.waitForAny(function()
-			func, isOpen = fetchURL(url)
+			func, isOpen, connection = fetchURL(url, currentConnection)
 		end, function()
 			while true do
 				local event, key = os.pullEvent()
@@ -2221,6 +2164,7 @@ local loadTab = function(index, url, givenFunc)
 
 		tabs[index] = {}
 		tabs[index].url = url
+		tabs[index].connection = connection
 		tabs[index].win = window.create(originalTerminal, 1, 1, w, h, false)
 
 		tabs[index].thread = coroutine.create(func)
@@ -2327,6 +2271,7 @@ local getWhitelistedEnvironment = function()
 	env["getmetatable"] = getmetatable
 
 	env["_G"] = env
+
 	return env
 end
 
@@ -2347,14 +2292,13 @@ local overrideEnvironment = function(env)
 		drawMenubar()
 	end
 
-
 	env["shell"]["getRunningProgram"] = function()
 		return currentWebsiteURL
 	end
 end
 
 
-local applyAPIFunctions = function(env)
+local applyAPIFunctions = function(env, connection)
 	env["firewolf"] = {}
 	env["firewolf"]["version"] = version
 
@@ -2367,12 +2311,69 @@ local applyAPIFunctions = function(env)
 		coroutine.yield()
 	end
 
+	env["firewolf"]["download"] = function(url)
+		local bannedNames = {"ls", "dir", "delete", "copy", "move", "list", "rm", "cp", "mv", "clear", "cd", "lua"}
+		local filename = url:match("/([^/]+)$")
+		if not filename then
+			return false, "Cannot download index"
+		end
+
+		for k, v in pairs(bannedNames) do
+			if filename == v then
+				return false, "Filename prohibited!"
+			end
+		end
+
+		if not fs.exists(downloadsLocation) then
+			fs.makeDir(downloadsLocation)
+			contents = connection.fetchPage(normalizePage(url:match("^[^/]+/(.+)")))
+			if type(contents) ~= "string" then
+				return false, "Download error!"
+			else
+				local f = io.open(downloadsLocation .. "/" .. filename, "w")
+				f:write(contents)
+				f:close()
+				return true, downloadsLocation .. "/" .. filename
+			end
+		elseif not fs.isDir(downloadsLocation) then
+			return false, "Downloads disabled!"
+		end
+	end
+
+	env["firewolf"]["loadImage"] = function(url)
+		local filename = url:match("/([^/]+)$")
+		if not filename then
+			return false, "Cannot load index as an image!"
+		end
+
+		contents = connection.fetchPage(normalizePage(url:match("^[^/]+/(.+)")))
+		if type(contents) ~= "string" then
+			return false, "Download error!"
+		else
+			local colorLookup = {}
+			for n = 1, 16 do
+				colorLookup[string.byte("0123456789abcdef", n, n)] = 2 ^ (n - 1)
+			end
+
+			local image = {}
+			for line in contents:gmatch("[^\n]+") do
+				local lines = {}
+				for x = 1, line:len() do
+					lines[x] = colorLookup[string.byte(line, x, x)] or 0
+				end
+				table.insert(image, lines)
+			end
+
+			return image
+		end
+	end
+
 	env["center"] = center
 	env["fill"] = fill
 end
 
 
-local getWebsiteEnvironment = function(antivirus)
+local getWebsiteEnvironment = function(antivirus, connection)
 	local env = {}
 
 	if antivirus then
@@ -2382,7 +2383,7 @@ local getWebsiteEnvironment = function(antivirus)
 		setmetatable(env, {__index = _G})
 	end
 
-	applyAPIFunctions(env)
+	applyAPIFunctions(env, connection)
 
 	return env
 end
@@ -2537,7 +2538,8 @@ render["functions"]["displayText"] = function(source)
 	if source[2] then
 		render.variables.blockLength = source[2]
 		if render.variables.link and not render.variables.linkStart then
-			render.variables.linkStart = render.functions.display(source[1], render.variables.blockLength, render.variables.currentOffset, w / 2)
+			render.variables.linkStart = render.functions.display(
+				source[1], render.variables.blockLength, render.variables.currentOffset, w / 2)
 		else
 			render.functions.display(source[1], render.variables.blockLength, render.variables.currentOffset, w / 2)
 		end
@@ -2615,8 +2617,7 @@ render["functions"]["public"]["offset "] = function(source)
 	if offset then
 		render.variables.currentOffset = offset
 	else
-		local offset = source[2]:match("^%w+%s+(.+)$") or ""
-		return "Invalid offset value: \"" .. offset .. "\" on line " .. source[1]
+		return "Invalid offset value: \"" .. (source[2]:match("^%w+%s+(.+)$") or "") .. "\" on line " .. source[1]
 	end
 end
 
@@ -2637,8 +2638,7 @@ end
 
 
 render["functions"]["public"]["box "] = function(source)
-	local regex = "^box (%a+) (%a+) (%-?%d+) (%-?%d+) (%-?%d+) ?([^ ]*)"
-	local sColor, align, height, width, offset, url = source[2]:match(regex)
+	local sColor, align, height, width, offset, url = source[2]:match("^box (%a+) (%a+) (%-?%d+) (%-?%d+) (%-?%d+) ?([^ ]*)")
 	if not sColor then
 		return "Invalid box syntax on line " .. source[1]
 	end
@@ -2665,8 +2665,7 @@ render["functions"]["public"]["box "] = function(source)
 		term.setCursorPos(startX, render.variables.scroll + i)
 		term.write(string.rep(" ", width))
 		if url:len() > 3 then
-			local yLocation = render.variables.scroll + i
-			table.insert(render.variables.linkData, {startX, startX + width - 1, yLocation, url})
+			table.insert(render.variables.linkData, {startX, startX + width - 1, render.variables.scroll + i, url})
 		end
 	end
 
@@ -2795,13 +2794,13 @@ languages["lua"]["runWithoutAntivirus"] = function(func, ...)
 end
 
 
-languages["lua"]["run"] = function(contents, page, ...)
+languages["lua"]["run"] = function(contents, page, connection, ...)
 	local func, err = loadstring(contents, page)
 	if err then
 		return languages["lua"]["runWithoutAntivirus"](builtInSites["crash"], err)
 	else
 		local args = {...}
-		local env = getWebsiteEnvironment(true)
+		local env = getWebsiteEnvironment(true, connection)
 		setfenv(func, env)
 		return function()
 			languages["lua"]["runWithErrorCatching"](func, unpack(args))
@@ -2810,7 +2809,7 @@ languages["lua"]["run"] = function(contents, page, ...)
 end
 
 
-languages["fwml"]["run"] = function(contents, page, ...)
+languages["fwml"]["run"] = function(contents, page, connection, ...)
 	local err, data = pcall(parse, contents)
 	if not err then
 		return languages["lua"]["runWithoutAntivirus"](builtInSites["crash"], data)
@@ -2838,7 +2837,7 @@ languages["fwml"]["run"] = function(contents, page, ...)
 						clear(theme.background, theme.text)
 						links = render.render(data, currentScroll)
 					end
-				elseif e == "key" and (scroll == keys.up or scroll == keys.down) then
+				elseif e == "key" and scroll == keys.up or scroll == keys.down then
 					local scrollAmount
 
 					if scroll == keys.up then
@@ -2847,9 +2846,9 @@ languages["fwml"]["run"] = function(contents, page, ...)
 						scrollAmount = -1
 					end
 
-					local scrollLessThanHeight = currentScroll + scrollAmount - h >= -pageHeight
-					local scrollGreaterThanZero = currentScroll + scrollAmount <= 0
-					if scrollLessThanHeight and scrollGreaterThanZero then
+					local scrollLessHeight = currentScroll + scrollAmount - h >= -pageHeight
+					local scrollZero = currentScroll + scrollAmount <= 0
+					if scrollLessHeight and scrollZero then
 						currentScroll = currentScroll + scrollAmount
 						clear(theme.background, theme.text)
 						links = render.render(data, currentScroll)
