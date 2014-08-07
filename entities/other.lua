@@ -1699,11 +1699,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 						if not(domain:find("/") or domain:find(":")) and #domain > 4 then
 							uniqueDomains[message:match(header.dnsHeaderMatch)] = tostring(dist)
 						end
-					else
-						debugLog("Multiple servers for 1 domain!")
 					end
-				else
-					debugLog("Multiple sites on 1 server!")
 				end
 			end
 		elseif event == "rednet_message" and allowUnencryptedConnections then
@@ -1715,11 +1711,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 						if not(domain:find("/") or domain:find(":")) and #domain > 4 then
 							uniqueDomains[domain] = tostring(id)
 						end
-					else
-						debugLog("Rednet: Multiple servers for 1 domain!")
 					end
-				else
-					debugLog("Rednet: Multiple sites on 1 server!")
 				end
 			end
 		elseif event == "timer" and id == timer then
@@ -1779,7 +1771,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 								if event == "modem_message" and channel == connection.channel and connection:verifyHeader(message) then
 									local resp, data = connection:decryptMessage(message)
 									if not resp then
-										debugLog("Decryption error!")
+										-- Decryption error
 									elseif data and data ~= page then
 										if data:match(pageResponseMatch) then
 											local head, body = data:match(pageResponseMatch)
@@ -1826,10 +1818,8 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 									if not resp then
 										-- Decryption error
 									elseif data and data ~= page then
-										debugLog(data)
 										if data:match(pageResponseMatch) then
 											local head, body = data:match(pageResponseMatch)
-											debugLog("Success!")
 											return body, textutils.unserialize(head)
 										end
 									end
