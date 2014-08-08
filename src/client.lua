@@ -9,8 +9,8 @@
 --    Variables
 
 
-local version = "3.2"
-local build = 9
+local version = "3.3"
+local build = 10
 
 local w, h = term.getSize()
 
