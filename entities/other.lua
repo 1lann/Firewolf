@@ -1740,7 +1740,18 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 	local rednetResults = {}
 	local directResults = {}
 
-	local timer
+	local disconnectOthers = function(ignoreDirect)
+		for k,v in pairs(rednetResults) do
+			v.close()
+		end
+		for k,v in pairs(directResults) do
+			if k ~= ignoreDirect then
+				v.close()
+			end
+		end
+	end
+
+	local timer = os.startTimer(initiationTimeout)
 
 	Modem.open(serverChannel)
 	Modem.transmit(serverChannel, requestHeader .. serializedHandshake)
@@ -1795,6 +1806,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 						end
 					})
 					
+					disconnectOthers(1)
 					return directResults[1]
 				end
 			end
@@ -1841,13 +1853,16 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 							connection = nil
 						end
 					})
-
-					timer = os.startTimer(0.2)
+					
+					if #rednetResults == 1 then
+						timer = os.startTimer(0.2)
+					end
 				end
 			end
 		elseif event == "timer" and id == timer then
 			-- Return
 			if #directResults > 0 then
+				disconnectOthers(1)
 				return directResults[1]
 			elseif #rednetResults > 0 then
 				local lowestID = math.huge
@@ -1856,6 +1871,12 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 					if v.connection.rednet_id < lowestID then
 						lowestID = v.connection.rednet_id
 						lowestResult = v
+					end
+				end
+
+				for k,v in pairs(rednetResults) do
+					if v.connection.rednet_id ~= lowestID then
+						v.close()
 					end
 				end
 
