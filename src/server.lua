@@ -1358,7 +1358,11 @@ commands["repeat"] = function(set)
 end
 
 commands["update"] = function()
-	writeLog("Updating...", theme.userResponse, math.huge)
+	term.setCursorPos(1, h)
+	term.clearLine()
+	term.setTextColor(theme.userResponse)
+	term.setCursorBlink(false)
+	term.write("Updating...")
 	local handle = http.get(updateURL)
 	if not handle then
 		writeLog("Failed to connect to update server!", theme.error, math.huge)
