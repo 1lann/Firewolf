@@ -783,7 +783,7 @@ config.loggingLocation = "/fwserver-logs"
 config.enableLogging = false
 config.password = null
 config.allowRednetConnections = true
-config.actAsRednetRepeater = true
+config.repeatRednetMessages = false
 config.lastDomain = nil
 --config.actAsGPS = false
 --config.gpsLocation = {}
@@ -926,6 +926,11 @@ local loadConfig = function()
 	if fs.exists(configLocation) and not fs.isDir(configLocation) then
 		local f = io.open(configLocation, "r")
 		config = textutils.unserialize(f:read("*a"))
+		if config then
+			if type(config.actAsRednetRepeater) == "boolean" then
+				config.actAsRednetRepeater = nil
+			end
+		end
 		f:close()
 	else
 		config = nil
@@ -1236,7 +1241,7 @@ local responseDaemon = function()
 						Modem.transmit(dnsResponseChannel, header.dnsHeader .. domain)
 						Modem.close(dnsResponseChannel)
 					end
-				elseif v.channel == rednet.CHANNEL_REPEAT and config.actAsRednetRepeater and type(v.message) == "table" and v.message.nMessageID and v.message.nRecipient then
+				elseif v.channel == rednet.CHANNEL_REPEAT and config.repeatRednetMessages and type(v.message) == "table" and v.message.nMessageID and v.message.nRecipient then
 					if (not repeatedMessages[v.message.nMessageID]) or (os.clock() - repeatedMessages[v.message.nMessageID]) > 10 then
 						repeatedMessages[v.message.nMessageID] = os.clock()
 						for side, modem in pairs(Modem.modems) do
@@ -1336,15 +1341,15 @@ commands["refresh"] = commands["reload"]
 
 commands["repeat"] = function(set)
 	if set == "on" then
-		config.actAsRednetRepeater = true
+		config.repeatRednetMessages = true
 		saveConfig()
 		writeLog("Rednet repeating is now off", theme.userResponse, math.huge)
 	elseif set == "off" then
-		config.actAsRednetRepeater = false
+		config.repeatRednetMessages = false
 		saveConfig()
 		writeLog("Rednet repeating is now off", theme.userResponse, math.huge)
 	else
-		if config.actAsRednetRepeater then
+		if config.repeatRednetMessages then
 			writeLog("Rednet repeating is currently turned on", theme.userResponse, math.huge)
 		else
 			writeLog("Rednet repeating is currently turned off", theme.userResponse, math.huge)
@@ -1401,7 +1406,7 @@ helpDocs["reboot"] = helpDocs["restart"]
 helpDocs["clear"] = {"Clears the displayed log"}
 helpDocs["rednet"] = {"Whether to allow rednet connections", "Usage: rednet <on or off>"}
 helpDocs["startup"] = {"Runs the server for the current domain", "on startup"}
-helpDocs["repeat"] = {"Whether to act as a rednet repeater", "Usage: repeat <on or off>"}
+helpDocs["repeat"] = {"Whether to repeat rednet messages", "Usage: repeat <on or off>"}
 helpDocs["update"] = {"Updates Firewolf Server"}
 helpDocs["edit"] = {"Opens shell in server directory"}
 
@@ -1728,7 +1733,7 @@ local function resetServer()
 	Modem.closeAll()
 	Modem.open(serverChannel)
 	Modem.open(dnsListenChannel)
-	if config.actAsRednetRepeater then
+	if config.repeatRednetMessages then
 		Modem.open(rednet.CHANNEL_REPEAT)
 	end
 
@@ -1802,7 +1807,7 @@ local runOnDomain = function()
 	Modem.open(serverChannel)
 	Modem.open(dnsListenChannel)
 
-	if config.actAsRednetRepeater then
+	if config.repeatRednetMessages then
 		Modem.open(rednet.CHANNEL_REPEAT)
 	end
 
