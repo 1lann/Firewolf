@@ -1087,6 +1087,11 @@ local fetchPage = function(page)
 		end
 		return handleResponse, respHeader, true
 	end
+
+	if shell.resolve(page) == serverAPILocation then
+		-- Forbid accessing server api files
+		return nil
+	end
 	
 	for k,v in pairs(handles) do
 		local startSearch, endSearch = page:find(k)
