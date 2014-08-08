@@ -10,7 +10,7 @@
 
 
 local version = "3.2"
-local build = 8
+local build = 9
 
 local w, h = term.getSize()
 
@@ -820,7 +820,11 @@ local drawMenubar = function()
 
 		term.setBackgroundColor(theme.accent)
 		term.setCursorPos(2, 1)
-		term.write(currentProtocol .. "://" .. currentWebsiteURL)
+		if currentWebsiteURL:match("^[^%?]+") then
+			term.write(currentProtocol .. "://" .. currentWebsiteURL:match("^[^%?]+"))
+		else
+			term.write(currentProtocol .. "://" ..currentWebsiteURL)
+		end
 
 		term.setCursorPos(w - 5, 1)
 		term.write("[===]")
@@ -1696,7 +1700,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 					uniqueServers[tostring(dist)] = true
 					local domain = message:match(header.dnsHeaderMatch)
 					if not uniqueDomains[domain] then
-						if not(domain:find("/") or domain:find(":")) and #domain > 4 then
+						if not(domain:find("/") or domain:find(":") or domain:find("%?")) and #domain > 4 then
 							uniqueDomains[message:match(header.dnsHeaderMatch)] = tostring(dist)
 						end
 					end
@@ -1708,7 +1712,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 					uniqueServers[tostring(id)] = true
 					local domain = channel:match(header.dnsHeaderMatch)
 					if not uniqueDomains[domain] then
-						if not(domain:find("/") or domain:find(":")) and #domain > 4 then
+						if not(domain:find("/") or domain:find(":") or domain:find("%?")) and #domain > 4 then
 							uniqueDomains[domain] = tostring(id)
 						end
 					end
@@ -1736,13 +1740,14 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 	local rednetResults = {}
 	local directResults = {}
 
-	-- Gotta go fast!
-	local timer = os.startTimer(initiationTimeout)
+	local timer
 
 	Modem.open(serverChannel)
 	Modem.transmit(serverChannel, requestHeader .. serializedHandshake)
 
 	rednet.broadcast(requestHeader .. serializedHandshake, header.rednetHeader .. serverChannel)
+
+	-- Extendable to have server selection
 
 	while true do
 		local event, id, channel, protocol, message, dist = os.pullEventRaw()
@@ -1789,6 +1794,8 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 							connection = nil
 						end
 					})
+					
+					return directResults[1]
 				end
 			end
 		elseif event == "rednet_message" then
@@ -1834,6 +1841,8 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 							connection = nil
 						end
 					})
+
+					timer = os.startTimer(0.2)
 				end
 			end
 		elseif event == "timer" and id == timer then
@@ -2034,6 +2043,10 @@ local fetchExternal = function(url, connection)
 			return languages[language]["run"](contents, page, connection)
 		end
 	else
+		if connection then
+			connection.close()
+			return "retry"
+		end
 		return fetchError("A connection error/timeout has occurred!")
 	end
 end
@@ -2049,7 +2062,10 @@ local fetchURL = function(url, inheritConnection)
 	currentWebsiteURL = url
 
 	if inheritConnection then
-		return fetchExternal(url, inheritConnection), false, inheritConnection
+		local resp = fetchExternal(url, inheritConnection)
+		if resp ~= "retry" then
+			return resp, false, inheritConnection
+		end
 	end
 
 	local action, connection = determineActionForURL(url)
@@ -2206,7 +2222,17 @@ local getWhitelistedEnvironment = function()
 	env["os"]["reboot"] = nil
 	env["os"]["setComputerLabel"] = nil
 	env["os"]["queueEvent"] = nil
-	env["os"]["pullEventRaw"] = os.pullEvent
+	env["os"]["pullEvent"] = function(filter)
+		while true do
+			local event = {os.pullEvent(filter)}
+			if not filter then
+				return unpack(event)
+			elseif filter and event[1] == filter then
+				return unpack(event)
+			end
+		end
+	end
+	env["os"]["pullEventRaw"] = env["os"]["pullEvent"]
 
 	copy(paintutils, env, "paintutils")
 	copy(parallel, env, "parallel")
@@ -2287,6 +2313,36 @@ local overrideEnvironment = function(env)
 	end
 end
 
+local urlEncode = function(url)
+	local result = url
+	
+	result = result:gsub("%%", "%%a")
+	result = result:gsub(":", "%%c")
+	result = result:gsub("/", "%%s")
+	result = result:gsub("\n", "%%n")
+	result = result:gsub(" ", "%%w")
+	result = result:gsub("&", "%%&")
+	result = result:gsub("%?", "%%%?")
+	result = result:gsub("=", "%%=")
+
+	return result
+end
+
+local urlDecode = function(url)
+	local result = url
+
+	result = result:gsub("%%c", ":")
+	result = result:gsub("%%s", "/")
+	result = result:gsub("%%n", "\n")
+	result = result:gsub("%%w", " ")
+	result = result:gsub("%%&", "&")
+	result = result:gsub("%%%?", "%?")
+	result = result:gsub("%%=", "=")
+	result = result:gsub("%%a", "%%")
+
+	return result
+end
+
 
 local applyAPIFunctions = function(env, connection)
 	env["firewolf"] = {}
@@ -2316,17 +2372,35 @@ local applyAPIFunctions = function(env, connection)
 
 		if not fs.exists(downloadsLocation) then
 			fs.makeDir(downloadsLocation)
-			contents = connection.fetchPage(normalizePage(url:match("^[^/]+/(.+)")))
-			if type(contents) ~= "string" then
-				return false, "Download error!"
-			else
-				local f = io.open(downloadsLocation .. "/" .. filename, "w")
-				f:write(contents)
-				f:close()
-				return true, downloadsLocation .. "/" .. filename
-			end
 		elseif not fs.isDir(downloadsLocation) then
 			return false, "Downloads disabled!"
+		end
+
+		contents = connection.fetchPage(normalizePage(url:match("^[^/]+/(.+)")))
+		if type(contents) ~= "string" then
+			return false, "Download error!"
+		else
+			local f = io.open(downloadsLocation .. "/" .. filename, "w")
+			f:write(contents)
+			f:close()
+			return true, downloadsLocation .. "/" .. filename
+		end
+	end
+
+	env["firewolf"]["query"] = function(url, vars)
+		local first = false
+		local construct = url .. "?"
+		for k,v in pairs(vars) do
+ 			construct = construct .. urlEncode(tostring(k)) .. "=" .. urlEncode(tostring(v)) .. "&"
+		end
+		-- Get rid of that last ampersand
+		construct = construct:sub(1, -2)
+
+		contents = connection.fetchPage(normalizePage(construct:match("^[^/]+/(.+)")))
+		if type(contents) == "string" then
+			return contents
+		else
+			return false
 		end
 	end
 

@@ -790,6 +790,7 @@ config.lastDomain = nil
 
 local configLocation = "/.fwserver-config"
 local serverLocation = "/fw_servers"
+local serverAPILocation = "server_api"
 local locked = false
 local domain = ...
 local responseStack = {}
@@ -802,6 +803,8 @@ local maliciousMatch = ""
 local responseHeader = ""
 local pageRequestMatch = ""
 local pageResposneHeader = ""
+local handles = {}
+local globalHandler = nil
 local closeMatch = ""
 local connections = {}
 local updateURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/server.lua"
@@ -843,6 +846,19 @@ theme.clock = colors.white
 theme.lock = colors.orange
 theme.userResponse = colors.orange
 
+if not term.isColor() then
+	theme.error = colors.white
+	theme.background = colors.black
+	theme.text = colors.white
+	theme.notice = colors.white
+	theme.barColor = colors.white
+	theme.barText = colors.black
+	theme.inputColor = colors.white
+	theme.clock = colors.white
+	theme.lock = colors.white
+	theme.userResponse = colors.white
+end
+
 local w, h = term.getSize()
 
 --  Utilities
@@ -860,7 +876,7 @@ local makeDirectory = function(path)
 end
 
 local checkDomain = function(domain)
-	if domain:find("/") or domain:find(":") then
+	if domain:find("/") or domain:find(":") or domain:find("%?") then
 		return "symbols"
 	end
 	if #domain < 4 then
@@ -959,6 +975,12 @@ local writeLog = function(text, color, level)
 	end
 end
 
+local writeError = function(text)
+	for i = 1, math.ceil(#text / (w - 8)) do
+		writeLog(text:sub((i - 1) * (w - 8), i * (w - 8)), theme.error, math.huge)
+	end
+end
+
 --  Message handling
 
 local receiveDaemon = function()
@@ -992,6 +1014,56 @@ local getActiveConnection = function(channel, distance)
 	end
 end
 
+local urlEncode = function(url)
+	local result = url
+	
+	result = result:gsub("%%", "%%a")
+	result = result:gsub(":", "%%c")
+	result = result:gsub("/", "%%s")
+	result = result:gsub("\n", "%%n")
+	result = result:gsub(" ", "%%w")
+	result = result:gsub("&", "%%&")
+	result = result:gsub("%?", "%%%?")
+	result = result:gsub("=", "%%=")
+
+	return result
+end
+
+local urlDecode = function(url)
+	local result = url
+
+	result = result:gsub("%%c", ":")
+	result = result:gsub("%%s", "/")
+	result = result:gsub("%%n", "\n")
+	result = result:gsub("%%w", " ")
+	result = result:gsub("%%&", "&")
+	result = result:gsub("%%%?", "%?")
+	result = result:gsub("%%=", "=")
+	result = result:gsub("%%a", "%%")
+
+	return result
+end
+
+local getURLVars = function(url)
+	local vars = {}
+	if url:find("%?") then
+		local startSearch = url:find("%?")
+		searchArea = url:sub(startSearch, -1)
+		local firstVarIndex, firstVarVal = searchArea:match("%?([^=]+)=([^&]+)")
+		if not firstVarIndex then
+			return
+		else
+			vars[urlDecode(firstVarIndex)] = urlDecode(firstVarVal)
+			for index, val in searchArea:gmatch("&([^=]+)=([^&]+)") do
+				vars[urlDecode(index)] = urlDecode(val)
+			end
+			return vars
+		end
+	else
+		return
+	end
+end
+
 local fetchPage = function(page)
 	if (page:match("(.+)%.fwml$")) then
 		page = page:match("(.+)%.fwml$")
@@ -999,20 +1071,55 @@ local fetchPage = function(page)
 
 	page = page:gsub("%.%.", "")
 
+	local handleResponse, respHeader
+
+	if globalHandler then
+		err, msg = pcall(function() handleResponse, respHeader = globalHandler(page, getURLVars(page)) end)
+		if not err then
+			writeLog("Error when executing server API function", theme.error, math.huge)
+			writeError("/: " .. tostring(msg))
+		end
+	end
+
+	if handleResponse then
+		if not respHeader then
+			respHeader = "lua"
+		end
+		return handleResponse, respHeader, true
+	end
+	
+	for k,v in pairs(handles) do
+		local startSearch, endSearch = page:find(k)
+		if startSearch == 1 and ((endSearch == #page) or (page:sub(endSearch + 1, endSearch + 1) == "/") or (page:sub(endSearch + 1, endSearch + 1) == "?")) then
+			err, msg = pcall(function() handleResponse, respHeader = v(page, getURLVars(page)) end)
+			if not err then
+				writeLog("Error when executing server API function", theme.error, math.huge)
+				writeError(k .. ": " .. tostring(msg))
+			end
+		end
+	end
+
+	if handleResponse then
+		if not respHeader then
+			respHeader = "lua"
+		end
+		return handleResponse, respHeader, true
+	end
+
 	local path = serverLocation .. "/" .. domain .. "/" .. page
 	if fs.exists(path) and not fs.isDir(path) then
 		local f = io.open(path, "r")
 		local contents = f:read("*a")
 		f:close()
 
-		return contents, "lua"
+		return contents, "lua", false
 	else
 		if fs.exists(path..".fwml") and not fs.isDir(path..".fwml") then
 			local f = io.open(path..".fwml", "r")
 			local contents = f:read("*a")
 			f:close()
 
-			return contents, "fwml"
+			return contents, "fwml", false
 		end
 	end
 
@@ -1036,7 +1143,7 @@ The page you requested could not be found!
 Make sure you typed the URL correctly.
 ]]
 
-local handlePageRequest = function(handler)
+local handlePageRequest = function(handler, index)
 	local connection = getActiveConnection(handler.channel, handler.dist)
 	if connection:verifyHeader(handler.message) then
 		local resp, data = connection:decryptMessage(handler.message)
@@ -1050,12 +1157,16 @@ local handlePageRequest = function(handler)
 				if page == "" or page == "/" then
 					page = "index"
 				end
-				local body, head = fetchPage(page)
+				local body, head, isAPI = fetchPage(page)
 				if body then
 					sendPage(connection, body, head)
-					writeLog("Successful request: "..page:sub(1,20), theme.text, 1)
+					if isAPI then
+						writeLog("API request: "..page:sub(1,25), theme.text, 1)
+					else
+						writeLog("Successful request: "..page:sub(1,20), theme.text, 1)
+					end
 				else
-					body, head = fetchPage("not-found")
+					body, head, isAPI = fetchPage("not-found")
 					if body then
 						sendPage(connection, body, head)
 					else
@@ -1066,7 +1177,7 @@ local handlePageRequest = function(handler)
 			elseif data == closeMatch then
 				writeLog("Secure connection closed", theme.text, 0)
 				Modem.close(connection.channel)
-				table.remove(connections, k)
+				table.remove(connections, index)
 			end
 		end
 	end
@@ -1132,7 +1243,7 @@ local responseDaemon = function()
 				elseif v.channel == serverChannel and v.message then
 					handleHandshakeRequest(v)
 				elseif getActiveConnection(v.channel, v.dist) then
-					handlePageRequest(v)
+					handlePageRequest(v, k)
 				end
 			end
 		end
@@ -1175,6 +1286,9 @@ commands["quit"] = commands["exit"]
 
 commands["startup"] = function()
 	if fs.exists("/startup") then
+		if fs.exists("/old-startup") then
+			fs.delete("/old-startup")
+		end
 		fs.move("/startup", "/old-startup")
 	end
 	local f = io.open("/startup", "w")
@@ -1209,9 +1323,11 @@ end
 
 commands["reboot"] = commands["restart"]
 
-commands["refresh"] = function()
+commands["reload"] = function()
 	os.queueEvent(resetServerEvent)
 end
+
+commands["refresh"] = commands["reload"]
 
 commands["repeat"] = function(set)
 	if set == "on" then
@@ -1252,13 +1368,17 @@ end
 commands["edit"] = function()
 	writeLog("Editing server files", theme.userResponse, math.huge)
 	term.setBackgroundColor(colors.black)
-	term.setTextColor(colors.yellow)
+	if term.isColor() then
+		term.setTextColor(colors.yellow)
+	else
+		term.setTextColor(colors.white)
+	end
 	term.clear()
 	term.setCursorPos(1, 1)
 	print("Use exit to finish editing")
 	shell.setDir(serverLocation .. "/" .. domain)
 	shell.run("/rom/programs/shell")
-	os.queueEvent("firewolf-lock-state-update")
+	os.queueEvent(resetServerEvent)
 end
 
 commands["clear"] = function()
@@ -1433,7 +1553,7 @@ local handleKeyEvents = function(event, key)
 				error("firewolf-restart")
 			elseif not err then
 				writeLog("An error occured when executing command", theme.error, math.huge)
-				writeLog(msg, theme.error, math.huge)
+				writeError(tostring(msg))
 			end
 		else
 			writeLog("No such command!", theme.error, math.huge)
@@ -1526,6 +1646,78 @@ end
 
 local receiveThread, responseThread, terminalThread
 
+local loadServerAPI = function()
+	if fs.exists(serverLocation .. "/" .. domain .. "/" .. serverAPILocation) and not fs.isDir(serverLocation .. "/" .. domain .. "/" .. serverAPILocation) then
+		local f = io.open(serverLocation .. "/" .. domain .. "/" .. serverAPILocation, "r")
+		local apiData = f:read("*a")
+		f:close()
+
+		local apiFunction, err = loadstring(apiData)
+		if not apiFunction then
+			writeLog("Error while loading server API", theme.error, math.huge)
+			if err:match("%[string \"string\"%](.+)") then
+				writeLog("server_api" .. err:match("%[string \"string\"%](.+)"), theme.error, math.huge)
+			else
+				writeLog(err, theme.error, math.huge)
+			end
+		else
+			local global = getfenv(0)
+			local env = {}
+
+			for k,v in pairs(global) do
+				env[k] = v
+			end
+
+			env["server"] = {}
+
+			env["server"]["domain"] = domain
+
+			env["server"]["handleRequest"] = function(index, func)
+				if not(index and func and type(index) == "string" and type(func) == "function") then
+					return error("index (string) and handler (function) expected")
+				end
+				if index == "/" then
+					globalHandler = func
+					return
+				end
+				if index:sub(1, 1) == "/" then index = index:sub(2, -1) end
+				if index:find(":") then
+					return error("Handle index cannot contain \":\"s")
+				end
+				handles[index] = func
+			end
+
+			env["server"]["applyTemplate"] = function(variables, template)
+				local result
+				if fs.exists(template) and not fs.isDir(template) then
+					local f = io.open(template, "r")
+					result = f:read("*a")
+					f:close()
+				else
+					return error("Invalid template file path")
+				end
+				for k,v in pairs(variables) do
+					result = result:gsub("##"..k.."##", v)
+				end
+				return result
+			end
+
+			env["server"]["log"] = function(text)
+				writeLog(text, theme.notice, math.huge)
+			end
+
+			setfenv(apiFunction, env)
+			local err, msg = pcall(apiFunction)
+			if not err then
+				writeLog("Error while executing server API", theme.error, math.huge)
+				writeError(tostring(msg))
+			else
+				writeLog("Server API loaded", theme.notice, math.huge)
+			end
+		end
+	end
+end
+
 local function resetServer()
 	connections = {}
 	Modem.closeAll()
@@ -1534,11 +1726,16 @@ local function resetServer()
 	if config.actAsRednetRepeater then
 		Modem.open(rednet.CHANNEL_REPEAT)
 	end
+
+	loadServerAPI()
+
 	responseThread = coroutine.create(function() responseDaemon() end)
 	receiveThread = coroutine.create(receiveDaemon)
 	coroutine.resume(responseThread)
 	coroutine.resume(receiveThread)
-	writeLog("The server has been refreshed", theme.notice, 3)
+	writeLog("The server has been reloaded", theme.userResponse, math.huge)
+
+	os.queueEvent("firewolf-lock-state-update")
 end
 
 local function runThreads()
@@ -1548,13 +1745,13 @@ local function runThreads()
 		err, msg = coroutine.resume(receiveThread, unpack(events))
 		if not err then
 			writeLog("Internal error!", theme.error, math.huge)
-			writeLog(msg, theme.error, math.huge)
+			writeError(tostring(msg))
 			shouldResetServer = true
 		end
 		err, msg = coroutine.resume(responseThread)
 		if not err then
 			writeLog("Internal error!", theme.error, math.huge)
-			writeLog(msg, theme.error, math.huge)
+			writeError(tostring(msg))
 			shouldResetServer = true
 		end
 		err, msg = coroutine.resume(terminalThread, unpack(events))
@@ -1588,7 +1785,6 @@ local function runThreads()
 	end
 end
 
-
 local runOnDomain = function()
 	serverChannel = Cryptography.channel(domain)
 	requestMatch = header.requestMatchA .. Cryptography.sanatize(domain) .. header.requestMatchB
@@ -1606,6 +1802,8 @@ local runOnDomain = function()
 	end
 
 	writeLog("Firewolf Server "..version.." running" , theme.notice, math.huge)
+
+	loadServerAPI()
 
 	receiveThread = coroutine.create(receiveDaemon)
 	responseThread = coroutine.create(function() responseDaemon() end)
@@ -1657,7 +1855,7 @@ local init = function()
 		locked = true
 	end
 
-	local err, msg = pcall(function()runOnDomain(domain)end)
+	local err, msg = pcall(function()runOnDomain()end)
 	if not err and msg:find("firewolf-restart", nil, true) then
 		term.clear()
 		term.setCursorPos(1, 1)
@@ -1703,13 +1901,17 @@ if not domain and config.lastDomain then
 end
 
 if domain then
-	term.setTextColor(colors.yellow)
+	if term.isColor() then
+		term.setTextColor(colors.yellow)
+	else
+		term.setTextColor(colors.white)
+	end
 	term.setCursorBlink(false)
-	print("Intializing Firewolf Server...")
+	print("Initializing Firewolf Server...")
 	local report = checkDomain(domain)
-	term.setTextColor(colors.red)
+	term.setTextColor(theme.error)
 	if report == "symbols" then
-		print("Domain cannot contain \":\" and \"/\"s")
+		print("Domain cannot contain \":\", \"/\" and \"?\"s")
 	elseif report == "short" then
 		print("Domain name too short!")
 	elseif report == "taken" then
