@@ -1701,6 +1701,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 					local domain = message:match(header.dnsHeaderMatch)
 					if not uniqueDomains[domain] then
 						if not(domain:find("/") or domain:find(":") or domain:find("%?")) and #domain > 4 then
+							timer = os.startTimer(1)
 							uniqueDomains[message:match(header.dnsHeaderMatch)] = tostring(dist)
 						end
 					end
@@ -1713,6 +1714,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 					local domain = channel:match(header.dnsHeaderMatch)
 					if not uniqueDomains[domain] then
 						if not(domain:find("/") or domain:find(":") or domain:find("%?")) and #domain > 4 then
+							timer = os.startTimer(1)
 							uniqueDomains[domain] = tostring(id)
 						end
 					end
