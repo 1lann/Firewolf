@@ -1427,7 +1427,7 @@ commands["help"] = function(command)
 		end
 	else
 		writeLog("Use \"help <command>\" for more info", theme.userResponse, math.huge)
-		writeLog("Wiki: http://bit.ly/firewolf-wiki")
+		writeLog("Wiki: http://bit.ly/firewolf-wiki", theme.userResponse, math.huge)
 		writeLog("Commands: password, lock, exit, update,", theme.userResponse, math.huge)
 		writeLog("restart, clear, rednet, repeat, startup,", theme.userResponse, math.huge)
 		writeLog("edit, reload", theme.userResponse, math.huge)
