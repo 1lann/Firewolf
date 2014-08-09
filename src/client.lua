@@ -10,7 +10,7 @@
 
 
 local version = "3.4"
-local build = 15
+local build = 16
 
 local w, h = term.getSize()
 
@@ -40,7 +40,7 @@ local publicResponseChannel = 9998
 local responseID = 41738
 
 local httpTimeout = 10
-local searchResultTimeout = 1
+local searchResultTimeout = 2
 local initiationTimeout = 2
 local animationInterval = 0.125
 local fetchTimeout = 3
