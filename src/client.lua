@@ -10,7 +10,7 @@
 
 
 local version = "3.4"
-local build = 13
+local build = 14
 
 local w, h = term.getSize()
 
@@ -40,7 +40,7 @@ local publicResponseChannel = 9998
 local responseID = 41738
 
 local httpTimeout = 10
-local searchResultTimeout = 2
+local searchResultTimeout = 1
 local initiationTimeout = 2
 local animationInterval = 0.125
 local fetchTimeout = 3
@@ -1701,7 +1701,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 					local domain = message:match(header.dnsHeaderMatch)
 					if not uniqueDomains[domain] then
 						if not(domain:find("/") or domain:find(":") or domain:find("%?")) and #domain > 4 then
-							timer = os.startTimer(1)
+							timer = os.startTimer(searchResultTimeout)
 							uniqueDomains[message:match(header.dnsHeaderMatch)] = tostring(dist)
 						end
 					end
@@ -1714,7 +1714,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 					local domain = channel:match(header.dnsHeaderMatch)
 					if not uniqueDomains[domain] then
 						if not(domain:find("/") or domain:find(":") or domain:find("%?")) and #domain > 4 then
-							timer = os.startTimer(1)
+							timer = os.startTimer(searchResultTimeout)
 							uniqueDomains[domain] = tostring(id)
 						end
 					end

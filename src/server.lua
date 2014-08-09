@@ -1070,6 +1070,8 @@ local getURLVars = function(url)
 end
 
 local fetchPage = function(page)
+	page = shell.resolve(page)
+
 	if (page:match("(.+)%.fwml$")) then
 		page = page:match("(.+)%.fwml$")
 	end
@@ -1093,7 +1095,7 @@ local fetchPage = function(page)
 		return handleResponse, respHeader, true
 	end
 
-	if shell.resolve(page) == serverAPILocation then
+	if page == serverAPILocation then
 		-- Forbid accessing server api files
 		return nil
 	end
@@ -1241,7 +1243,8 @@ local responseDaemon = function()
 						Modem.transmit(dnsResponseChannel, header.dnsHeader .. domain)
 						Modem.close(dnsResponseChannel)
 					end
-				elseif v.channel == rednet.CHANNEL_REPEAT and config.repeatRednetMessages and type(v.message) == "table" and v.message.nMessageID and v.message.nRecipient then
+				elseif v.channel == rednet.CHANNEL_REPEAT and config.repeatRednetMessages and type(v.message) == "table" and
+					v.message.nMessageID and v.message.nRecipient and v.message.sProtocol and v.message.sProtocol:match(header.rednetMatch) then
 					if (not repeatedMessages[v.message.nMessageID]) or (os.clock() - repeatedMessages[v.message.nMessageID]) > 10 then
 						repeatedMessages[v.message.nMessageID] = os.clock()
 						for side, modem in pairs(Modem.modems) do
@@ -1343,7 +1346,7 @@ commands["repeat"] = function(set)
 	if set == "on" then
 		config.repeatRednetMessages = true
 		saveConfig()
-		writeLog("Rednet repeating is now off", theme.userResponse, math.huge)
+		writeLog("Rednet repeating is now on", theme.userResponse, math.huge)
 	elseif set == "off" then
 		config.repeatRednetMessages = false
 		saveConfig()
