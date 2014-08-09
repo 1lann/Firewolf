@@ -9,8 +9,8 @@
 --    Variables
 
 
-local version = "3.3"
-local build = 11
+local version = "3.4"
+local build = 12
 
 local w, h = term.getSize()
 
@@ -2342,9 +2342,9 @@ local urlEncode = function(url)
 	result = result:gsub("/", "%%s")
 	result = result:gsub("\n", "%%n")
 	result = result:gsub(" ", "%%w")
-	result = result:gsub("&", "%%&")
-	result = result:gsub("%?", "%%%?")
-	result = result:gsub("=", "%%=")
+	result = result:gsub("&", "%%m")
+	result = result:gsub("%?", "%%q")
+	result = result:gsub("=", "%%e")
 
 	return result
 end
@@ -2357,9 +2357,9 @@ local urlDecode = function(url)
 	result = result:gsub("%%n", "\n")
 	result = result:gsub("%%w", " ")
 	result = result:gsub("%%&", "&")
-	result = result:gsub("%%%?", "%?")
-	result = result:gsub("%%=", "=")
-	result = result:gsub("%%a", "%%")
+	result = result:gsub("%%q", "%?")
+	result = result:gsub("%%e", "=")
+	result = result:gsub("%%m", "%%")
 
 	return result
 end
@@ -2411,9 +2411,27 @@ local applyAPIFunctions = function(env, connection)
 		end
 	end
 
+	env["firewolf"]["encode"] = function(vars)
+		if type(vars) ~= "string" then
+			return error("table (vars) expected, got " .. type(vars))
+		end
+
+		local construct = "?"
+		for k,v in pairs(vars) do
+ 			construct = construct .. urlEncode(tostring(k)) .. "=" .. urlEncode(tostring(v)) .. "&"
+		end
+		-- Get rid of that last ampersand
+		construct = construct:sub(1, -2)
+
+		return construct
+	end
+
 	env["firewolf"]["query"] = function(url, vars)
 		if type(url) ~= "string" then
 			return error("string (url) expected, got " .. type(url))
+		end
+		if vars and type(vars) ~= "string" then
+			return error("table (vars) expected, got " .. type(vars))
 		end
 		local first = false
 		local construct = url .. "?"

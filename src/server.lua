@@ -809,7 +809,7 @@ local closeMatch = ""
 local connections = {}
 local updateURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/server.lua"
 
-local version = "3.3"
+local version = "3.4"
 
 local header = {}
 header.dnsPacket = "[Firewolf-DNS-Packet]"
@@ -1027,9 +1027,9 @@ local urlEncode = function(url)
 	result = result:gsub("/", "%%s")
 	result = result:gsub("\n", "%%n")
 	result = result:gsub(" ", "%%w")
-	result = result:gsub("&", "%%&")
-	result = result:gsub("%?", "%%%?")
-	result = result:gsub("=", "%%=")
+	result = result:gsub("&", "%%m")
+	result = result:gsub("%?", "%%q")
+	result = result:gsub("=", "%%e")
 
 	return result
 end
@@ -1042,9 +1042,9 @@ local urlDecode = function(url)
 	result = result:gsub("%%n", "\n")
 	result = result:gsub("%%w", " ")
 	result = result:gsub("%%&", "&")
-	result = result:gsub("%%%?", "%?")
-	result = result:gsub("%%=", "=")
-	result = result:gsub("%%a", "%%")
+	result = result:gsub("%%q", "%?")
+	result = result:gsub("%%e", "=")
+	result = result:gsub("%%m", "%%")
 
 	return result
 end
@@ -1692,12 +1692,15 @@ local loadServerAPI = function()
 			env["server"]["handleRequest"] = function(index, func)
 				if not(index and func and type(index) == "string" and type(func) == "function") then
 					return error("index (string) and handler (function) expected")
+				elseif #index:gsub("/", "") == 0 then
+					return error("invalid index")
 				end
 				if index == "/" then
 					globalHandler = func
 					return
 				end
 				if index:sub(1, 1) == "/" then index = index:sub(2, -1) end
+				if index:sub(-1, -1) == "/" then index = index:sub(1, -2) end
 				if index:find(":") then
 					return error("Handle index cannot contain \":\"s")
 				end
@@ -1711,10 +1714,10 @@ local loadServerAPI = function()
 					result = f:read("*a")
 					f:close()
 				else
-					return error("Invalid template file path")
+					return false
 				end
 				for k,v in pairs(variables) do
-					result = result:gsub("##"..k.."##", v)
+					result = result:gsub("##"..Cryptography.sanatize(k).."##", Cryptography.sanatize(v))
 				end
 				return result
 			end
