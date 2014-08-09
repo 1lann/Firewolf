@@ -10,7 +10,7 @@
 
 
 local version = "3.3"
-local build = 10
+local build = 11
 
 local w, h = term.getSize()
 
@@ -2370,8 +2370,8 @@ local applyAPIFunctions = function(env, connection)
 	env["firewolf"]["version"] = version
 
 	env["firewolf"]["redirect"] = function(url)
-		if not url then
-			error("string expected, got nil", 2)
+		if type(url) ~= "string" then
+			return error("string (url) expected, got " .. type(url))
 		end
 
 		os.queueEvent(redirectEvent, url)
@@ -2379,6 +2379,9 @@ local applyAPIFunctions = function(env, connection)
 	end
 
 	env["firewolf"]["download"] = function(url)
+		if type(url) ~= "string" then
+			return error("string (url) expected")
+		end
 		local bannedNames = {"ls", "dir", "delete", "copy", "move", "list", "rm", "cp", "mv", "clear", "cd", "lua"}
 		local filename = url:match("/([^/]+)$")
 		if not filename then
@@ -2409,6 +2412,9 @@ local applyAPIFunctions = function(env, connection)
 	end
 
 	env["firewolf"]["query"] = function(url, vars)
+		if type(url) ~= "string" then
+			return error("string (url) expected, got " .. type(url))
+		end
 		local first = false
 		local construct = url .. "?"
 		for k,v in pairs(vars) do
@@ -2426,6 +2432,9 @@ local applyAPIFunctions = function(env, connection)
 	end
 
 	env["firewolf"]["loadImage"] = function(url)
+		if type(url) ~= "string" then
+			return error("string (url) expected, got " .. type(url))
+		end
 		local filename = url:match("/([^/]+)$")
 		if not filename then
 			return false, "Cannot load index as an image!"

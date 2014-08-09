@@ -1407,6 +1407,8 @@ helpDocs["exit"] = {"Exits and stops Firewolf Server"}
 helpDocs["quit"] = helpDocs["exit"]
 helpDocs["restart"] = {"Fully restarts Firewolf Server"}
 helpDocs["reboot"] = helpDocs["restart"]
+helpDocs["reload"] = {"Reloads the server and Server API"}
+helpDocs["refresh"] = helpDocs["reload"]
 helpDocs["clear"] = {"Clears the displayed log"}
 helpDocs["rednet"] = {"Whether to allow rednet connections", "Usage: rednet <on or off>"}
 helpDocs["startup"] = {"Runs the server for the current domain", "on startup"}
@@ -1427,7 +1429,8 @@ commands["help"] = function(command)
 		writeLog("Use \"help <command>\" for more info", theme.userResponse, math.huge)
 		writeLog("Commands: password, lock, exit, update,", theme.userResponse, math.huge)
 		writeLog("restart, clear, rednet, repeat, startup,", theme.userResponse, math.huge)
-		writeLog("edit", theme.userResponse, math.huge)
+		writeLog("edit, reload", theme.userResponse, math.huge)
+		writeLog("Also see: http://bit.ly/firewolf-wiki")
 	end
 end
 
