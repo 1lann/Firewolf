@@ -10,7 +10,7 @@
 
 
 local version = "3.4"
-local build = 12
+local build = 13
 
 local w, h = term.getSize()
 
@@ -2379,12 +2379,22 @@ local applyAPIFunctions = function(env, connection)
 		coroutine.yield()
 	end
 
-	env["firewolf"]["download"] = function(url)
-		if type(url) ~= "string" then
-			return error("string (url) expected")
+	env["firewolf"]["download"] = function(page)
+		if type(page) ~= "string" then
+			return error("string (page) expected")
 		end
 		local bannedNames = {"ls", "dir", "delete", "copy", "move", "list", "rm", "cp", "mv", "clear", "cd", "lua"}
-		local filename = url:match("/([^/]+)$")
+
+		local startSearch, endSearch = page:find(currentWebsiteURL:match("^[^/]+"))
+		if startSearch == 1 then
+			if page:sub(endSearch + 1, endSearch + 1) == "/" then
+				page = page:sub(endSearch + 2, -1)
+			else
+				page = page:sub(endSearch + 1, -1)
+			end
+		end
+
+		local filename = page:match("([^/]+)$")
 		if not filename then
 			return false, "Cannot download index"
 		end
@@ -2401,7 +2411,7 @@ local applyAPIFunctions = function(env, connection)
 			return false, "Downloads disabled!"
 		end
 
-		contents = connection.fetchPage(normalizePage(url:match("^[^/]+/(.+)")))
+		contents = connection.fetchPage(normalizePage(page))
 		if type(contents) ~= "string" then
 			return false, "Download error!"
 		else
@@ -2417,6 +2427,15 @@ local applyAPIFunctions = function(env, connection)
 			return error("table (vars) expected, got " .. type(vars))
 		end
 
+		local startSearch, endSearch = page:find(currentWebsiteURL:match("^[^/]+"))
+		if startSearch == 1 then
+			if page:sub(endSearch + 1, endSearch + 1) == "/" then
+				page = page:sub(endSearch + 2, -1)
+			else
+				page = page:sub(endSearch + 1, -1)
+			end
+		end
+
 		local construct = "?"
 		for k,v in pairs(vars) do
  			construct = construct .. urlEncode(tostring(k)) .. "=" .. urlEncode(tostring(v)) .. "&"
@@ -2427,22 +2446,31 @@ local applyAPIFunctions = function(env, connection)
 		return construct
 	end
 
-	env["firewolf"]["query"] = function(url, vars)
-		if type(url) ~= "string" then
-			return error("string (url) expected, got " .. type(url))
+	env["firewolf"]["query"] = function(page, vars)
+		if type(page) ~= "string" then
+			return error("string (page) expected, got " .. type(page))
 		end
 		if vars and type(vars) ~= "string" then
 			return error("table (vars) expected, got " .. type(vars))
 		end
-		local first = false
-		local construct = url .. "?"
+
+		local startSearch, endSearch = page:find(currentWebsiteURL:match("^[^/]+"))
+		if startSearch == 1 then
+			if page:sub(endSearch + 1, endSearch + 1) == "/" then
+				page = page:sub(endSearch + 2, -1)
+			else
+				page = page:sub(endSearch + 1, -1)
+			end
+		end
+
+		local construct = page .. "?"
 		for k,v in pairs(vars) do
  			construct = construct .. urlEncode(tostring(k)) .. "=" .. urlEncode(tostring(v)) .. "&"
 		end
 		-- Get rid of that last ampersand
 		construct = construct:sub(1, -2)
 
-		contents = connection.fetchPage(normalizePage(construct:match("^[^/]+/(.+)")))
+		contents = connection.fetchPage(normalizePage(construct))
 		if type(contents) == "string" then
 			return contents
 		else
@@ -2450,16 +2478,26 @@ local applyAPIFunctions = function(env, connection)
 		end
 	end
 
-	env["firewolf"]["loadImage"] = function(url)
-		if type(url) ~= "string" then
-			return error("string (url) expected, got " .. type(url))
+	env["firewolf"]["loadImage"] = function(page)
+		if type(page) ~= "string" then
+			return error("string (page) expected, got " .. type(page))
 		end
-		local filename = url:match("/([^/]+)$")
+
+		local startSearch, endSearch = page:find(currentWebsiteURL:match("^[^/]+"))
+		if startSearch == 1 then
+			if page:sub(endSearch + 1, endSearch + 1) == "/" then
+				page = page:sub(endSearch + 2, -1)
+			else
+				page = page:sub(endSearch + 1, -1)
+			end
+		end
+
+		local filename = page:match("([^/]+)$")
 		if not filename then
 			return false, "Cannot load index as an image!"
 		end
 
-		contents = connection.fetchPage(normalizePage(url:match("^[^/]+/(.+)")))
+		contents = connection.fetchPage(normalizePage(page))
 		if type(contents) ~= "string" then
 			return false, "Download error!"
 		else
