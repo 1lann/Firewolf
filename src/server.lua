@@ -888,7 +888,7 @@ local checkDomain = function(domain)
 		Modem.close(dnsListenChannel)
 
 		rednet.broadcast(header.dnsPacket, header.rednetHeader .. dnsListenChannel)
-		local timer = os.startTimer(1)
+		local timer = os.startTimer(2)
 		while true do
 			local event, id, channel, protocol, message, dist = os.pullEventRaw()
 			if event == "modem_message" and channel == dnsResponseChannel and message:match(header.dnsHeaderMatch) == domain then
