@@ -2368,7 +2368,7 @@ end
 local applyAPIFunctions = function(env, connection)
 	env["firewolf"] = {}
 	env["firewolf"]["version"] = version
-	env["firewolf"]["domain"] = connection.connection.identifier
+	env["firewolf"]["domain"] = currentWebsiteURL:match("^[^/]+")
 
 	env["firewolf"]["redirect"] = function(url)
 		if type(url) ~= "string" then
