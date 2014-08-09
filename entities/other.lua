@@ -10,7 +10,7 @@
 
 
 local version = "3.4"
-local build = 14
+local build = 15
 
 local w, h = term.getSize()
 
@@ -661,6 +661,12 @@ builtInSites["search advanced"] = function(results)
 			end
 
 			draw()
+		elseif event == "mouse_scroll" then
+			if but > 0 then
+				os.queueEvent("key", keys.down)
+			else
+				os.queueEvent("key", keys.up)
+			end
 		end
 	end
 end
@@ -714,6 +720,12 @@ builtInSites["search basic"] = function(results)
 			end
 
 			draw()
+		elseif event == "mouse_scroll" then
+			if but > 0 then
+				os.queueEvent("key", keys.down)
+			else
+				os.queueEvent("key", keys.up)
+			end
 		end
 	end
 end
