@@ -809,7 +809,7 @@ local closeMatch = ""
 local connections = {}
 local updateURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/server.lua"
 
-local version = "3.4"
+local version = "3.5"
 
 local header = {}
 header.dnsPacket = "[Firewolf-DNS-Packet]"
@@ -1030,6 +1030,7 @@ local urlEncode = function(url)
 	result = result:gsub("&", "%%m")
 	result = result:gsub("%?", "%%q")
 	result = result:gsub("=", "%%e")
+	result = result:gsub("%.", "%%d")
 
 	return result
 end
@@ -1044,6 +1045,7 @@ local urlDecode = function(url)
 	result = result:gsub("%%&", "&")
 	result = result:gsub("%%q", "%?")
 	result = result:gsub("%%e", "=")
+	result = result:gsub("%%d", "%.")
 	result = result:gsub("%%m", "%%")
 
 	return result
@@ -1051,15 +1053,13 @@ end
 
 local getURLVars = function(url)
 	local vars = {}
-	if url:find("%?") then
-		local startSearch = url:find("%?")
-		searchArea = url:sub(startSearch, -1)
-		local firstVarIndex, firstVarVal = searchArea:match("%?([^=]+)=([^&]+)")
+	if url then
+		local firstVarIndex, firstVarVal = url:match("%?([^=]+)=([^&]+)")
 		if not firstVarIndex then
 			return
 		else
 			vars[urlDecode(firstVarIndex)] = urlDecode(firstVarVal)
-			for index, val in searchArea:gmatch("&([^=]+)=([^&]+)") do
+			for index, val in url:gmatch("&([^=]+)=([^&]+)") do
 				vars[urlDecode(index)] = urlDecode(val)
 			end
 			return vars
@@ -1070,18 +1070,19 @@ local getURLVars = function(url)
 end
 
 local fetchPage = function(page)
-	page = shell.resolve(page)
+	local pageRequest = fs.combine("", page:match("^[^%?]+"))
+	local varRequest = page:match("%?[^%?]+$")
 
-	if (page:match("(.+)%.fwml$")) then
-		page = page:match("(.+)%.fwml$")
+	if (pageRequest:match("(.+)%.fwml$")) then
+		pageRequest = pageRequest:match("(.+)%.fwml$")
 	end
 
-	page = page:gsub("%.%.", "")
+	pageRequest = pageRequest:gsub("%.%.", "")
 
 	local handleResponse, respHeader
 
 	if globalHandler then
-		err, msg = pcall(function() handleResponse, respHeader = globalHandler(page, getURLVars(page)) end)
+		err, msg = pcall(function() handleResponse, respHeader = globalHandler(page, getURLVars(varRequest)) end)
 		if not err then
 			writeLog("Error when executing server API function", theme.error, math.huge)
 			writeError("/: " .. tostring(msg))
@@ -1095,15 +1096,15 @@ local fetchPage = function(page)
 		return handleResponse, respHeader, true
 	end
 
-	if page == serverAPILocation then
+	if pageRequest == serverAPILocation then
 		-- Forbid accessing server api files
 		return nil
 	end
 	
 	for k,v in pairs(handles) do
-		local startSearch, endSearch = page:find(k)
-		if startSearch == 1 and ((endSearch == #page) or (page:sub(endSearch + 1, endSearch + 1) == "/") or (page:sub(endSearch + 1, endSearch + 1) == "?")) then
-			err, msg = pcall(function() handleResponse, respHeader = v(page, getURLVars(page)) end)
+		local startSearch, endSearch = pageRequest:find(k)
+		if startSearch == 1 and ((endSearch == #pageRequest) or (pageRequest:sub(endSearch + 1, endSearch + 1) == "/")) then
+			err, msg = pcall(function() handleResponse, respHeader = v(page, getURLVars(varRequest)) end)
 			if not err then
 				writeLog("Error when executing server API function", theme.error, math.huge)
 				writeError(k .. ": " .. tostring(msg))
@@ -1118,7 +1119,7 @@ local fetchPage = function(page)
 		return handleResponse, respHeader, true
 	end
 
-	local path = serverLocation .. "/" .. domain .. "/" .. page
+	local path = serverLocation .. "/" .. domain .. "/" .. pageRequest
 	if fs.exists(path) and not fs.isDir(path) then
 		local f = io.open(path, "r")
 		local contents = f:read("*a")

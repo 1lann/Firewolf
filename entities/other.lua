@@ -9,8 +9,8 @@
 --    Variables
 
 
-local version = "3.4"
-local build = 16
+local version = "3.5"
+local build = 17
 
 local w, h = term.getSize()
 
@@ -2110,7 +2110,12 @@ local fetchURL = function(url, inheritConnection)
 	elseif action == "internal website" then
 		return fetchInternal(url), true
 	elseif action == "external website" then
-		return fetchExternal(url, connection), false, connection
+		local resp = fetchExternal(url, connection)
+		if resp == "retry" then
+			return fetchError("A connection error/timeout has occurred!"), false, connection
+		else
+			return resp, false, connection
+		end
 	elseif action == "none" then
 		return fetchNone(), true
 	elseif action == "exit" then
@@ -2359,6 +2364,7 @@ local urlEncode = function(url)
 	result = result:gsub("&", "%%m")
 	result = result:gsub("%?", "%%q")
 	result = result:gsub("=", "%%e")
+	result = result:gsub("%.", "%%d")
 
 	return result
 end
@@ -2373,11 +2379,11 @@ local urlDecode = function(url)
 	result = result:gsub("%%&", "&")
 	result = result:gsub("%%q", "%?")
 	result = result:gsub("%%e", "=")
+	result = result:gsub("%%d", "%.")
 	result = result:gsub("%%m", "%%")
 
 	return result
 end
-
 
 local applyAPIFunctions = function(env, connection)
 	env["firewolf"] = {}
@@ -2437,7 +2443,7 @@ local applyAPIFunctions = function(env, connection)
 	end
 
 	env["firewolf"]["encode"] = function(vars)
-		if type(vars) ~= "string" then
+		if type(vars) ~= "table" then
 			return error("table (vars) expected, got " .. type(vars))
 		end
 
@@ -2464,7 +2470,7 @@ local applyAPIFunctions = function(env, connection)
 		if type(page) ~= "string" then
 			return error("string (page) expected, got " .. type(page))
 		end
-		if vars and type(vars) ~= "string" then
+		if vars and type(vars) ~= "table" then
 			return error("table (vars) expected, got " .. type(vars))
 		end
 
@@ -2478,8 +2484,10 @@ local applyAPIFunctions = function(env, connection)
 		end
 
 		local construct = page .. "?"
-		for k,v in pairs(vars) do
- 			construct = construct .. urlEncode(tostring(k)) .. "=" .. urlEncode(tostring(v)) .. "&"
+		if vars then
+			for k,v in pairs(vars) do
+	 			construct = construct .. urlEncode(tostring(k)) .. "=" .. urlEncode(tostring(v)) .. "&"
+			end
 		end
 		-- Get rid of that last ampersand
 		construct = construct:sub(1, -2)
@@ -2960,7 +2968,7 @@ end
 
 
 languages["lua"]["run"] = function(contents, page, connection, ...)
-	local func, err = loadstring(contents, page)
+	local func, err = loadstring("sleep(0) " .. contents, page)
 	if err then
 		return languages["lua"]["runWithoutAntivirus"](builtInSites["crash"], err)
 	else
