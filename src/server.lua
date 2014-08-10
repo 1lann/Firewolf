@@ -1268,6 +1268,7 @@ local responseDaemon = function()
 		if #repeatStack > 10 then
 			Modem.close(rednet.CHANNEL_REPEAT)
 			renableRednet = os.startTimer(2)
+			repeatStack = {}
 			writeLog("Thorttling Rednet Connections", theme.notice, 2)
 		end
 
@@ -1282,6 +1283,8 @@ local responseDaemon = function()
 				end
 			end
 		end
+
+		repeatStack = {}
 	end
 end
 
