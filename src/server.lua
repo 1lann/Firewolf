@@ -1176,7 +1176,7 @@ local handlePageRequest = function(handler, index)
 				if body then
 					sendPage(connection, body, head)
 					if isAPI then
-						writeLog("API request: "..page:sub(1,25), theme.text, 1)
+						writeLog("API request: "..page:sub(1,25), theme.text, 0)
 					else
 						writeLog("Successful request: "..page:sub(1,20), theme.text, 1)
 					end
@@ -1298,6 +1298,8 @@ commands["exit"] = function()
 	error("firewolf-exit")
 end
 
+commands["stop"] = commands["exit"]
+
 commands["quit"] = commands["exit"]
 
 commands["startup"] = function()
@@ -1411,6 +1413,7 @@ helpDocs["password"] = {"Change the lock password", "Usage: password <new-passwo
 helpDocs["lock"] = {"Lock the server with a password"}
 helpDocs["exit"] = {"Exits and stops Firewolf Server"}
 helpDocs["quit"] = helpDocs["exit"]
+helpDocs["stop"] = helpDocs["exit"]
 helpDocs["restart"] = {"Fully restarts Firewolf Server"}
 helpDocs["reboot"] = helpDocs["restart"]
 helpDocs["reload"] = {"Reloads the server and Server API"}
