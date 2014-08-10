@@ -796,6 +796,7 @@ local domain = ...
 local responseStack = {}
 local terminalLog = {}
 local repeatedMessages = {}
+local lastLogNum = 0
 local servedRequests = 0
 local serverChannel = 0
 local requestMatch = ""
@@ -804,6 +805,7 @@ local responseHeader = ""
 local pageRequestMatch = ""
 local pageResposneHeader = ""
 local handles = {}
+local customCoroutines = {}
 local globalHandler = nil
 local closeMatch = ""
 local connections = {}
@@ -1462,7 +1464,6 @@ local lockArt = [[
 ]]
 
 local drawBar = function()
-	term.clear()
 	term.setTextColor(theme.barText)
 	term.setBackgroundColor(theme.barColor)
 	term.setCursorPos(1,1)
@@ -1473,12 +1474,13 @@ local drawBar = function()
 	term.setCursorPos(w - #time, 1)
 	term.setTextColor(theme.clock)
 	term.write(time)
-
-	term.setBackgroundColor(theme.background)
 end
 
 local drawLogs = function()
-	if locked then
+	if locked and lastLogNum >= 0 then
+		term.setBackgroundColor(theme.background)
+		term.clear()
+		lastLogNum = -1
 		local lockX = math.ceil((w/2) - 4)
 		local lineNum = 4
 		term.setTextColor(theme.lock)
@@ -1488,7 +1490,10 @@ local drawLogs = function()
 			lineNum = lineNum + 1
 		end
 		inputName = "Password: "
-	else
+	elseif lastLogNum ~= #terminalLog then
+		term.setBackgroundColor(theme.background)
+		term.clear()
+		lastLogNum = #terminalLog
 		lockedInputState = false
 		if #terminalLog < h - 1 then
 			term.setCursorPos(1, 2)
@@ -1514,6 +1519,8 @@ end
 
 local drawInputBar = function()
 	term.setCursorPos(1, h)
+	term.setBackgroundColor(theme.background)
+	term.clearLine()
 
 	if lockedInputState then
 		term.setCursorBlink(false)
@@ -1636,10 +1643,11 @@ end
 
 local terminalDaemon = function()
 	local timer = os.startTimer(1)
+	local lastTime = os.clock()
 
 	while true do
-		drawBar()
 		drawLogs()
+		drawBar()
 		drawInputBar()
 
 		term.setCursorPos(cursorPosition - offsetPosition + #inputName + 1, h)
@@ -1655,10 +1663,16 @@ local terminalDaemon = function()
 			handleKeyEvents(event, key)
 		elseif event == "timer" and key == timer then
 			timer = os.startTimer(1)
+			lastTime = os.clock()
 		elseif event == "timer" and key == lockTimer then
 			lockedInputState = false
 		elseif event == "terminate" and not locked then
 			error("firewolf-exit")
+		end
+
+		if (os.clock() - lastTime) > 1 then
+			timer = os.startTimer(1)
+			lastTime = os.clock()
 		end
 	end
 end
@@ -1672,6 +1686,8 @@ local loadServerAPI = function()
 		local f = io.open(serverLocation .. "/" .. domain .. "/" .. serverAPILocation, "r")
 		local apiData = f:read("*a")
 		f:close()
+
+		customCoroutines = {}
 
 		local apiFunction, err = loadstring(apiData)
 		if not apiFunction then
@@ -1693,6 +1709,8 @@ local loadServerAPI = function()
 
 			env["server"]["domain"] = domain
 
+			env["server"]["modem"] = Modem
+
 			env["server"]["handleRequest"] = function(index, func)
 				if not(index and func and type(index) == "string" and type(func) == "function") then
 					return error("index (string) and handler (function) expected")
@@ -1709,6 +1727,16 @@ local loadServerAPI = function()
 					return error("Handle index cannot contain \":\"s")
 				end
 				handles[index] = func
+			end
+
+			env["server"]["runCoroutine"] = function(func)
+				local newThread = coroutine.create(func)
+				local err, msg = coroutine.resume(newThread)
+				if not err then
+					return error(msg)
+				end
+
+				table.insert(customCoroutines, newThread)
 			end
 
 			env["server"]["applyTemplate"] = function(variables, template)
@@ -1732,6 +1760,7 @@ local loadServerAPI = function()
 
 			setfenv(apiFunction, env)
 			local err, msg = pcall(apiFunction)
+
 			if not err then
 				writeLog("Error while executing server API", theme.error, math.huge)
 				writeError(tostring(msg))
@@ -1766,18 +1795,21 @@ local function runThreads()
 	while true do
 		local shouldResetServer = false
 		local events = {os.pullEventRaw()}
+
 		err, msg = coroutine.resume(receiveThread, unpack(events))
 		if not err then
 			writeLog("Internal error!", theme.error, math.huge)
 			writeError(tostring(msg))
 			shouldResetServer = true
 		end
+
 		err, msg = coroutine.resume(responseThread)
 		if not err then
 			writeLog("Internal error!", theme.error, math.huge)
 			writeError(tostring(msg))
 			shouldResetServer = true
 		end
+
 		err, msg = coroutine.resume(terminalThread, unpack(events))
 		if not err and msg:find("firewolf-exit", nil, true) then
 			writeLog("Normal exit", theme.text, math.huge)
@@ -1799,8 +1831,16 @@ local function runThreads()
 			term.setCursorPos(1, 1)
 			error("Restart required error: "..msg)
 		end
-		if coroutine.status(receiveThread) == "dead" then
-			error()
+
+		for k,v in pairs(customCoroutines) do
+			if coroutine.status(v) ~= "dead" then
+				local err, msg = coroutine.resume(v, unpack(events))
+				if not err then
+					writeLog("Server API coroutine error!", theme.error, math.huge)
+					writeError(tostring(msg))
+					shouldResetServer = true
+				end
+			end
 		end
 
 		if events[1] == resetServerEvent or shouldResetServer then
@@ -1830,8 +1870,8 @@ local runOnDomain = function()
 	loadServerAPI()
 
 	receiveThread = coroutine.create(receiveDaemon)
-	responseThread = coroutine.create(function() responseDaemon() end)
-	terminalThread = coroutine.create(function() terminalDaemon() end)
+	responseThread = coroutine.create(responseDaemon)
+	terminalThread = coroutine.create(terminalDaemon)
 
 	coroutine.resume(receiveThread)
 	coroutine.resume(responseThread)
