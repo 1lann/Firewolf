@@ -1005,7 +1005,7 @@ local receiveDaemon = function()
 		elseif event == "rednet_message" and protocol and protocol:match(header.rednetMatch) and config.allowRednetConnections then
 			table.insert(responseStack, {type = "rednet", channel = tonumber(protocol:match(header.rednetMatch)), rednet_id = id, message = channel, dist = null})
 		elseif event == "timer" and id == renableRednet then
-			modem.open(rednet.CHANNEL_REPEAT)
+			Modem.open(rednet.CHANNEL_REPEAT)
 		end
 	end
 end
@@ -1266,7 +1266,7 @@ local responseDaemon = function()
 		responseStack = {}
 
 		if #repeatStack > 10 then
-			modem.close(rednet.CHANNEL_REPEAT)
+			Modem.close(rednet.CHANNEL_REPEAT)
 			renableRednet = os.startTimer(2)
 			server.log("Thorttling Rednet Connections", theme.notice, 2)
 		end
