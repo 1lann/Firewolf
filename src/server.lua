@@ -794,6 +794,7 @@ local serverAPILocation = "server_api"
 local locked = false
 local domain = ...
 local responseStack = {}
+local repeatStack = {}
 local terminalLog = {}
 local repeatedMessages = {}
 local lastLogNum = 0
@@ -804,6 +805,7 @@ local maliciousMatch = ""
 local responseHeader = ""
 local pageRequestMatch = ""
 local pageResposneHeader = ""
+local renableRednet = nil
 local handles = {}
 local customCoroutines = {}
 local globalHandler = nil
@@ -994,9 +996,16 @@ local receiveDaemon = function()
 	while true do
 		local event, id, channel, protocol, message, dist = os.pullEventRaw()
 		if event == "modem_message" then
-			table.insert(responseStack, {type = "direct", channel = channel, message = message, dist = dist, reply = protocol})
+			if channel == rednet.CHANNEL_REPEAT and config.repeatRednetMessages and type(message) == "table" and
+				message.sProtocol and message.sProtocol:match(header.rednetMatch) then
+				table.insert(repeatStack, {message = message, reply = protocol})
+			elseif channel ~= rednet.CHANNEL_BROADCAST then
+				table.insert(responseStack, {type = "direct", channel = channel, message = message, dist = dist, reply = protocol})
+			end
 		elseif event == "rednet_message" and protocol and protocol:match(header.rednetMatch) and config.allowRednetConnections then
 			table.insert(responseStack, {type = "rednet", channel = tonumber(protocol:match(header.rednetMatch)), rednet_id = id, message = channel, dist = null})
+		elseif event == "timer" and id == renableRednet then
+			modem.open(rednet.CHANNEL_REPEAT)
 		end
 	end
 end
@@ -1246,16 +1255,6 @@ local responseDaemon = function()
 						Modem.transmit(dnsResponseChannel, header.dnsHeader .. domain)
 						Modem.close(dnsResponseChannel)
 					end
-				elseif v.channel == rednet.CHANNEL_REPEAT and config.repeatRednetMessages and type(v.message) == "table" and
-					v.message.nMessageID and v.message.nRecipient and v.message.sProtocol and v.message.sProtocol:match(header.rednetMatch) then
-					if (not repeatedMessages[v.message.nMessageID]) or (os.clock() - repeatedMessages[v.message.nMessageID]) > 10 then
-						repeatedMessages[v.message.nMessageID] = os.clock()
-						for side, modem in pairs(Modem.modems) do
-							modem.transmit(rednet.CHANNEL_REPEAT, v.reply, v.message)
-							modem.transmit(v.message.nRecipient, v.reply, v.message)
-						end
-						writeLog("Repeated rednet message", theme.text, 0)
-					end
 				elseif v.channel == serverChannel and v.message then
 					handleHandshakeRequest(v)
 				elseif getActiveConnection(v.channel, v.dist) then
@@ -1265,6 +1264,24 @@ local responseDaemon = function()
 		end
 
 		responseStack = {}
+
+		if #repeatStack > 10 then
+			modem.close(rednet.CHANNEL_REPEAT)
+			renableRednet = os.startTimer(2)
+			server.log("Thorttling Rednet Connections", theme.notice, 2)
+		end
+
+		for k, v in pairs(repeatStack) do
+			if v.message.nMessageID and v.message.nRecipient then
+				if (not repeatedMessages[v.message.nMessageID]) or (os.clock() - repeatedMessages[v.message.nMessageID]) > 10 then
+					repeatedMessages[v.message.nMessageID] = os.clock()
+					for side, modem in pairs(Modem.modems) do
+						modem.transmit(rednet.CHANNEL_REPEAT, v.reply, v.message)
+						modem.transmit(v.message.nRecipient, v.reply, v.message)
+					end
+				end
+			end
+		end
 	end
 end
 
