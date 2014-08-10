@@ -1493,7 +1493,7 @@ local drawLogs = function()
 			lineNum = lineNum + 1
 		end
 		inputName = "Password: "
-	elseif lastLogNum ~= #terminalLog then
+	elseif not locked and lastLogNum ~= #terminalLog then
 		term.setBackgroundColor(theme.background)
 		term.clear()
 		lastLogNum = #terminalLog
