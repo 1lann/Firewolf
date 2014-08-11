@@ -301,10 +301,10 @@
 
 
 		local function rrotate(x, disp)
-		    x = x % MOD
-		    disp = disp % 32
-		    local low = customBand(x, 2 ^ disp - 1)
-		    return rshift(x, disp) + lshift(low, 32 - disp)
+			x = x % MOD
+			disp = disp % 32
+			local low = customBand(x, 2 ^ disp - 1)
+			return rshift(x, disp) + lshift(low, 32 - disp)
 		end
 
 
@@ -543,7 +543,6 @@
 
 			for side, modem in pairs(Modem.modems) do
 				modem.open(channel)
-				rednet.open(side)
 			end
 
 			return true
@@ -598,15 +597,31 @@
 				return false
 			end
 
-			if not Modem.isOpen(channel) then
-				Modem.open(channel)
-			end
-
 			for side, modem in pairs(Modem.modems) do
 				modem.transmit(channel, channel, msg)
 			end
 
 			return true
+		end
+
+
+	--  Communication
+		local Comm = {}
+		Comm.publicChannel = 44238
+
+		function Comm.transmit(msg, channel, direct)
+			if direct then
+				Modem.transmit(channel, msg)
+			else
+				Modem.transmit(Comm.publicChannel, {
+					isRepeated = false,
+					firewolf = true,
+					direction = "server",
+					message = msg,
+					channel = channel,
+					id = tostring({}):gsub("table: ", "")
+				})
+			end
 		end
 
 
@@ -648,9 +663,11 @@
 				type = "initiate",
 				prime = Handshake.prime,
 				base = Handshake.base,
+				id = tostring({}):gsub("table: ", ""),
 				moddedSecret = Handshake.exponentWithModulo(Handshake.base, Handshake.secret, Handshake.prime)
 			}
 		end
+
 
 		function Handshake.generateResponseData(initiatorData)
 			local isPrimeANumber = type(initiatorData.prime) == "number"
@@ -669,6 +686,7 @@
 						type = "response",
 						prime = Handshake.prime,
 						base = Handshake.base,
+						id = initiatorData.id,
 						moddedSecret = Handshake.exponentWithModulo(Handshake.base, Handshake.secret, Handshake.prime)
 					}, Handshake.sharedSecret
 				elseif initiatorData.type == "response" and Handshake.base > 0 and Handshake.secret > 0 then
@@ -739,16 +757,11 @@
 		end
 
 
-		function SecureConnection:sendMessage(msg, rednetProtcol)
+		function SecureConnection:sendMessage(msg)
 			local rawEncryptedMsg = Cryptography.aes.encrypt(self.packetHeader .. msg, self.secret)
 			local encryptedMsg = self.packetHeader .. rawEncryptedMsg
 
-			if self.isRednet then
-				rednet.send(self.rednet_id, encryptedMsg, rednetPrtocol)
-				return true
-			else
-				return Modem.transmit(self.channel, encryptedMsg)
-			end
+			Comm.transmit(msg, self.channel, not(self.isRednet))
 		end
 
 
@@ -773,9 +786,8 @@
 		end
 -- END OF NETWORKING
 
-local channel = {}
-channel.dnsListen = 9999
-channel.dnsResponse = 9998
+dnsListenChannel = 9999
+dnsResponseChannel = 9998
 
 local config = {}
 config.visibleLoggingLevel = 1
@@ -784,17 +796,20 @@ config.loggingLocation = "/fwserver-logs"
 config.enableLogging = false
 config.password = null
 config.allowRednetConnections = true
-config.actAsRednetRepeater = true
+config.repeatRednetMessages = false
+config.lastDomain = nil
 --config.actAsGPS = false
 --config.gpsLocation = {}
 
 local configLocation = "/.fwserver-config"
 local serverLocation = "/fw_servers"
+local serverAPILocation = "server_api"
 local locked = false
 local domain = ...
 local responseStack = {}
 local terminalLog = {}
-local repeatedMessages = {}
+local receivedMessages = {}
+local lastLogNum = 0
 local servedRequests = 0
 local serverChannel = 0
 local requestMatch = ""
@@ -802,18 +817,19 @@ local maliciousMatch = ""
 local responseHeader = ""
 local pageRequestMatch = ""
 local pageResposneHeader = ""
+local handles = {}
+local customCoroutines = {}
+local globalHandler = nil
 local closeMatch = ""
 local connections = {}
 local updateURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/server.lua"
 
-local version = "3.2"
+local version = "3.5"
 
 local header = {}
 header.dnsPacket = "[Firewolf-DNS-Packet]"
 header.dnsHeader = "[Firewolf-DNS-Response]"
 header.dnsHeaderMatch = "^%[Firewolf%-DNS%-Response%](.+)$"
-header.rednetHeader = "[Firewolf-Rednet-Channel-Simulation]"
-header.rednetMatch = "^%[Firewolf%-Rednet%-Channel%-Simulation%](%d+)$"
 header.requestMatchA = "^%[Firewolf%-"
 header.requestMatchB = "%-Handshake%-Request%](.+)$"
 header.maliciousMatchA = "^%[Firewolf%-"
@@ -843,10 +859,27 @@ theme.clock = colors.white
 theme.lock = colors.orange
 theme.userResponse = colors.orange
 
+if not term.isColor() then
+	theme.error = colors.white
+	theme.background = colors.black
+	theme.text = colors.white
+	theme.notice = colors.white
+	theme.barColor = colors.white
+	theme.barText = colors.black
+	theme.inputColor = colors.white
+	theme.clock = colors.white
+	theme.lock = colors.white
+	theme.userResponse = colors.white
+end
+
+local w, h = term.getSize()
+
+--  Utilities
+
 local makeDirectory = function(path)
 	fs.makeDir(path)
 	local function createIndex(path)
-		if not fs.exists(path.."/index") then
+		if not (fs.exists(path.."/index") or fs.exists(path.."/index.fwml"))  then
 			f = io.open(path.."/index", "w")
 			f:write("print('')\ncenter('Welcome to "..domain.."!')")
 			f:close()
@@ -856,24 +889,18 @@ local makeDirectory = function(path)
 end
 
 local checkDomain = function(domain)
-	if domain:find("/") or domain:find(":") then
+	if domain:find("/") or domain:find(":") or domain:find("%?") then
 		return "symbols"
 	end
 	if #domain < 4 then
 		return "short"
 	else
-		Modem.open(channel.dnsListen)
-		Modem.open(channel.dnsResponse)
-		Modem.transmit(channel.dnsListen, header.dnsPacket)
-		Modem.close(channel.dnsListen)
-
-		rednet.broadcast(header.dnsPacket, header.rednetHeader .. channel.dnsListen)
-		local timer = os.startTimer(1)
+		Comm.transmit(header.dnsPacket)
+		local timer = os.startTimer(2)
 		while true do
 			local event, id, channel, protocol, message, dist = os.pullEventRaw()
-			if event == "modem_message" and channel == channel.dnsResponse and message:match(header.dnsHeaderMatch) == domain then
-				return "taken"
-			elseif event == "rednet_message" and tonumber(protocol:match(header.rednetMatch)) == channel.dnsResponse and channel:match(header.dnsHeaderMatch) == domain then
+			if event == "modem_message" and channel == dnsResponseChannel and message:match(header.dnsHeaderMatch) == domain then
+				-- TODO
 				return "taken"
 			elseif event == "timer" and id == timer then
 				break
@@ -906,6 +933,11 @@ local loadConfig = function()
 	if fs.exists(configLocation) and not fs.isDir(configLocation) then
 		local f = io.open(configLocation, "r")
 		config = textutils.unserialize(f:read("*a"))
+		if config then
+			if type(config.actAsRednetRepeater) == "boolean" then
+				config.actAsRednetRepeater = nil
+			end
+		end
 		f:close()
 	else
 		config = nil
@@ -920,7 +952,6 @@ end
 
 local center = function(text)
 	local x, y = term.getCursorPos()
-	local w, h = term.getSize()
 	term.setCursorPos(math.floor(w / 2 - text:len() / 2) + (text:len() % 2 == 0 and 1 or 0), y)
 	term.write(text)
 	term.setCursorPos(1, y + 1)
@@ -956,13 +987,23 @@ local writeLog = function(text, color, level)
 	end
 end
 
+local writeError = function(text)
+	for i = 1, math.ceil(#text / (w - 8)) do
+		writeLog(text:sub((i - 1) * (w - 8), i * (w - 8)), theme.error, math.huge)
+	end
+end
+
+--  Message handling
+
 local receiveDaemon = function()
 	while true do
 		local event, id, channel, protocol, message, dist = os.pullEventRaw()
 		if event == "modem_message" then
-			table.insert(responseStack, {type = "direct", channel = channel, message = message, dist = dist, reply = protocol})
-		elseif event == "rednet_message" and protocol and protocol:match(header.rednetMatch) and config.allowRednetConnections then
-			table.insert(responseStack, {type = "rednet", channel = tonumber(protocol:match(header.rednetMatch)), rednet_id = id, message = channel, dist = null})
+			if channel == Comm.publicChannel and type(message) == "table" and message.firewolf then
+				table.insert(responseStack, {type = "public", channel = message.channel, message = message.message})
+			elseif channel ~= Comm.publicChannel then
+				table.insert(responseStack, {type = "direct", channel = channel, message = message, dist = dist, reply = protocol})
+			end
 		end
 	end
 end
@@ -987,27 +1028,120 @@ local getActiveConnection = function(channel, distance)
 	end
 end
 
-local fetchPage = function(domain, page)
-	if (page:match("(.+)%.fwml$")) then
-		page = page:match("(.+)%.fwml$")
+local urlEncode = function(url)
+	local result = url
+	
+	result = result:gsub("%%", "%%a")
+	result = result:gsub(":", "%%c")
+	result = result:gsub("/", "%%s")
+	result = result:gsub("\n", "%%n")
+	result = result:gsub(" ", "%%w")
+	result = result:gsub("&", "%%m")
+	result = result:gsub("%?", "%%q")
+	result = result:gsub("=", "%%e")
+	result = result:gsub("%.", "%%d")
+
+	return result
+end
+
+local urlDecode = function(url)
+	local result = url
+
+	result = result:gsub("%%c", ":")
+	result = result:gsub("%%s", "/")
+	result = result:gsub("%%n", "\n")
+	result = result:gsub("%%w", " ")
+	result = result:gsub("%%&", "&")
+	result = result:gsub("%%q", "%?")
+	result = result:gsub("%%e", "=")
+	result = result:gsub("%%d", "%.")
+	result = result:gsub("%%m", "%%")
+
+	return result
+end
+
+local getURLVars = function(url)
+	local vars = {}
+	if url then
+		local firstVarIndex, firstVarVal = url:match("%?([^=]+)=([^&]+)")
+		if not firstVarIndex then
+			return
+		else
+			vars[urlDecode(firstVarIndex)] = urlDecode(firstVarVal)
+			for index, val in url:gmatch("&([^=]+)=([^&]+)") do
+				vars[urlDecode(index)] = urlDecode(val)
+			end
+			return vars
+		end
+	else
+		return
+	end
+end
+
+local fetchPage = function(page)
+	local pageRequest = fs.combine("", page:match("^[^%?]+"))
+	local varRequest = page:match("%?[^%?]+$")
+
+	if (pageRequest:match("(.+)%.fwml$")) then
+		pageRequest = pageRequest:match("(.+)%.fwml$")
 	end
 
-	page = page:gsub("%.%.", "")
+	pageRequest = pageRequest:gsub("%.%.", "")
 
-	local path = serverLocation .. "/" .. domain .. "/" .. page
+	local handleResponse, respHeader
+
+	if globalHandler then
+		err, msg = pcall(function() handleResponse, respHeader = globalHandler(page, getURLVars(varRequest)) end)
+		if not err then
+			writeLog("Error when executing server API function", theme.error, math.huge)
+			writeError("/: " .. tostring(msg))
+		end
+	end
+
+	if handleResponse then
+		if not respHeader then
+			respHeader = "lua"
+		end
+		return handleResponse, respHeader, true
+	end
+
+	if pageRequest == serverAPILocation then
+		-- Forbid accessing server api files
+		return nil
+	end
+	
+	for k,v in pairs(handles) do
+		local startSearch, endSearch = pageRequest:find(k)
+		if startSearch == 1 and ((endSearch == #pageRequest) or (pageRequest:sub(endSearch + 1, endSearch + 1) == "/")) then
+			err, msg = pcall(function() handleResponse, respHeader = v(page, getURLVars(varRequest)) end)
+			if not err then
+				writeLog("Error when executing server API function", theme.error, math.huge)
+				writeError(k .. ": " .. tostring(msg))
+			end
+		end
+	end
+
+	if handleResponse then
+		if not respHeader then
+			respHeader = "lua"
+		end
+		return handleResponse, respHeader, true
+	end
+
+	local path = serverLocation .. "/" .. domain .. "/" .. pageRequest
 	if fs.exists(path) and not fs.isDir(path) then
 		local f = io.open(path, "r")
 		local contents = f:read("*a")
 		f:close()
 
-		return contents, "lua"
+		return contents, "lua", false
 	else
 		if fs.exists(path..".fwml") and not fs.isDir(path..".fwml") then
 			local f = io.open(path..".fwml", "r")
 			local contents = f:read("*a")
 			f:close()
 
-			return contents, "fwml"
+			return contents, "fwml", false
 		end
 	end
 
@@ -1031,97 +1165,91 @@ The page you requested could not be found!
 Make sure you typed the URL correctly.
 ]]
 
-local responseDaemon = function(domain)
+local handlePageRequest = function(handler, index)
+	local connection = getActiveConnection(handler.channel, handler.dist)
+	if connection:verifyHeader(handler.message) then
+		local resp, data = connection:decryptMessage(handler.message)
+		if not resp then
+			-- Decryption Error
+			writeLog("Decryption error!", theme.notice, 0)
+		else
+			-- Process Request
+			if data:match(pageRequestMatch) then
+				local page = data:match(pageRequestMatch)
+				if page == "" or page == "/" then
+					page = "index"
+				end
+				local body, head, isAPI = fetchPage(page)
+				if body then
+					sendPage(connection, body, head)
+					if isAPI then
+						writeLog("API request: "..page:sub(1,25), theme.text, 0)
+					else
+						writeLog("Successful request: "..page:sub(1,20), theme.text, 1)
+					end
+				else
+					body, head, isAPI = fetchPage("not-found")
+					if body then
+						sendPage(connection, body, head)
+					else
+						sendPage(connection, defaultNotFound, "fwml")
+					end
+					writeLog("Unsuccessful request: "..page:sub(1,20), theme.text, 1)
+				end
+			elseif data == closeMatch then
+				writeLog("Secure connection closed", theme.text, 0)
+				Modem.close(connection.channel)
+				table.remove(connections, index)
+			end
+		end
+	end
+end
+
+local handleHandshakeRequest = function(handler)
+	local requestData = handler.message:match(requestMatch)
+	if requestData and type(textutils.unserialize(requestData)) == "table" then
+		local receivedHandshake = textutils.unserialize(requestData)
+		local data, key = Handshake.generateResponseData(receivedHandshake)
+		if type(data) == "table" then
+			local connection
+
+			if handler.type == "direct" then
+				connection = SecureConnection.new(key, domain, domain, handler.dist)
+
+				Comm.transmit(responseHeader .. data.id .. header.responseHeaderC .. textutils.serialize(data), serverChannel, true)
+			else
+				connection = SecureConnection.new(key, domain, domain, handler.rednet_id, true)
+
+				Comm.transmit(responseHeader .. data.id .. header.responseHeaderC .. textutils.serialize(data), serverChannel)
+			end
+
+			writeLog("Secure connection opened", theme.text, 0)
+
+			table.insert(connections, connection)
+
+			if #connections >= 200 then
+				Modem.close(connections[1].channel)
+				table.remove(connections, 1)
+			end
+		end
+	elseif handler.message:match(maliciousMatch) then
+		-- Hijacking Detected
+		writeLog("Warning: Connection Hijacking Detected", theme.error, 2)
+	end
+end
+
+local responseDaemon = function()
 	while true do
 		os.pullEventRaw()
 
 		for k, v in pairs(responseStack) do
-			if v.channel then
-				if v.channel == channel.dnsListen and v.message == header.dnsPacket then
-					-- DNS Request
-					if v.type == "rednet" then
-						rednet.send(v.rednet_id, header.dnsHeader..domain, header.rednetHeader..channel.dnsResponse)
-					else
-						Modem.open(channel.dnsResponse)
-						Modem.transmit(channel.dnsResponse ,header.dnsHeader..domain)
-						Modem.close(channel.dnsResponse)
-					end
-				elseif v.channel == rednet.CHANNEL_REPEAT and config.actAsRednetRepeater and type(v.message) == "table" and v.message.nMessageID and v.message.nRecipient then
-					if (not repeatedMessages[v.message.nMessageID]) or (os.clock() - repeatedMessages[v.message.nMessageID]) > 10 then
-						repeatedMessages[v.message.nMessageID] = os.clock()
-						for side, modem in pairs(Modem.modems) do
-							modem.transmit(rednet.CHANNEL_REPEAT, v.reply, v.message)
-							modem.transmit(rednet.CHANNEL_REPEAT, v.message.nRecipient, v.message)
-						end
-						writeLog("Repeated rednet message", theme.text, 0)
-					end
-				elseif v.channel == serverChannel then
-					-- Handshake Request
-					local requestData = v.message:match(requestMatch)
-					if requestData and type(textutils.unserialize(requestData)) == "table" then
-						local receivedHandshake = textutils.unserialize(requestData)
-						local data, key = Handshake.generateResponseData(receivedHandshake)
-						if type(data) == "table" then
-							local connection
-
-							if v.type == "direct" then
-								connection = SecureConnection.new(key, domain, domain, v.dist)
-
-								Modem.transmit(serverChannel, responseHeader .. tostring(v.dist) .. header.responseHeaderC .. textutils.serialize(data))
-							else
-								connection = SecureConnection.new(key, domain, domain, v.rednet_id, true)
-
-								rednet.send(v.rednet_id, responseHeader .. tostring(v.rednet_id) .. header.responseHeaderC .. textutils.serialize(data), header.rednetHeader .. serverChannel)
-							end
-
-							writeLog("Secure connection opened", theme.text, 0)
-
-							table.insert(connections, connection)
-
-							if #connections >= 200 then
-								Modem.close(connections[1].channel)
-								table.remove(connections, 1)
-							end
-						end
-					elseif v.message:match(maliciousMatch) then
-						-- Hijacking Detected
-						writeLog("Warning: Connection Hijacking Detected", theme.error, 2)
-					end
-				elseif getActiveConnection(v.channel, v.dist) then
-					local connection = getActiveConnection(v.channel, v.dist)
-					if connection:verifyHeader(v.message) then
-						local resp, data = connection:decryptMessage(v.message)
-						if not resp then
-							-- Decryption Error
-							writeLog("Decryption error!", theme.notice, 0)
-						else
-							-- Process Request
-							if data:match(pageRequestMatch) then
-								local page = data:match(pageRequestMatch)
-								if page == "" or page == "/" then
-									page = "index"
-								end
-								local body, head = fetchPage(domain, page)
-								if body then
-									sendPage(connection, body, header)
-									writeLog("Successful request: "..page:sub(1,20), theme.text, 1)
-								else
-									body, head = fetchPage(domain, "not-found")
-									if body then
-										sendPage(connection, body, header)
-									else
-										sendPage(connection, defaultNotFound, "fwml")
-									end
-									writeLog("Unsuccessful request: "..page:sub(1,20), theme.text, 1)
-								end
-							elseif data == closeMatch then
-								writeLog("Secure connection closed", theme.text, 0)
-								Modem.close(connection.channel)
-								table.remove(connections, k)
-							end
-						end
-					end
-				end
+			if v.message == header.dnsPacket then
+				-- DNS Request
+				Comm.transmit(header.dnsHeader .. domain)
+			elseif v.channel == serverChannel and v.message then
+				handleHandshakeRequest(v)
+			elseif getActiveConnection(v.channel, v.dist) then
+				handlePageRequest(v, k)
 			end
 		end
 
@@ -1129,6 +1257,7 @@ local responseDaemon = function(domain)
 	end
 end
 
+--  Commands and Help
 
 local commands = {}
 local helpDocs = {}
@@ -1158,10 +1287,15 @@ commands["exit"] = function()
 	error("firewolf-exit")
 end
 
+commands["stop"] = commands["exit"]
+
 commands["quit"] = commands["exit"]
 
 commands["startup"] = function()
 	if fs.exists("/startup") then
+		if fs.exists("/old-startup") then
+			fs.delete("/old-startup")
+		end
 		fs.move("/startup", "/old-startup")
 	end
 	local f = io.open("/startup", "w")
@@ -1196,21 +1330,23 @@ end
 
 commands["reboot"] = commands["restart"]
 
-commands["refresh"] = function()
+commands["reload"] = function()
 	os.queueEvent(resetServerEvent)
 end
 
+commands["refresh"] = commands["reload"]
+
 commands["repeat"] = function(set)
 	if set == "on" then
-		config.actAsRednetRepeater = true
+		config.repeatRednetMessages = true
 		saveConfig()
-		writeLog("Rednet repeating is now off", theme.userResponse, math.huge)
+		writeLog("Rednet repeating is now on", theme.userResponse, math.huge)
 	elseif set == "off" then
-		config.actAsRednetRepeater = false
+		config.repeatRednetMessages = false
 		saveConfig()
 		writeLog("Rednet repeating is now off", theme.userResponse, math.huge)
 	else
-		if config.actAsRednetRepeater then
+		if config.repeatRednetMessages then
 			writeLog("Rednet repeating is currently turned on", theme.userResponse, math.huge)
 		else
 			writeLog("Rednet repeating is currently turned off", theme.userResponse, math.huge)
@@ -1219,7 +1355,11 @@ commands["repeat"] = function(set)
 end
 
 commands["update"] = function()
-	writeLog("Updating...", theme.userResponse, math.huge)
+	term.setCursorPos(1, h)
+	term.clearLine()
+	term.setTextColor(theme.userResponse)
+	term.setCursorBlink(false)
+	term.write("Updating...")
 	local handle = http.get(updateURL)
 	if not handle then
 		writeLog("Failed to connect to update server!", theme.error, math.huge)
@@ -1228,7 +1368,7 @@ commands["update"] = function()
 		if #data < 1000 then
 			writeLog("Failed to update server!", theme.error, math.huge)
 		else
-			local f = io.open(shell.getRunningProgram(), "w")
+			local f = io.open("/"..shell.getRunningProgram(), "w")
 			f:write(data)
 			f:close()
 			error("firewolf-restart")
@@ -1236,91 +1376,21 @@ commands["update"] = function()
 	end
 end
 
---[[ commands["lockdefault"] = function(set)
-	if set == "on" then
-		config.lockByDefault = true
-		saveConfig()
-		writeLog("Will now be locked by default", theme.userResponse, math.huge)
-	elseif set == "off" then
-		config.lockByDefault = false
-		saveConfig()
-		writeLog("Will now be not locked by default", theme.userResponse, math.huge)
+commands["edit"] = function()
+	writeLog("Editing server files", theme.userResponse, math.huge)
+	term.setBackgroundColor(colors.black)
+	if term.isColor() then
+		term.setTextColor(colors.yellow)
 	else
-		writeLog("Whether to lock the server by default", theme.userResponse, 1)
-		writeLog("(To lock the server on start/boot)", theme.userResponse, 1)
-		writeLog("Usage: lockdefault <on or off>", theme.userResponse, math.huge)
-		if config.lockByDefault then
-			writeLog("Currently locked by default", theme.userResponse, math.huge)
-		else
-			writeLog("Currently not locked by default", theme.userResponse, math.huge)
-		end
+		term.setTextColor(colors.white)
 	end
-end]]
-
---[[ commands["hidelock"] = function(set)
-	if set == "hide" then
-		config.hideWhenLocked = true
-		saveConfig()
-		writeLog("Console will be hidden when locked", theme.userResponse, math.huge)
-	elseif set == "show" then
-		config.hideWhenLocked = false
-		saveConfig()
-		writeLog("Console will be shown when locked", theme.userResponse, math.huge)
-	else
-		writeLog("Whether to show the console when locked", theme.userResponse, 1)
-		writeLog("Usage: hidelock <show or hide>", theme.userResponse, math.huge)
-		if config.hideWhenLocked then
-			writeLog("Console currently hidden when locked", theme.userResponse, math.huge)
-		else
-			writeLog("Console currently shown when locked", theme.userResponse, math.huge)
-		end
-	end
-end]]
-
---[[ commands["logging"] = function(set, location)
-	if set == "on" then
-		config.logging = true
-		saveConfig()
-		writeLog("Will now be locked by default", theme.userResponse, math.huge)
-	elseif set == "off" then
-		config.logging = false
-		saveConfig()
-		writeLog("Will now be not locked by default", theme.userResponse, math.huge)
-	elseif set == "set" then
-		config.loggingLocation = location
-		saveConfig()
-		writeLog("Log file location changed", theme.userResponse, math.huge)
-	else
-		writeLog("Whether to enable logging to a file", theme.userResponse, 1)
-		writeLog("Use \"set\" to set the log file location", theme.userResponse, 1)
-		writeLog("Usage: logging <on, off or set> [location]", theme.userResponse, math.huge)
-		if config.logging then
-			writeLog("Logging to a file is currently on", theme.userResponse, math.huge)
-		else
-			writeLog("Logging to a file is currently off", theme.userResponse, math.huge)
-		end
-	end
-end]]
-
---[[ commands["loglevel"] = function(logType, level)
-	level = tonumber(level)
-	if logType == "visible" and tonumber(level) >= 0 and tonumber(level) <= 5 then
-		config.visibleLoggingLevel = tonumber(level)
-		saveConfig()
-		writeLog("Visible log level set to: "..level, theme.userResponse, math.huge)
-	elseif logType == "file" and tonumber(level) >= 0 and tonumber(level) <= 5 then
-		config.writtenLoggingLevel = tonumber(level)
-		saveConfig()
-		writeLog("File log level set to: "..level, theme.userResponse, math.huge)
-	else
-		writeLog("Set the log level of the log file or", theme.userResponse, 1)
-		writeLog("what's being displayed from 0 to 5", theme.userResponse, 1)
-		writeLog("0 containg more useless information", theme.userResponse, 1)
-		writeLog("Usage: loglevel <visible or file> <0-5>", theme.userResponse, math.huge)
-		writeLog("Current file log level: "..config.writtenLoggingLevel, theme.userResponse, math.huge)
-		writeLog("Current visible log level: "..config.visibleLoggingLevel, theme.userResponse, math.huge)
-	end
-end]]
+	term.clear()
+	term.setCursorPos(1, 1)
+	print("Use exit to finish editing")
+	shell.setDir(serverLocation .. "/" .. domain)
+	shell.run("/rom/programs/shell")
+	os.queueEvent(resetServerEvent)
+end
 
 commands["clear"] = function()
 	terminalLog = {}
@@ -1332,13 +1402,17 @@ helpDocs["password"] = {"Change the lock password", "Usage: password <new-passwo
 helpDocs["lock"] = {"Lock the server with a password"}
 helpDocs["exit"] = {"Exits and stops Firewolf Server"}
 helpDocs["quit"] = helpDocs["exit"]
+helpDocs["stop"] = helpDocs["exit"]
 helpDocs["restart"] = {"Fully restarts Firewolf Server"}
 helpDocs["reboot"] = helpDocs["restart"]
+helpDocs["reload"] = {"Reloads the server and Server API"}
+helpDocs["refresh"] = helpDocs["reload"]
 helpDocs["clear"] = {"Clears the displayed log"}
 helpDocs["rednet"] = {"Whether to allow rednet connections", "Usage: rednet <on or off>"}
 helpDocs["startup"] = {"Runs the server for the current domain", "on startup"}
-helpDocs["repeat"] = {"Whether to act as a rednet repeater", "Usage: repeat <on or off>"}
+helpDocs["repeat"] = {"Whether to repeat rednet messages", "Usage: repeat <on or off>"}
 helpDocs["update"] = {"Updates Firewolf Server"}
+helpDocs["edit"] = {"Opens shell in server directory"}
 
 commands["help"] = function(command)
 	if command then
@@ -1351,10 +1425,23 @@ commands["help"] = function(command)
 		end
 	else
 		writeLog("Use \"help <command>\" for more info", theme.userResponse, math.huge)
+		writeLog("Wiki: http://bit.ly/firewolf-wiki", theme.userResponse, math.huge)
 		writeLog("Commands: password, lock, exit, update,", theme.userResponse, math.huge)
-		writeLog("restart, clear, rednet, repeat, startup", theme.userResponse, math.huge)
+		writeLog("restart, clear, rednet, repeat, startup,", theme.userResponse, math.huge)
+		writeLog("edit, reload", theme.userResponse, math.huge)
 	end
 end
+
+--  Display manager
+
+local enteredText = ""
+local history = {}
+local scrollingHistory = false
+local cursorPosition = 1
+local offsetPosition = 1
+local inputName = "> "
+local lockTimer = 0
+local lockedInputState = false
 
 local lockArt = [[
   ####
@@ -1368,84 +1455,192 @@ local lockArt = [[
 [LOCKED]
 ]]
 
+local drawBar = function()
+	term.setTextColor(theme.barText)
+	term.setBackgroundColor(theme.barColor)
+	term.setCursorPos(1,1)
+	term.clearLine()
+	term.write(" "..version)
+	center("["..domain.."]")
+	local time = textutils.formatTime(os.time(), true)
+	term.setCursorPos(w - #time, 1)
+	term.setTextColor(theme.clock)
+	term.write(time)
+end
 
-local terminalDaemon = function(domain)
-	local enteredText = ""
-	local history = {}
-	local scrollingHistory = false
-	local cursorPosition = 1
-	local offsetPosition = 1
-	local w, h = term.getSize()
+local drawLogs = function()
+	if locked and lastLogNum >= 0 then
+		term.setBackgroundColor(theme.background)
+		term.clear()
+		lastLogNum = -1
+		local lockX = math.ceil((w/2) - 4)
+		local lineNum = 4
+		term.setTextColor(theme.lock)
+		for line in lockArt:gmatch("[^\n]+") do
+			term.setCursorPos(lockX, lineNum)
+			term.write(line)
+			lineNum = lineNum + 1
+		end
+		inputName = "Password: "
+	elseif not locked and lastLogNum ~= #terminalLog then
+		term.setBackgroundColor(theme.background)
+		term.clear()
+		lastLogNum = #terminalLog
+		lockedInputState = false
+		if #terminalLog < h - 1 then
+			term.setCursorPos(1, 2)
+			for i = 1, #terminalLog do
+				term.setTextColor(theme.clock)
+				term.write(terminalLog[i][3])
+				term.setTextColor(terminalLog[i][2])
+				term.write(terminalLog[i][1])
+				term.setCursorPos(1, i + 2)
+			end
+		else
+			term.setCursorPos(1, 2)
+			for i = 1, h - 1 do
+				term.setTextColor(theme.clock)
+				term.write(terminalLog[#terminalLog - (h - 1) + i][3])
+				term.setTextColor(terminalLog[#terminalLog - (h - 1) + i][2])
+				term.write(terminalLog[#terminalLog - (h - 1) + i][1])
+				term.setCursorPos(1, i + 1)
+			end
+		end
+	end
+end
+
+local drawInputBar = function()
+	term.setCursorPos(1, h)
+	term.setBackgroundColor(theme.background)
+	term.clearLine()
+
+	if lockedInputState then
+		term.setCursorBlink(false)
+		term.setTextColor(theme.error)
+		term.write("Incorrect Password!")
+	else
+		term.setCursorBlink(true)
+		term.setTextColor(theme.inputColor)
+		term.write(inputName)
+		width = w - #inputName
+		if locked then
+			term.write(string.rep("*", (#enteredText:sub(offsetPosition, offsetPosition + width))))
+		else
+			term.write(enteredText:sub(offsetPosition, offsetPosition + width))
+		end
+	end
+end
+
+local handleKeyEvents = function(event, key)
+	if key == 14 then
+		if enteredText ~= "" then
+			enteredText = enteredText:sub(1, cursorPosition - 2) .. enteredText:sub(cursorPosition, -1)
+			cursorPosition = cursorPosition-1
+			if cursorPosition >= width then
+				offsetPosition = offsetPosition - 1
+			end
+		end
+	elseif key == 28 and enteredText ~= "" and locked then
+		if enteredText == config.password then
+			writeLog("Successful login", theme.userResponse, math.huge)
+			inputName = "> "
+			locked = false
+			os.queueEvent("firewolf-lock-state-update")
+		else
+			writeLog("Failed login attempt", theme.userResponse, math.huge)
+			lockedInputState = true
+			lockTimer = os.startTimer(2)
+			os.queueEvent("firewolf-lock-state-update")
+		end
+		enteredText = ""
+		cursorPosition = 1
+		offsetPosition = 1
+	elseif key == 28 and enteredText ~= "" and not locked then
+		local commandWord = false
+		local arguments = {}
+		for word in enteredText:gmatch("%S+") do
+			if not commandWord then
+				commandWord = word
+			else
+				table.insert(arguments, word)
+			end
+		end
+		if commands[commandWord] then
+			local err, msg = pcall(commands[commandWord], unpack(arguments))
+			if not err and msg:find("firewolf-exit", nil, true) then
+				error("firewolf-exit")
+			elseif not err and msg:find("firewolf-restart", nil, true) then
+				error("firewolf-restart")
+			elseif not err then
+				writeLog("An error occured when executing command", theme.error, math.huge)
+				writeError(tostring(msg))
+			end
+		else
+			writeLog("No such command!", theme.error, math.huge)
+		end
+		table.insert(history, enteredText)
+		enteredText = ""
+		offsetPosition = 1
+		cursorPosition = 1
+	elseif key == 203 then
+		cursorPosition = cursorPosition - 1
+		if cursorPosition < 1 then
+			cursorPosition = 1
+		end
+		if cursorPosition >= width then
+			offsetPosition = offsetPosition - 1
+		end
+	elseif key == 205 then
+		cursorPosition = cursorPosition + 1
+		if cursorPosition > #enteredText + 1 then
+			cursorPosition = #enteredText + 1
+		end
+		if cursorPosition - offsetPosition >= width then
+			offsetPosition = offsetPosition + 1
+		end
+	elseif key == 208 and #history > 0 then
+		if type(scrollingHistory) == "number" then
+			scrollingHistory = scrollingHistory - 1
+			if scrollingHistory > 0 then
+				enteredText = history[#history - scrollingHistory + 1]
+				cursorPosition = #enteredText + 1
+			else
+				scrollingHistory = false
+				enteredText = ""
+				cursorPosition = 1
+			end
+		end
+	elseif key == 200 and #history > 0 then
+		if type(scrollingHistory) == "number" then
+			scrollingHistory = scrollingHistory + 1
+			if scrollingHistory > #history then
+				scrollingHistory = #history
+			end
+			enteredText = history[#history - scrollingHistory + 1]
+			cursorPosition = #enteredText + 1
+			if cursorPosition > width then
+				cursorPosition = 1
+			end
+		else
+			scrollingHistory = 1
+			enteredText = history[#history - scrollingHistory + 1]
+			cursorPosition = #enteredText + 1
+			if cursorPosition > width then
+				cursorPosition = 1
+			end
+		end
+	end
+end
+
+
+local terminalDaemon = function()
 	local timer = os.startTimer(1)
-	local inputName = "> "
-	local lockTimer = 0
-	local lockedInputState = false
+	local lastTime = os.clock()
 
 	while true do
-		term.clear()
-		term.setTextColor(theme.barText)
-		term.setBackgroundColor(theme.barColor)
-		term.setCursorPos(1,1)
-		term.clearLine()
-		term.write(" "..version)
-		center("["..domain.."]")
-		local time = textutils.formatTime(os.time(), true)
-		term.setCursorPos(w - #time, 1)
-		term.setTextColor(theme.clock)
-		term.write(time)
-
-		term.setBackgroundColor(theme.background)
-
-		if locked then
-			local lockX = math.ceil((w/2) - 4)
-			local lineNum = 4
-			term.setTextColor(theme.lock)
-			for line in lockArt:gmatch("[^\n]+") do
-				term.setCursorPos(lockX, lineNum)
-				term.write(line)
-				lineNum = lineNum + 1
-			end
-			inputName = "Password: "
-		else
-			lockedInputState = false
-			if #terminalLog < h - 1 then
-				term.setCursorPos(1, 2)
-				for i = 1, #terminalLog do
-					term.setTextColor(theme.clock)
-					term.write(terminalLog[i][3])
-					term.setTextColor(terminalLog[i][2])
-					term.write(terminalLog[i][1])
-					term.setCursorPos(1, i + 2)
-				end
-			else
-				term.setCursorPos(1, 2)
-				for i = 1, h - 1 do
-					term.setTextColor(theme.clock)
-					term.write(terminalLog[#terminalLog - (h - 1) + i][3])
-					term.setTextColor(terminalLog[#terminalLog - (h - 1) + i][2])
-					term.write(terminalLog[#terminalLog - (h - 1) + i][1])
-					term.setCursorPos(1, i + 1)
-				end
-			end
-		end
-
-		term.setCursorPos(1, h)
-
-		if lockedInputState then
-			term.setCursorBlink(false)
-			term.setTextColor(theme.error)
-			term.write("Incorrect Password!")
-		else
-			term.setCursorBlink(true)
-			term.setTextColor(theme.inputColor)
-			term.write(inputName)
-			width = w - #inputName
-			if locked then
-				term.write(string.rep("*", (#enteredText:sub(offsetPosition, offsetPosition + width))))
-			else
-				term.write(enteredText:sub(offsetPosition, offsetPosition + width))
-			end
-		end
+		drawLogs()
+		drawBar()
+		drawInputBar()
 
 		term.setCursorPos(cursorPosition - offsetPosition + #inputName + 1, h)
 
@@ -1457,173 +1652,158 @@ local terminalDaemon = function(domain)
 				offsetPosition = offsetPosition + 1
 			end
 		elseif event == "key" and not lockedInputState then
-			if key == 14 then
-				if enteredText ~= "" then
-					enteredText = enteredText:sub(1, cursorPosition - 2) .. enteredText:sub(cursorPosition, -1)
-					cursorPosition = cursorPosition-1
-					if cursorPosition >= width then
-						offsetPosition = offsetPosition - 1
-					end
-				end
-			elseif key == 28 and enteredText ~= "" and locked then
-				if enteredText == config.password then
-					writeLog("Successful login", theme.userResponse, math.huge)
-					inputName = "> "
-					locked = false
-					os.queueEvent("firewolf-lock-state-update")
-				else
-					writeLog("Failed login attempt", theme.userResponse, math.huge)
-					lockedInputState = true
-					lockTimer = os.startTimer(2)
-					os.queueEvent("firewolf-lock-state-update")
-				end
-				enteredText = ""
-				cursorPosition = 1
-				offsetPosition = 1
-			elseif key == 28 and enteredText ~= "" and not locked then
-				local commandWord = false
-				local arguments = {}
-				for word in enteredText:gmatch("%S+") do
-					if not commandWord then
-						commandWord = word
-					else
-						table.insert(arguments, word)
-					end
-				end
-				if commands[commandWord] then
-					local err, msg = pcall(commands[commandWord], unpack(arguments))
-					if not err and msg:find("firewolf-exit", nil, true) then
-						error("firewolf-exit")
-					elseif not err and msg:find("firewolf-restart", nil, true) then
-						error("firewolf-restart")
-					elseif not err then
-						writeLog("An error occured when executing command", theme.error, math.huge)
-						writeLog(msg, theme.error, math.huge)
-					end
-				else
-					writeLog("No such command!", theme.error, math.huge)
-				end
-				table.insert(history, enteredText)
-				enteredText = ""
-				offsetPosition = 1
-				cursorPosition = 1
-			elseif key == 203 then
-				cursorPosition = cursorPosition - 1
-				if cursorPosition < 1 then
-					cursorPosition = 1
-				end
-				if cursorPosition >= width then
-					offsetPosition = offsetPosition - 1
-				end
-			elseif key == 205 then
-				cursorPosition = cursorPosition + 1
-				if cursorPosition > #enteredText + 1 then
-					cursorPosition = #enteredText + 1
-				end
-				if cursorPosition - offsetPosition >= width then
-					offsetPosition = offsetPosition + 1
-				end
-			elseif key == 208 and #history > 0 then
-				-- Down
-				if type(scrollingHistory) == "number" then
-					scrollingHistory = scrollingHistory - 1
-					if scrollingHistory > 0 then
-						enteredText = history[#history - scrollingHistory + 1]
-						cursorPosition = #enteredText + 1
-					else
-						scrollingHistory = false
-						enteredText = ""
-						cursorPosition = 1
-					end
-				end
-			elseif key == 200 and #history > 0 then
-				-- Up
-				if type(scrollingHistory) == "number" then
-					scrollingHistory = scrollingHistory + 1
-					if scrollingHistory > #history then
-						scrollingHistory = #history
-					end
-					enteredText = history[#history - scrollingHistory + 1]
-					cursorPosition = #enteredText + 1
-					if cursorPosition > width then
-						cursorPosition = 1
-					end
-				else
-					scrollingHistory = 1
-					enteredText = history[#history - scrollingHistory + 1]
-					cursorPosition = #enteredText + 1
-					if cursorPosition > width then
-						cursorPosition = 1
-					end
-				end
-			end
+			handleKeyEvents(event, key)
 		elseif event == "timer" and key == timer then
 			timer = os.startTimer(1)
+			lastTime = os.clock()
 		elseif event == "timer" and key == lockTimer then
 			lockedInputState = false
 		elseif event == "terminate" and not locked then
 			error("firewolf-exit")
 		end
+
+		if (os.clock() - lastTime) > 1 then
+			timer = os.startTimer(1)
+			lastTime = os.clock()
+		end
 	end
 end
 
+--  Coroutine manager
 
-local runOnDomain = function(domain)
-	serverChannel = Cryptography.channel(domain)
-	requestMatch = header.requestMatchA .. Cryptography.sanatize(domain) .. header.requestMatchB
-	responseHeader = header.responseHeaderA .. domain .. header.responseHeaderB
-	pageRequestMatch = header.pageRequestMatchA .. Cryptography.sanatize(domain) .. header.pageRequestMatchB
-	pageResposneHeader = header.pageResponseHeaderA .. domain .. header.pageResponseHeaderB
-	closeMatch = header.closeMatchA .. domain .. header.closeMatchB
-	maliciousMatch = header.maliciousMatchA .. Cryptography.sanatize(domain) .. header.maliciousMatchB
+local receiveThread, responseThread, terminalThread
 
-	Modem.open(serverChannel)
-	Modem.open(channel.dnsListen)
+local loadServerAPI = function()
+	if fs.exists(serverLocation .. "/" .. domain .. "/" .. serverAPILocation) and not fs.isDir(serverLocation .. "/" .. domain .. "/" .. serverAPILocation) then
+		local f = io.open(serverLocation .. "/" .. domain .. "/" .. serverAPILocation, "r")
+		local apiData = f:read("*a")
+		f:close()
 
-	if config.actAsRednetRepeater then
-		Modem.open(rednet.CHANNEL_REPEAT)
+		customCoroutines = {}
+
+		local apiFunction, err = loadstring(apiData)
+		if not apiFunction then
+			writeLog("Error while loading server API", theme.error, math.huge)
+			if err:match("%[string \"string\"%](.+)") then
+				writeLog("server_api" .. err:match("%[string \"string\"%](.+)"), theme.error, math.huge)
+			else
+				writeLog(err, theme.error, math.huge)
+			end
+		else
+			local global = getfenv(0)
+			local env = {}
+
+			for k,v in pairs(global) do
+				env[k] = v
+			end
+
+			env["server"] = {}
+
+			env["server"]["domain"] = domain
+
+			env["server"]["modem"] = Modem
+
+			env["server"]["handleRequest"] = function(index, func)
+				if not(index and func and type(index) == "string" and type(func) == "function") then
+					return error("index (string) and handler (function) expected")
+				elseif #index:gsub("/", "") == 0 then
+					return error("invalid index")
+				end
+				if index == "/" then
+					globalHandler = func
+					return
+				end
+				if index:sub(1, 1) == "/" then index = index:sub(2, -1) end
+				if index:sub(-1, -1) == "/" then index = index:sub(1, -2) end
+				if index:find(":") then
+					return error("Handle index cannot contain \":\"s")
+				end
+				handles[index] = func
+			end
+
+			env["server"]["runCoroutine"] = function(func)
+				local newThread = coroutine.create(func)
+				local err, msg = coroutine.resume(newThread)
+				if not err then
+					return error(msg)
+				end
+
+				table.insert(customCoroutines, newThread)
+			end
+
+			env["server"]["applyTemplate"] = function(variables, template)
+				local result
+				if fs.exists(template) and not fs.isDir(template) then
+					local f = io.open(template, "r")
+					result = f:read("*a")
+					f:close()
+				else
+					return false
+				end
+				for k,v in pairs(variables) do
+					result = result:gsub("##"..Cryptography.sanatize(k).."##", Cryptography.sanatize(v))
+				end
+				return result
+			end
+
+			env["server"]["log"] = function(text)
+				writeLog(text, theme.notice, math.huge)
+			end
+
+			setfenv(apiFunction, env)
+			local err, msg = pcall(apiFunction)
+
+			if not err then
+				writeLog("Error while executing server API", theme.error, math.huge)
+				writeError(tostring(msg))
+			else
+				writeLog("Server API loaded", theme.notice, math.huge)
+			end
+		end
 	end
+end
 
-	writeLog("Firewolf Server "..version.." running" , theme.notice, math.huge)
+local function resetServer()
+	connections = {}
+	responseStack = {}
+	Modem.closeAll()
+	Modem.open(Comm.publicChannel)
 
-	local receiveThread = coroutine.create(receiveDaemon)
-	local responseThread = coroutine.create(function() responseDaemon(domain) end)
-	local terminalThread = coroutine.create(function() terminalDaemon(domain) end)
+	loadServerAPI()
 
-	local function resetServer()
-		connections = {}
-		Modem.closeAll()
-		Modem.open(serverChannel)
-		Modem.open(channel.dnsListen)
-		responseThread = coroutine.create(function() responseDaemon(domain) end)
-		receiveThread = coroutine.create(receiveDaemon)
-		coroutine.resume(responseThread)
-		coroutine.resume(receiveThread)
-		writeLog("The server has been refreshed", theme.notice, 3)
-	end
-
-	coroutine.resume(receiveThread)
+	responseThread = coroutine.create(function() responseDaemon() end)
+	receiveThread = coroutine.create(receiveDaemon)
 	coroutine.resume(responseThread)
-	coroutine.resume(terminalThread)
+	coroutine.resume(receiveThread)
+	writeLog("The server has been reloaded", theme.userResponse, math.huge)
 
+	os.queueEvent("firewolf-lock-state-update")
+end
+
+local function runThreads()
 	while true do
 		local shouldResetServer = false
 		local events = {os.pullEventRaw()}
+
 		err, msg = coroutine.resume(receiveThread, unpack(events))
 		if not err then
 			writeLog("Internal error!", theme.error, math.huge)
-			writeLog(msg, theme.error, math.huge)
+			writeError(tostring(msg))
 			shouldResetServer = true
 		end
+
 		err, msg = coroutine.resume(responseThread)
 		if not err then
 			writeLog("Internal error!", theme.error, math.huge)
-			writeLog(msg, theme.error, math.huge)
+			writeError(tostring(msg))
 			shouldResetServer = true
 		end
+
 		err, msg = coroutine.resume(terminalThread, unpack(events))
 		if not err and msg:find("firewolf-exit", nil, true) then
 			writeLog("Normal exit", theme.text, math.huge)
+			Modem.closeAll()
+			shell.setDir("")
 			term.setBackgroundColor(colors.black)
 			term.clear()
 			term.setCursorPos(1, 1)
@@ -1640,18 +1820,53 @@ local runOnDomain = function(domain)
 			term.setCursorPos(1, 1)
 			error("Restart required error: "..msg)
 		end
-		if coroutine.status(receiveThread) == "dead" then
-			error()
+
+		for k,v in pairs(customCoroutines) do
+			if coroutine.status(v) ~= "dead" then
+				local err, msg = coroutine.resume(v, unpack(events))
+				if not err then
+					writeLog("Server API coroutine error!", theme.error, math.huge)
+					writeError(tostring(msg))
+					shouldResetServer = true
+				end
+			end
 		end
 
 		if events[1] == resetServerEvent or shouldResetServer then
 			resetServer()
 		end
 	end
-
 end
 
-local init = function(domain)
+local runOnDomain = function()
+	serverChannel = Cryptography.channel(domain)
+	requestMatch = header.requestMatchA .. Cryptography.sanatize(domain) .. header.requestMatchB
+	responseHeader = header.responseHeaderA .. domain .. header.responseHeaderB
+	pageRequestMatch = header.pageRequestMatchA .. Cryptography.sanatize(domain) .. header.pageRequestMatchB
+	pageResposneHeader = header.pageResponseHeaderA .. domain .. header.pageResponseHeaderB
+	closeMatch = header.closeMatchA .. domain .. header.closeMatchB
+	maliciousMatch = header.maliciousMatchA .. Cryptography.sanatize(domain) .. header.maliciousMatchB
+
+	Modem.open(Comm.publicChannel)
+
+	writeLog("Firewolf Server "..version.." running" , theme.notice, math.huge)
+
+	loadServerAPI()
+
+	receiveThread = coroutine.create(receiveDaemon)
+	responseThread = coroutine.create(responseDaemon)
+	terminalThread = coroutine.create(terminalDaemon)
+
+	coroutine.resume(receiveThread)
+	coroutine.resume(responseThread)
+	coroutine.resume(terminalThread)
+
+	runThreads()
+end
+
+--  Server initialisation
+
+local init = function()
 	Modem.closeAll()
 	term.setBackgroundColor(theme.background)
 	term.setTextColor(theme.notice)
@@ -1659,14 +1874,6 @@ local init = function(domain)
 	term.setCursorPos(1,1)
 	term.setCursorBlink(false)
 	term.setTextColor(theme.text)
-
-	if fs.isDir(configLocation) then
-		fs.delete(configLocation)
-	end
-
-	if not fs.exists(configLocation) then
-		saveConfig()
-	end
 
 	if not fs.exists(serverLocation .. "/" .. domain) then
 		makeDirectory(serverLocation .. "/" .. domain)
@@ -1676,8 +1883,6 @@ local init = function(domain)
 		end
 		makeDirectory(serverLocation .. "/" .. domain)
 	end
-
-	loadConfig()
 
 	local report = checkConfig()
 	if report then
@@ -1698,11 +1903,11 @@ local init = function(domain)
 		locked = true
 	end
 
-	local err, msg = pcall(function()runOnDomain(domain)end)
+	local err, msg = pcall(function()runOnDomain()end)
 	if not err and msg:find("firewolf-restart", nil, true) then
 		term.clear()
 		term.setCursorPos(1, 1)
-		return shell.run(shell.getRunningProgram(), domain)
+		return shell.run("/"..shell.getRunningProgram(), domain)
 	elseif not err then
 		term.setBackgroundColor(colors.black)
 		term.clear()
@@ -1712,7 +1917,7 @@ local init = function(domain)
 		print(msg)
 		print("Firewolf Server will reboot in 3 seconds...")
 		sleep(3)
-		return shell.run(shell.getRunningProgram(), domain)
+		return shell.run("/"..shell.getRunningProgram(), domain)
 	end
 end
 
@@ -1729,20 +1934,40 @@ if not Modem.exists() then
 	return
 end
 
+if fs.isDir(configLocation) then
+	fs.delete(configLocation)
+end
+
+if not fs.exists(configLocation) then
+	saveConfig()
+end
+
+loadConfig()
+
+if not domain and config.lastDomain then
+	domain = config.lastDomain
+end
+
 if domain then
-	term.setTextColor(colors.yellow)
+	if term.isColor() then
+		term.setTextColor(colors.yellow)
+	else
+		term.setTextColor(colors.white)
+	end
 	term.setCursorBlink(false)
-	print("Intializing Firewolf Server...")
+	print("Initializing Firewolf Server...")
 	local report = checkDomain(domain)
-	term.setTextColor(colors.red)
+	term.setTextColor(theme.error)
 	if report == "symbols" then
-		print("Domain cannot contain \":\" and \"/\"s")
+		print("Domain cannot contain \":\", \"/\" and \"?\"s")
 	elseif report == "short" then
 		print("Domain name too short!")
 	elseif report == "taken" then
 		print("Domain already taken!")
 	else
-		init(domain)
+		config.lastDomain = domain
+		saveConfig()
+		init()
 	end
 else
 	term.setTextColor(colors.white)

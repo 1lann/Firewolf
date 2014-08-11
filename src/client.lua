@@ -1,3 +1,4 @@
+
 --
 --  Firewolf
 --  Made by GravityScore and 1lann
@@ -8,8 +9,8 @@
 --    Variables
 
 
-local version = "3.2"
-local build = 3
+local version = "3.5"
+local build = 17
 
 local w, h = term.getSize()
 
@@ -39,10 +40,10 @@ local publicResponseChannel = 9998
 local responseID = 41738
 
 local httpTimeout = 10
-local searchResultTimeout = 0.25
-local initiationTimeout = 0.25
+local searchResultTimeout = 2
+local initiationTimeout = 2
 local animationInterval = 0.125
-local fetchTimeout = 0.25
+local fetchTimeout = 3
 local serverLimitPerComputer = 1
 
 local websiteErrorEvent = "firewolf_websiteErrorEvent"
@@ -56,6 +57,7 @@ local serverURL = baseURL .. "/server.lua"
 local originalTerminal = term.current()
 
 local firewolfLocation = "/" .. shell.getRunningProgram()
+local downloadsLocation = "/downloads"
 
 
 local theme = {}
@@ -83,28 +85,6 @@ local grayscaleTheme = {
 
 
 --    Utilities
-
-
-local debugLog = function(...)
-	-- if not fs.exists("/firewolf-log") then
-	-- 	local f = io.open("/firewolf-log", "w")
-	-- 	f:write("")
-	-- 	f:close()
-	-- end
-
-	-- local args = {...}
-	-- local construct = ""
-
-	-- for k,v in pairs(args) do
-	-- 	construct = construct .. " : " .. tostring(v)
-	-- end
-
-	-- local f = io.open("/firewolf-log", "a")
-	-- f:write(construct.."\n")
-	-- f:close()
-end
-
- debugLog("-- New firewolf session")
 
 
 local modifiedRead = function(properties)
@@ -331,56 +311,6 @@ local prompt = function(items, x, y, w, h)
 				os.queueEvent("key", keys.up)
 			end
 		end
-	end
-end
-
-
-
---    RC4
---    Implementation by AgentE382
-
-
-local cryptWrapper = function(plaintext, salt)
-	local key = type(salt) == "table" and {unpack(salt)} or {string.byte(salt, 1, #salt)}
-	local S = {}
-	for i = 0, 255 do
-		S[i] = i
-	end
-
-	local j, keylength = 0, #key
-	for i = 0, 255 do
-		j = (j + S[i] + key[i % keylength + 1]) % 256
-		S[i], S[j] = S[j], S[i]
-	end
-
-	local i = 0
-	j = 0
-	local chars, astable = type(plaintext) == "table" and {unpack(plaintext)} or {string.byte(plaintext, 1, #plaintext)}, false
-
-	for n = 1, #chars do
-		i = (i + 1) % 256
-		j = (j + S[i]) % 256
-		S[i], S[j] = S[j], S[i]
-		chars[n] = bit.bxor(S[(S[i] + S[j]) % 256], chars[n])
-		if chars[n] > 127 or chars[n] == 13 then
-			astable = true
-		end
-	end
-
-	return astable and chars or string.char(unpack(chars))
-end
-
-
-local crypt = function(plaintext, salt)
-	local resp, msg = pcall(cryptWrapper, plaintext, salt)
-	if resp then
-		if type(msg) == "table" then
-			return textutils.serialize(msg)
-		else
-			return msg
-		end
-	else
-		return nil
 	end
 end
 
@@ -731,6 +661,12 @@ builtInSites["search advanced"] = function(results)
 			end
 
 			draw()
+		elseif event == "mouse_scroll" then
+			if but > 0 then
+				os.queueEvent("key", keys.down)
+			else
+				os.queueEvent("key", keys.up)
+			end
 		end
 	end
 end
@@ -784,6 +720,12 @@ builtInSites["search basic"] = function(results)
 			end
 
 			draw()
+		elseif event == "mouse_scroll" then
+			if but > 0 then
+				os.queueEvent("key", keys.down)
+			else
+				os.queueEvent("key", keys.up)
+			end
 		end
 	end
 end
@@ -890,7 +832,11 @@ local drawMenubar = function()
 
 		term.setBackgroundColor(theme.accent)
 		term.setCursorPos(2, 1)
-		term.write(currentProtocol .. "://" .. currentWebsiteURL)
+		if currentWebsiteURL:match("^[^%?]+") then
+			term.write(currentProtocol .. "://" .. currentWebsiteURL:match("^[^%?]+"))
+		else
+			term.write(currentProtocol .. "://" ..currentWebsiteURL)
+		end
 
 		term.setCursorPos(w - 5, 1)
 		term.write("[===]")
@@ -930,780 +876,811 @@ end
 
 
 
+--    RC4
+--    Implementation by AgentE382
+
+
+local cryptWrapper = function(plaintext, salt)
+	local key = type(salt) == "table" and {unpack(salt)} or {string.byte(salt, 1, #salt)}
+	local S = {}
+	for i = 0, 255 do
+		S[i] = i
+	end
+
+	local j, keylength = 0, #key
+	for i = 0, 255 do
+		j = (j + S[i] + key[i % keylength + 1]) % 256
+		S[i], S[j] = S[j], S[i]
+	end
+
+	local i = 0
+	j = 0
+	local chars, astable = type(plaintext) == "table" and {unpack(plaintext)} or {string.byte(plaintext, 1, #plaintext)}, false
+
+	for n = 1, #chars do
+		i = (i + 1) % 256
+		j = (j + S[i]) % 256
+		S[i], S[j] = S[j], S[i]
+		chars[n] = bit.bxor(S[(S[i] + S[j]) % 256], chars[n])
+		if chars[n] > 127 or chars[n] == 13 then
+			astable = true
+		end
+	end
+
+	return astable and chars or string.char(unpack(chars))
+end
+
+
+local crypt = function(text, key)
+	local resp, msg = pcall(cryptWrapper, text, key)
+	if resp then
+		return msg
+	else
+		return nil
+	end
+end
+
+
+
+--    Base64
+--
+--    Base64 Encryption/Decryption
+--    By KillaVanilla
+--    http://www.computercraft.info/forums2/index.php?/topic/12450-killavanillas-various-apis/
+--    http://pastebin.com/rCYDnCxn
+
+
+local alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+
+local function sixBitToBase64(input)
+	return string.sub(alphabet, input+1, input+1)
+end
+
+
+local function base64ToSixBit(input)
+	for i=1, 64 do
+		if input == string.sub(alphabet, i, i) then
+			return i-1
+		end
+	end
+end
+
+
+local function octetToBase64(o1, o2, o3)
+	local shifted = bit.brshift(bit.band(o1, 0xFC), 2)
+	local i1 = sixBitToBase64(shifted)
+	local i2 = "A"
+	local i3 = "="
+	local i4 = "="
+	if o2 then
+		i2 = sixBitToBase64(bit.bor( bit.blshift(bit.band(o1, 3), 4), bit.brshift(bit.band(o2, 0xF0), 4) ))
+		if not o3 then
+			i3 = sixBitToBase64(bit.blshift(bit.band(o2, 0x0F), 2))
+		else
+			i3 = sixBitToBase64(bit.bor( bit.blshift(bit.band(o2, 0x0F), 2), bit.brshift(bit.band(o3, 0xC0), 6) ))
+		end
+	else
+		i2 = sixBitToBase64(bit.blshift(bit.band(o1, 3), 4))
+	end
+	if o3 then
+		i4 = sixBitToBase64(bit.band(o3, 0x3F))
+	end
+
+	return i1..i2..i3..i4
+end
+
+
+local function base64ToThreeOctet(s1)
+	local c1 = base64ToSixBit(string.sub(s1, 1, 1))
+	local c2 = base64ToSixBit(string.sub(s1, 2, 2))
+	local c3 = 0
+	local c4 = 0
+	local o1 = 0
+	local o2 = 0
+	local o3 = 0
+	if string.sub(s1, 3, 3) == "=" then
+		c3 = nil
+		c4 = nil
+	elseif string.sub(s1, 4, 4) == "=" then
+		c3 = base64ToSixBit(string.sub(s1, 3, 3))
+		c4 = nil
+	else
+		c3 = base64ToSixBit(string.sub(s1, 3, 3))
+		c4 = base64ToSixBit(string.sub(s1, 4, 4))
+	end
+	o1 = bit.bor( bit.blshift(c1, 2), bit.brshift(bit.band( c2, 0x30 ), 4) )
+	if c3 then
+		o2 = bit.bor( bit.blshift(bit.band(c2, 0x0F), 4), bit.brshift(bit.band( c3, 0x3C ), 2) )
+	else
+		o2 = nil
+	end
+	if c4 then
+		o3 = bit.bor( bit.blshift(bit.band(c3, 3), 6), c4 )
+	else
+		o3 = nil
+	end
+	return o1, o2, o3
+end
+
+
+local function splitIntoBlocks(bytes)
+	local blockNum = 1
+	local blocks = {}
+	for i=1, #bytes, 3 do
+		blocks[blockNum] = {bytes[i], bytes[i+1], bytes[i+2]}
+		blockNum = blockNum+1
+	end
+	return blocks
+end
+
+
+function base64Encode(bytes)
+	local blocks = splitIntoBlocks(bytes)
+	local output = ""
+	for i=1, #blocks do
+		output = output..octetToBase64( unpack(blocks[i]) )
+	end
+	return output
+end
+
+
+function base64Decode(str)
+	local bytes = {}
+	local blocks = {}
+	local blockNum = 1
+
+	for i=1, #str, 4 do
+		blocks[blockNum] = string.sub(str, i, i+3)
+		blockNum = blockNum+1
+	end
+
+	for i=1, #blocks do
+		local o1, o2, o3 = base64ToThreeOctet(blocks[i])
+		table.insert(bytes, o1)
+		table.insert(bytes, o2)
+		table.insert(bytes, o3)
+	end
+
+	return bytes
+end
+
+
+
+--    SHA-256
+--
+--    Adaptation of the Secure Hashing Algorithm (SHA-244/256)
+--    Found Here: http://lua-users.org/wiki/SecureHashAlgorithm
+--
+--    Using an adapted version of the bit library
+--    Found Here: https://bitbucket.org/Boolsheet/bslf/src/1ee664885805/bit.lua
+
+
+local MOD = 2^32
+local MODM = MOD-1
+
+
+local function memoize(f)
+	local mt = {}
+	local t = setmetatable({}, mt)
+	function mt:__index(k)
+		local v = f(k)
+		t[k] = v
+		return v
+	end
+	return t
+end
+
+
+local function make_bitop_uncached(t, m)
+	local function bitop(a, b)
+		local res,p = 0,1
+		while a ~= 0 and b ~= 0 do
+			local am, bm = a % m, b % m
+			res = res + t[am][bm] * p
+			a = (a - am) / m
+			b = (b - bm) / m
+			p = p * m
+		end
+		res = res + (a + b) * p
+		return res
+	end
+
+	return bitop
+end
+
+
+local function make_bitop(t)
+	local op1 = make_bitop_uncached(t,2^1)
+	local op2 = memoize(function(a)
+		return memoize(function(b)
+			return op1(a, b)
+		end)
+	end)
+	return make_bitop_uncached(op2, 2 ^ (t.n or 1))
+end
+
+
+local customBxor1 = make_bitop({[0] = {[0] = 0,[1] = 1}, [1] = {[0] = 1, [1] = 0}, n = 4})
+
+local function customBxor(a, b, c, ...)
+	local z = nil
+	if b then
+		a = a % MOD
+		b = b % MOD
+		z = customBxor1(a, b)
+		if c then
+			z = customBxor(z, c, ...)
+		end
+		return z
+	elseif a then
+		return a % MOD
+	else
+		return 0
+	end
+end
+
+
+local function customBand(a, b, c, ...)
+	local z
+	if b then
+		a = a % MOD
+		b = b % MOD
+		z = ((a + b) - customBxor1(a,b)) / 2
+		if c then
+			z = customBand(z, c, ...)
+		end
+		return z
+	elseif a then
+		return a % MOD
+	else
+		return MODM
+	end
+end
+
+
+local function bnot(x)
+	return (-1 - x) % MOD
+end
+
+
+local function rshift1(a, disp)
+	if disp < 0 then
+		return lshift(a, -disp)
+	end
+	return math.floor(a % 2 ^ 32 / 2 ^ disp)
+end
+
+
+local function rshift(x, disp)
+	if disp > 31 or disp < -31 then
+		return 0
+	end
+	return rshift1(x % MOD, disp)
+end
+
+
+local function lshift(a, disp)
+	if disp < 0 then
+		return rshift(a, -disp)
+	end
+	return (a * 2 ^ disp) % 2 ^ 32
+end
+
+
+local function rrotate(x, disp)
+    x = x % MOD
+    disp = disp % 32
+    local low = customBand(x, 2 ^ disp - 1)
+    return rshift(x, disp) + lshift(low, 32 - disp)
+end
+
+
+local k = {
+	0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+	0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+	0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+	0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+	0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+	0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+	0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+	0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+	0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+	0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+	0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+	0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+	0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+	0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+	0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+	0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+}
+
+
+local function str2hexa(s)
+	return (string.gsub(s, ".", function(c)
+		return string.format("%02x", string.byte(c))
+	end))
+end
+
+
+local function num2s(l, n)
+	local s = ""
+	for i = 1, n do
+		local rem = l % 256
+		s = string.char(rem) .. s
+		l = (l - rem) / 256
+	end
+	return s
+end
+
+
+local function s232num(s, i)
+	local n = 0
+	for i = i, i + 3 do
+		n = n*256 + string.byte(s, i)
+	end
+	return n
+end
+
+
+local function preproc(msg, len)
+	local extra = 64 - ((len + 9) % 64)
+	len = num2s(8 * len, 8)
+	msg = msg .. "\128" .. string.rep("\0", extra) .. len
+	assert(#msg % 64 == 0)
+	return msg
+end
+
+
+local function initH256(H)
+	H[1] = 0x6a09e667
+	H[2] = 0xbb67ae85
+	H[3] = 0x3c6ef372
+	H[4] = 0xa54ff53a
+	H[5] = 0x510e527f
+	H[6] = 0x9b05688c
+	H[7] = 0x1f83d9ab
+	H[8] = 0x5be0cd19
+	return H
+end
+
+
+local function digestblock(msg, i, H)
+	local w = {}
+	for j = 1, 16 do
+		w[j] = s232num(msg, i + (j - 1)*4)
+	end
+	for j = 17, 64 do
+		local v = w[j - 15]
+		local s0 = customBxor(rrotate(v, 7), rrotate(v, 18), rshift(v, 3))
+		v = w[j - 2]
+		w[j] = w[j - 16] + s0 + w[j - 7] + customBxor(rrotate(v, 17), rrotate(v, 19), rshift(v, 10))
+	end
+
+	local a, b, c, d, e, f, g, h = H[1], H[2], H[3], H[4], H[5], H[6], H[7], H[8]
+	for i = 1, 64 do
+		local s0 = customBxor(rrotate(a, 2), rrotate(a, 13), rrotate(a, 22))
+		local maj = customBxor(customBand(a, b), customBand(a, c), customBand(b, c))
+		local t2 = s0 + maj
+		local s1 = customBxor(rrotate(e, 6), rrotate(e, 11), rrotate(e, 25))
+		local ch = customBxor (customBand(e, f), customBand(bnot(e), g))
+		local t1 = h + s1 + ch + k[i] + w[i]
+		h, g, f, e, d, c, b, a = g, f, e, d + t1, c, b, a, t1 + t2
+	end
+
+	H[1] = customBand(H[1] + a)
+	H[2] = customBand(H[2] + b)
+	H[3] = customBand(H[3] + c)
+	H[4] = customBand(H[4] + d)
+	H[5] = customBand(H[5] + e)
+	H[6] = customBand(H[6] + f)
+	H[7] = customBand(H[7] + g)
+	H[8] = customBand(H[8] + h)
+end
+
+
+local function sha256(msg)
+	msg = preproc(msg, #msg)
+	local H = initH256({})
+	for i = 1, #msg, 64 do
+		digestblock(msg, i, H)
+	end
+	return str2hexa(num2s(H[1], 4) .. num2s(H[2], 4) .. num2s(H[3], 4) .. num2s(H[4], 4) ..
+		num2s(H[5], 4) .. num2s(H[6], 4) .. num2s(H[7], 4) .. num2s(H[8], 4))
+end
+
+
+local protocolName = "Firewolf"
+
+
+
+--    Cryptography
+
+
+local Cryptography = {}
+Cryptography.sha = {}
+Cryptography.base64 = {}
+Cryptography.aes = {}
+
+
+function Cryptography.bytesFromMessage(msg)
+	local bytes = {}
+
+	for i = 1, msg:len() do
+		local letter = string.byte(msg:sub(i, i))
+		table.insert(bytes, letter)
+	end
+
+	return bytes
+end
+
+
+function Cryptography.messageFromBytes(bytes)
+	local msg = ""
+
+	for i = 1, #bytes do
+		local letter = string.char(bytes[i])
+		msg = msg .. letter
+	end
+
+	return msg
+end
+
+
+function Cryptography.bytesFromKey(key)
+	local bytes = {}
+
+	for i = 1, key:len() / 2 do
+		local group = key:sub((i - 1) * 2 + 1, (i - 1) * 2 + 1)
+		local num = tonumber(group, 16)
+		table.insert(bytes, num)
+	end
+
+	return bytes
+end
+
+
+function Cryptography.sha.sha256(msg)
+	return sha256(msg)
+end
+
+
+function Cryptography.aes.encrypt(msg, key)
+	return base64Encode(crypt(msg, key))
+end
+
+
+function Cryptography.aes.decrypt(msg, key)
+	return crypt(base64Decode(msg), key)
+end
+
+
+function Cryptography.base64.encode(msg)
+	return base64Encode(Cryptography.bytesFromMessage(msg))
+end
+
+
+function Cryptography.base64.decode(msg)
+	return Cryptography.messageFromBytes(base64Decode(msg))
+end
+
+
+function Cryptography.channel(text)
+	local hashed = Cryptography.sha.sha256(text)
+
+	local total = 0
+
+	for i = 1, hashed:len() do
+		total = total + string.byte(hashed:sub(i, i))
+	end
+
+	return (total % 55530) + 10000
+end
+
+
+function Cryptography.sanatize(text)
+	local sanatizeChars = {"%", "(", ")", "[", "]", ".", "+", "-", "*", "?", "^", "$"}
+
+	for _, char in pairs(sanatizeChars) do
+		text = text:gsub("%"..char, "%%%"..char)
+	end
+	return text
+end
+
+
+
+--    Modem
+
+
+local Modem = {}
+Modem.modems = {}
+
+
+function Modem.exists()
+	Modem.exists = false
+	for _, side in pairs(rs.getSides()) do
+		if peripheral.isPresent(side) and peripheral.getType(side) == "modem" then
+			Modem.exists = true
+
+			if not Modem.modems[side] then
+				Modem.modems[side] = peripheral.wrap(side)
+			end
+		end
+	end
+
+	return Modem.exists
+end
+
+
+function Modem.open(channel)
+	if not Modem.exists then
+		return false
+	end
+
+	for side, modem in pairs(Modem.modems) do
+		modem.open(channel)
+	end
+
+	return true
+end
+
+
+function Modem.close(channel)
+	if not Modem.exists then
+		return false
+	end
+
+	for side, modem in pairs(Modem.modems) do
+		modem.close(channel)
+	end
+
+	return true
+end
+
+
+function Modem.closeAll()
+	if not Modem.exists then
+		return false
+	end
+
+	for side, modem in pairs(Modem.modems) do
+		modem.closeAll()
+	end
+
+	return true
+end
+
+
+function Modem.isOpen(channel)
+	if not Modem.exists then
+		return false
+	end
+
+	local isOpen = false
+	for side, modem in pairs(Modem.modems) do
+		if modem.isOpen(channel) then
+			isOpen = true
+			break
+		end
+	end
+
+	return isOpen
+end
+
+
+function Modem.transmit(channel, msg)
+	if not Modem.exists then
+		return false
+	end
+
+	for side, modem in pairs(Modem.modems) do
+		modem.transmit(channel, channel, msg)
+	end
+
+	return true
+end
+
+
+
+--    Handshake
+
+
+local Handshake = {}
+
+Handshake.prime = 625210769
+Handshake.channel = 54569
+Handshake.base = -1
+Handshake.secret = -1
+Handshake.sharedSecret = -1
+Handshake.packetHeader = "["..protocolName.."-Handshake-Packet-Header]"
+Handshake.packetMatch = "%["..protocolName.."%-Handshake%-Packet%-Header%](.+)"
+
+
+function Handshake.exponentWithModulo(base, exponent, modulo)
+	local remainder = base
+
+	for i = 1, exponent-1 do
+		remainder = remainder * remainder
+		if remainder >= modulo then
+			remainder = remainder % modulo
+		end
+	end
+
+	return remainder
+end
+
+
+function Handshake.clear()
+	Handshake.base = -1
+	Handshake.secret = -1
+	Handshake.sharedSecret = -1
+end
+
+
+function Handshake.generateInitiatorData()
+	Handshake.base = math.random(10,99999)
+	Handshake.secret = math.random(10,99999)
+	return {
+		type = "initiate",
+		prime = Handshake.prime,
+		base = Handshake.base,
+		id = tostring({}):gsub("table: ", ""),
+		moddedSecret = Handshake.exponentWithModulo(Handshake.base, Handshake.secret, Handshake.prime)
+	}
+end
+
+
+function Handshake.generateResponseData(initiatorData)
+	local isPrimeANumber = type(initiatorData.prime) == "number"
+	local isPrimeMatching = initiatorData.prime == Handshake.prime
+	local isBaseANumber = type(initiatorData.base) == "number"
+	local isInitiator = initiatorData.type == "initiate"
+	local isModdedSecretANumber = type(initiatorData.moddedSecret) == "number"
+	local areAllNumbersNumbers = isPrimeANumber and isBaseANumber and isModdedSecretANumber
+
+	if areAllNumbersNumbers and isPrimeMatching then
+		if isInitiator then
+			Handshake.base = initiatorData.base
+			Handshake.secret = math.random(10,99999)
+			Handshake.sharedSecret = Handshake.exponentWithModulo(initiatorData.moddedSecret, Handshake.secret, Handshake.prime)
+			return {
+				type = "response",
+				prime = Handshake.prime,
+				base = Handshake.base,
+				moddedSecret = Handshake.exponentWithModulo(Handshake.base, Handshake.secret, Handshake.prime)
+			}, Handshake.sharedSecret
+		elseif initiatorData.type == "response" and Handshake.base > 0 and Handshake.secret > 0 then
+			Handshake.sharedSecret = Handshake.exponentWithModulo(initiatorData.moddedSecret, Handshake.secret, Handshake.prime)
+			return Handshake.sharedSecret
+		else
+			return false
+		end
+	else
+		return false
+	end
+end
+
+
+--    Communication
+
+
+local Comm = {}
+Comm.publicChannel = 44238
+
+function Comm.transmit(msg, channel, direct)
+	if direct then
+		Modem.transmit(channel, msg)
+	else
+		Modem.transmit(Comm.publicChannel, {
+			isRepeated = false,
+			firewolf = true,
+			direction = "server",
+			message = msg,
+			channel = channel,
+			id = tostring({}):gsub("table: ", "")
+		})
+	end
+end
+
+
+--    Secure Connection
+
+
+local SecureConnection = {}
+SecureConnection.__index = SecureConnection
+
+
+SecureConnection.packetHeaderA = "[" .. protocolName .. "-"
+SecureConnection.packetHeaderB = "-SecureConnection-Packet-Header]"
+SecureConnection.packetMatchA = "%[" .. protocolName .. "%-"
+SecureConnection.packetMatchB = "%-SecureConnection%-Packet%-Header%](.+)"
+SecureConnection.connectionTimeout = 0.1
+SecureConnection.successPacketTimeout = 0.1
+
+
+function SecureConnection.new(secret, key, identifier, distance, isRednet)
+	local self = setmetatable({}, SecureConnection)
+	self:setup(secret, key, identifier, distance, isRednet)
+	return self
+end
+
+
+function SecureConnection:setup(secret, key, identifier, distance, isRednet)
+	local rawSecret
+
+	if isRednet then
+		self.isRednet = true
+		self.distance = -1
+		self.rednet_id = distance
+		rawSecret = protocolName .. "|" .. tostring(secret) .. "|" .. tostring(identifier) ..
+		"|" .. tostring(key) .. "|rednet"
+	else
+		self.isRednet = false
+		self.distance = distance
+		rawSecret = protocolName .. "|" .. tostring(secret) .. "|" .. tostring(identifier) ..
+		"|" .. tostring(key) .. "|" .. tostring(distance)
+	end
+
+	self.identifier = identifier
+	self.packetMatch = SecureConnection.packetMatchA .. Cryptography.sanatize(identifier) .. SecureConnection.packetMatchB
+	self.packetHeader = SecureConnection.packetHeaderA .. identifier .. SecureConnection.packetHeaderB
+	self.secret = Cryptography.sha.sha256(rawSecret)
+	self.channel = Cryptography.channel(self.secret)
+
+	if not self.isRednet then
+		Modem.open(self.channel)
+	end
+end
+
+
+function SecureConnection:verifyHeader(msg)
+	if msg:match(self.packetMatch) then
+		return true
+	else
+		return false
+	end
+end
+
+
+function SecureConnection:sendMessage(msg, rednetProtocol)
+	local rawEncryptedMsg = Cryptography.aes.encrypt(self.packetHeader .. msg, self.secret)
+	local encryptedMsg = self.packetHeader .. rawEncryptedMsg
+
+	if self.isRednet then
+		rednet.send(self.rednet_id, encryptedMsg, rednetProtocol)
+		return true
+	else
+		return Modem.transmit(self.channel, encryptedMsg)
+	end
+end
+
+
+function SecureConnection:decryptMessage(msg)
+	if self:verifyHeader(msg) then
+		local encrypted = msg:match(self.packetMatch)
+
+		local unencryptedMsg = nil
+		pcall(function() unencryptedMsg = Cryptography.aes.decrypt(encrypted, self.secret) end)
+		if not unencryptedMsg then
+			return false, "Could not decrypt"
+		end
+
+		if self:verifyHeader(unencryptedMsg) then
+			return true, unencryptedMsg:match(self.packetMatch)
+		else
+			return false, "Could not verify"
+		end
+	else
+		return false, "Could not stage 1 verify"
+	end
+end
+
+
+
 --    RDNT Protocol
 
 
 protocols["rdnt"] = {}
-
-
---  Networking API
-	--  RC4
-		--    RC4
-		--    Implementation by AgentE382
-
-
-		local cryptWrapper = function(plaintext, salt)
-			local key = type(salt) == "table" and {unpack(salt)} or {string.byte(salt, 1, #salt)}
-			local S = {}
-			for i = 0, 255 do
-				S[i] = i
-			end
-
-			local j, keylength = 0, #key
-			for i = 0, 255 do
-				j = (j + S[i] + key[i % keylength + 1]) % 256
-				S[i], S[j] = S[j], S[i]
-			end
-
-			local i = 0
-			j = 0
-			local chars, astable = type(plaintext) == "table" and {unpack(plaintext)} or {string.byte(plaintext, 1, #plaintext)}, false
-
-			for n = 1, #chars do
-				i = (i + 1) % 256
-				j = (j + S[i]) % 256
-				S[i], S[j] = S[j], S[i]
-				chars[n] = bit.bxor(S[(S[i] + S[j]) % 256], chars[n])
-				if chars[n] > 127 or chars[n] == 13 then
-					astable = true
-				end
-			end
-
-			return astable and chars or string.char(unpack(chars))
-		end
-
-
-		local crypt = function(text, key)
-			local resp, msg = pcall(cryptWrapper, text, key)
-			if resp then
-				return msg
-			else
-				return nil
-			end
-		end
-
-
-	--  Base64
-		--
-		--  Base64 Encryption/Decryption
-		--  By KillaVanilla
-		--  http://www.computercraft.info/forums2/index.php?/topic/12450-killavanillas-various-apis/
-		--  http://pastebin.com/rCYDnCxn
-		--
-
-
-
-		local alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-
-
-		local function sixBitToBase64(input)
-			return string.sub(alphabet, input+1, input+1)
-		end
-
-
-		local function base64ToSixBit(input)
-			for i=1, 64 do
-				if input == string.sub(alphabet, i, i) then
-					return i-1
-				end
-			end
-		end
-
-
-		local function octetToBase64(o1, o2, o3)
-			local shifted = bit.brshift(bit.band(o1, 0xFC), 2)
-			local i1 = sixBitToBase64(shifted)
-			local i2 = "A"
-			local i3 = "="
-			local i4 = "="
-			if o2 then
-				i2 = sixBitToBase64(bit.bor( bit.blshift(bit.band(o1, 3), 4), bit.brshift(bit.band(o2, 0xF0), 4) ))
-				if not o3 then
-					i3 = sixBitToBase64(bit.blshift(bit.band(o2, 0x0F), 2))
-				else
-					i3 = sixBitToBase64(bit.bor( bit.blshift(bit.band(o2, 0x0F), 2), bit.brshift(bit.band(o3, 0xC0), 6) ))
-				end
-			else
-				i2 = sixBitToBase64(bit.blshift(bit.band(o1, 3), 4))
-			end
-			if o3 then
-				i4 = sixBitToBase64(bit.band(o3, 0x3F))
-			end
-
-			return i1..i2..i3..i4
-		end
-
-
-		local function base64ToThreeOctet(s1)
-			local c1 = base64ToSixBit(string.sub(s1, 1, 1))
-			local c2 = base64ToSixBit(string.sub(s1, 2, 2))
-			local c3 = 0
-			local c4 = 0
-			local o1 = 0
-			local o2 = 0
-			local o3 = 0
-			if string.sub(s1, 3, 3) == "=" then
-				c3 = nil
-				c4 = nil
-			elseif string.sub(s1, 4, 4) == "=" then
-				c3 = base64ToSixBit(string.sub(s1, 3, 3))
-				c4 = nil
-			else
-				c3 = base64ToSixBit(string.sub(s1, 3, 3))
-				c4 = base64ToSixBit(string.sub(s1, 4, 4))
-			end
-			o1 = bit.bor( bit.blshift(c1, 2), bit.brshift(bit.band( c2, 0x30 ), 4) )
-			if c3 then
-				o2 = bit.bor( bit.blshift(bit.band(c2, 0x0F), 4), bit.brshift(bit.band( c3, 0x3C ), 2) )
-			else
-				o2 = nil
-			end
-			if c4 then
-				o3 = bit.bor( bit.blshift(bit.band(c3, 3), 6), c4 )
-			else
-				o3 = nil
-			end
-			return o1, o2, o3
-		end
-
-
-		local function splitIntoBlocks(bytes)
-			local blockNum = 1
-			local blocks = {}
-			for i=1, #bytes, 3 do
-				blocks[blockNum] = {bytes[i], bytes[i+1], bytes[i+2]}
-				blockNum = blockNum+1
-			end
-			return blocks
-		end
-
-
-		function base64Encode(bytes)
-			local blocks = splitIntoBlocks(bytes)
-			local output = ""
-			for i=1, #blocks do
-				output = output..octetToBase64( unpack(blocks[i]) )
-			end
-			return output
-		end
-
-
-		function base64Decode(str)
-			local bytes = {}
-			local blocks = {}
-			local blockNum = 1
-
-			for i=1, #str, 4 do
-				blocks[blockNum] = string.sub(str, i, i+3)
-				blockNum = blockNum+1
-			end
-
-			for i=1, #blocks do
-				local o1, o2, o3 = base64ToThreeOctet(blocks[i])
-				table.insert(bytes, o1)
-				table.insert(bytes, o2)
-				table.insert(bytes, o3)
-			end
-
-			return bytes
-		end
-
-
-	--  SHA-256
-		--
-		--  Adaptation of the Secure Hashing Algorithm (SHA-244/256)
-		--  Found Here: http://lua-users.org/wiki/SecureHashAlgorithm
-		--
-		--  Using an adapted version of the bit library
-		--  Found Here: https://bitbucket.org/Boolsheet/bslf/src/1ee664885805/bit.lua
-		--
-
-
-
-		local MOD = 2^32
-		local MODM = MOD-1
-
-
-		local function memoize(f)
-			local mt = {}
-			local t = setmetatable({}, mt)
-			function mt:__index(k)
-				local v = f(k)
-				t[k] = v
-				return v
-			end
-			return t
-		end
-
-
-		local function make_bitop_uncached(t, m)
-			local function bitop(a, b)
-				local res,p = 0,1
-				while a ~= 0 and b ~= 0 do
-					local am, bm = a % m, b % m
-					res = res + t[am][bm] * p
-					a = (a - am) / m
-					b = (b - bm) / m
-					p = p * m
-				end
-				res = res + (a + b) * p
-				return res
-			end
-
-			return bitop
-		end
-
-
-		local function make_bitop(t)
-			local op1 = make_bitop_uncached(t,2^1)
-			local op2 = memoize(function(a)
-				return memoize(function(b)
-					return op1(a, b)
-				end)
-			end)
-			return make_bitop_uncached(op2, 2 ^ (t.n or 1))
-		end
-
-
-		local customBxor1 = make_bitop({[0] = {[0] = 0,[1] = 1}, [1] = {[0] = 1, [1] = 0}, n = 4})
-
-		local function customBxor(a, b, c, ...)
-			local z = nil
-			if b then
-				a = a % MOD
-				b = b % MOD
-				z = customBxor1(a, b)
-				if c then
-					z = customBxor(z, c, ...)
-				end
-				return z
-			elseif a then
-				return a % MOD
-			else
-				return 0
-			end
-		end
-
-
-		local function customBand(a, b, c, ...)
-			local z
-			if b then
-				a = a % MOD
-				b = b % MOD
-				z = ((a + b) - customBxor1(a,b)) / 2
-				if c then
-					z = customBand(z, c, ...)
-				end
-				return z
-			elseif a then
-				return a % MOD
-			else
-				return MODM
-			end
-		end
-
-
-		local function bnot(x)
-			return (-1 - x) % MOD
-		end
-
-
-		local function rshift1(a, disp)
-			if disp < 0 then
-				return lshift(a, -disp)
-			end
-			return math.floor(a % 2 ^ 32 / 2 ^ disp)
-		end
-
-
-		local function rshift(x, disp)
-			if disp > 31 or disp < -31 then
-				return 0
-			end
-			return rshift1(x % MOD, disp)
-		end
-
-
-		local function lshift(a, disp)
-			if disp < 0 then
-				return rshift(a, -disp)
-			end
-			return (a * 2 ^ disp) % 2 ^ 32
-		end
-
-
-		local function rrotate(x, disp)
-		    x = x % MOD
-		    disp = disp % 32
-		    local low = customBand(x, 2 ^ disp - 1)
-		    return rshift(x, disp) + lshift(low, 32 - disp)
-		end
-
-
-		local k = {
-			0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
-			0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-			0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-			0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-			0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
-			0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-			0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
-			0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-			0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-			0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-			0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
-			0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-			0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
-			0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-			0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-			0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
-		}
-
-
-		local function str2hexa(s)
-			return (string.gsub(s, ".", function(c)
-				return string.format("%02x", string.byte(c))
-			end))
-		end
-
-
-		local function num2s(l, n)
-			local s = ""
-			for i = 1, n do
-				local rem = l % 256
-				s = string.char(rem) .. s
-				l = (l - rem) / 256
-			end
-			return s
-		end
-
-
-		local function s232num(s, i)
-			local n = 0
-			for i = i, i + 3 do
-				n = n*256 + string.byte(s, i)
-			end
-			return n
-		end
-
-
-		local function preproc(msg, len)
-			local extra = 64 - ((len + 9) % 64)
-			len = num2s(8 * len, 8)
-			msg = msg .. "\128" .. string.rep("\0", extra) .. len
-			assert(#msg % 64 == 0)
-			return msg
-		end
-
-
-		local function initH256(H)
-			H[1] = 0x6a09e667
-			H[2] = 0xbb67ae85
-			H[3] = 0x3c6ef372
-			H[4] = 0xa54ff53a
-			H[5] = 0x510e527f
-			H[6] = 0x9b05688c
-			H[7] = 0x1f83d9ab
-			H[8] = 0x5be0cd19
-			return H
-		end
-
-
-		local function digestblock(msg, i, H)
-			local w = {}
-			for j = 1, 16 do
-				w[j] = s232num(msg, i + (j - 1)*4)
-			end
-			for j = 17, 64 do
-				local v = w[j - 15]
-				local s0 = customBxor(rrotate(v, 7), rrotate(v, 18), rshift(v, 3))
-				v = w[j - 2]
-				w[j] = w[j - 16] + s0 + w[j - 7] + customBxor(rrotate(v, 17), rrotate(v, 19), rshift(v, 10))
-			end
-
-			local a, b, c, d, e, f, g, h = H[1], H[2], H[3], H[4], H[5], H[6], H[7], H[8]
-			for i = 1, 64 do
-				local s0 = customBxor(rrotate(a, 2), rrotate(a, 13), rrotate(a, 22))
-				local maj = customBxor(customBand(a, b), customBand(a, c), customBand(b, c))
-				local t2 = s0 + maj
-				local s1 = customBxor(rrotate(e, 6), rrotate(e, 11), rrotate(e, 25))
-				local ch = customBxor (customBand(e, f), customBand(bnot(e), g))
-				local t1 = h + s1 + ch + k[i] + w[i]
-				h, g, f, e, d, c, b, a = g, f, e, d + t1, c, b, a, t1 + t2
-			end
-
-			H[1] = customBand(H[1] + a)
-			H[2] = customBand(H[2] + b)
-			H[3] = customBand(H[3] + c)
-			H[4] = customBand(H[4] + d)
-			H[5] = customBand(H[5] + e)
-			H[6] = customBand(H[6] + f)
-			H[7] = customBand(H[7] + g)
-			H[8] = customBand(H[8] + h)
-		end
-
-
-		local function sha256(msg)
-			msg = preproc(msg, #msg)
-			local H = initH256({})
-			for i = 1, #msg, 64 do
-				digestblock(msg, i, H)
-			end
-			return str2hexa(num2s(H[1], 4) .. num2s(H[2], 4) .. num2s(H[3], 4) .. num2s(H[4], 4) ..
-				num2s(H[5], 4) .. num2s(H[6], 4) .. num2s(H[7], 4) .. num2s(H[8], 4))
-		end
-
-
-	local protocolName = "Firewolf"
-
-
-	--  Cryptography
-		local Cryptography = {}
-		Cryptography.sha = {}
-		Cryptography.base64 = {}
-		Cryptography.aes = {}
-
-
-		function Cryptography.bytesFromMessage(msg)
-			local bytes = {}
-
-			for i = 1, msg:len() do
-				local letter = string.byte(msg:sub(i, i))
-				table.insert(bytes, letter)
-			end
-
-			return bytes
-		end
-
-
-		function Cryptography.messageFromBytes(bytes)
-			local msg = ""
-
-			for i = 1, #bytes do
-				local letter = string.char(bytes[i])
-				msg = msg .. letter
-			end
-
-			return msg
-		end
-
-
-		function Cryptography.bytesFromKey(key)
-			local bytes = {}
-
-			for i = 1, key:len() / 2 do
-				local group = key:sub((i - 1) * 2 + 1, (i - 1) * 2 + 1)
-				local num = tonumber(group, 16)
-				table.insert(bytes, num)
-			end
-
-			return bytes
-		end
-
-
-		function Cryptography.sha.sha256(msg)
-			return sha256(msg)
-		end
-
-
-		function Cryptography.aes.encrypt(msg, key)
-			return base64Encode(crypt(msg, key))
-		end
-
-
-		function Cryptography.aes.decrypt(msg, key)
-			return crypt(base64Decode(msg), key)
-		end
-
-
-		function Cryptography.base64.encode(msg)
-			return base64Encode(Cryptography.bytesFromMessage(msg))
-		end
-
-
-		function Cryptography.base64.decode(msg)
-			return Cryptography.messageFromBytes(base64Decode(msg))
-		end
-
-		function Cryptography.channel(text)
-			local hashed = Cryptography.sha.sha256(text)
-
-			local total = 0
-
-			for i = 1, hashed:len() do
-				total = total + string.byte(hashed:sub(i, i))
-			end
-
-			return (total % 55530) + 10000
-		end
-
-		function Cryptography.sanatize(text)
-			local sanatizeChars = {"%", "(", ")", "[", "]", ".", "+", "-", "*", "?", "^", "$"}
-
-			for _, char in pairs(sanatizeChars) do
-				text = text:gsub("%"..char, "%%%"..char)
-			end
-			return text
-		end
-
-
-	--  Modem
-		local Modem = {}
-
-		Modem.modems = {}
-
-		function Modem.exists()
-			Modem.exists = false
-			for _, side in pairs(rs.getSides()) do
-				if peripheral.isPresent(side) and peripheral.getType(side) == "modem" then
-					Modem.exists = true
-
-					if not Modem.modems[side] then
-						Modem.modems[side] = peripheral.wrap(side)
-					end
-				end
-			end
-
-			return Modem.exists
-		end
-
-
-		function Modem.open(channel)
-			if not Modem.exists then
-				return false
-			end
-
-			for side, modem in pairs(Modem.modems) do
-				modem.open(channel)
-				rednet.open(side)
-			end
-
-			return true
-		end
-
-
-		function Modem.close(channel)
-			if not Modem.exists then
-				return false
-			end
-
-			for side, modem in pairs(Modem.modems) do
-				modem.close(channel)
-			end
-
-			return true
-		end
-
-
-		function Modem.closeAll()
-				if not Modem.exists then
-					return false
-				end
-
-				for side, modem in pairs(Modem.modems) do
-					modem.closeAll()
-				end
-
-				return true
-		end
-
-
-		function Modem.isOpen(channel)
-			if not Modem.exists then
-				return false
-			end
-
-			local isOpen = false
-			for side, modem in pairs(Modem.modems) do
-				if modem.isOpen(channel) then
-					isOpen = true
-					break
-				end
-			end
-
-			return isOpen
-		end
-
-
-		function Modem.transmit(channel, msg)
-			if not Modem.exists then
-				return false
-			end
-
-			if not Modem.isOpen(channel) then
-				Modem.open(channel)
-			end
-
-			for side, modem in pairs(Modem.modems) do
-				modem.transmit(channel, channel, msg)
-			end
-
-			return true
-		end
-
-
-	--  Handshake
-		local Handshake = {}
-
-		Handshake.prime = 625210769
-		Handshake.channel = 54569
-		Handshake.base = -1
-		Handshake.secret = -1
-		Handshake.sharedSecret = -1
-		Handshake.packetHeader = "["..protocolName.."-Handshake-Packet-Header]"
-		Handshake.packetMatch = "%["..protocolName.."%-Handshake%-Packet%-Header%](.+)"
-
-		function Handshake.exponentWithModulo(base, exponent, modulo)
-			local remainder = base
-
-			for i = 1, exponent-1 do
-				remainder = remainder * remainder
-				if remainder >= modulo then
-					remainder = remainder % modulo
-				end
-			end
-
-			return remainder
-		end
-
-
-		function Handshake.clear()
-			Handshake.base = -1
-			Handshake.secret = -1
-			Handshake.sharedSecret = -1
-		end
-
-		function Handshake.generateInitiatorData()
-			Handshake.base = math.random(10,99999)
-			Handshake.secret = math.random(10,99999)
-			return {
-				type = "initiate",
-				prime = Handshake.prime,
-				base = Handshake.base,
-				moddedSecret = Handshake.exponentWithModulo(Handshake.base, Handshake.secret, Handshake.prime)
-			}
-		end
-
-		function Handshake.generateResponseData(initiatorData)
-			local isPrimeANumber = type(initiatorData.prime) == "number"
-			local isPrimeMatching = initiatorData.prime == Handshake.prime
-			local isBaseANumber = type(initiatorData.base) == "number"
-			local isInitiator = initiatorData.type == "initiate"
-			local isModdedSecretANumber = type(initiatorData.moddedSecret) == "number"
-			local areAllNumbersNumbers = isPrimeANumber and isBaseANumber and isModdedSecretANumber
-
-			if areAllNumbersNumbers and isPrimeMatching then
-				if isInitiator then
-					Handshake.base = initiatorData.base
-					Handshake.secret = math.random(10,99999)
-					Handshake.sharedSecret = Handshake.exponentWithModulo(initiatorData.moddedSecret, Handshake.secret, Handshake.prime)
-					return {
-						type = "response",
-						prime = Handshake.prime,
-						base = Handshake.base,
-						moddedSecret = Handshake.exponentWithModulo(Handshake.base, Handshake.secret, Handshake.prime)
-					}, Handshake.sharedSecret
-				elseif initiatorData.type == "response" and Handshake.base > 0 and Handshake.secret > 0 then
-					Handshake.sharedSecret = Handshake.exponentWithModulo(initiatorData.moddedSecret, Handshake.secret, Handshake.prime)
-					return Handshake.sharedSecret
-				else
-					return false
-				end
-			else
-				return false
-			end
-		end
-
-	--  Secure Connection
-		local SecureConnection = {}
-		SecureConnection.__index = SecureConnection
-
-
-		SecureConnection.packetHeaderA = "["..protocolName.."-"
-		SecureConnection.packetHeaderB = "-SecureConnection-Packet-Header]"
-		SecureConnection.packetMatchA = "%["..protocolName.."%-"
-		SecureConnection.packetMatchB = "%-SecureConnection%-Packet%-Header%](.+)"
-		SecureConnection.connectionTimeout = 0.1
-		SecureConnection.successPacketTimeout = 0.1
-
-
-		function SecureConnection.new(secret, key, identifier, distance, isRednet)
-			local self = setmetatable({}, SecureConnection)
-			self:setup(secret, key, identifier, distance, isRednet)
-			return self
-		end
-
-
-		function SecureConnection:setup(secret, key, identifier, distance, isRednet)
-			local rawSecret
-
-			if isRednet then
-				self.isRednet = true
-				self.distance = -1
-				self.rednet_id = distance
-				rawSecret = protocolName .. "|" .. tostring(secret) .. "|" .. tostring(identifier) ..
-				"|" .. tostring(key) .. "|rednet"
-			else
-				self.isRednet = false
-				self.distance = distance
-				rawSecret = protocolName .. "|" .. tostring(secret) .. "|" .. tostring(identifier) ..
-				"|" .. tostring(key) .. "|" .. tostring(distance)
-			end
-
-			self.identifier = identifier
-			self.packetMatch = SecureConnection.packetMatchA .. Cryptography.sanatize(identifier) .. SecureConnection.packetMatchB
-			self.packetHeader = SecureConnection.packetHeaderA .. identifier .. SecureConnection.packetHeaderB
-			self.secret = Cryptography.sha.sha256(rawSecret)
-			self.channel = Cryptography.channel(self.secret)
-
-			if not self.isRednet then
-				Modem.open(self.channel)
-			end
-		end
-
-
-		function SecureConnection:verifyHeader(msg)
-			if msg:match(self.packetMatch) then
-				return true
-			else
-				return false
-			end
-		end
-
-
-		function SecureConnection:sendMessage(msg, rednetProtcol)
-			local rawEncryptedMsg = Cryptography.aes.encrypt(self.packetHeader .. msg, self.secret)
-			local encryptedMsg = self.packetHeader .. rawEncryptedMsg
-
-			if self.isRednet then
-				rednet.send(self.rednet_id, encryptedMsg, rednetPrtocol)
-				return true
-			else
-				return Modem.transmit(self.channel, encryptedMsg)
-			end
-		end
-
-
-		function SecureConnection:decryptMessage(msg)
-			if self:verifyHeader(msg) then
-				local encrypted = msg:match(self.packetMatch)
-
-				local unencryptedMsg = nil
-				pcall(function() unencryptedMsg = Cryptography.aes.decrypt(encrypted, self.secret) end)
-				if not unencryptedMsg then
-					return false, "Could not decrypt"
-				end
-
-				if self:verifyHeader(unencryptedMsg) then
-					return true, unencryptedMsg:match(self.packetMatch)
-				else
-					return false, "Could not verify"
-				end
-			else
-				return false, "Could not stage 1 verify"
-			end
-		end
-
 
 local header = {}
 header.dnsPacket = "[Firewolf-DNS-Packet]"
@@ -1751,30 +1728,24 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 					uniqueServers[tostring(dist)] = true
 					local domain = message:match(header.dnsHeaderMatch)
 					if not uniqueDomains[domain] then
-						if not(domain:find("/") or domain:find(":")) and #domain > 4 then 
+						if not(domain:find("/") or domain:find(":") or domain:find("%?")) and #domain > 4 then
+							timer = os.startTimer(searchResultTimeout)
 							uniqueDomains[message:match(header.dnsHeaderMatch)] = tostring(dist)
 						end
-					else
-						debugLog("Multiple servers for 1 domain!")
 					end
-				else
-					debugLog("Multiple sites on 1 server!")
 				end
 			end
 		elseif event == "rednet_message" and allowUnencryptedConnections then
-			if tonumber(protocol:match(header.rednetMatch)) == publicResponseChannel and channel:match(header.dnsHeaderMatch) then
+			if protocol and tonumber(protocol:match(header.rednetMatch)) == publicResponseChannel and channel:match(header.dnsHeaderMatch) then
 				if not uniqueServers[tostring(id)] then
 					uniqueServers[tostring(id)] = true
 					local domain = channel:match(header.dnsHeaderMatch)
 					if not uniqueDomains[domain] then
-						if not(domain:find("/") or domain:find(":")) and #domain > 4 then 
+						if not(domain:find("/") or domain:find(":") or domain:find("%?")) and #domain > 4 then
+							timer = os.startTimer(searchResultTimeout)
 							uniqueDomains[domain] = tostring(id)
 						end
-					else
-						debugLog("Rednet: Multiple servers for 1 domain!")
 					end
-				else
-					debugLog("Rednet: Multiple sites on 1 server!")
 				end
 			end
 		elseif event == "timer" and id == timer then
@@ -1799,13 +1770,25 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 	local rednetResults = {}
 	local directResults = {}
 
-	-- Gotta go fast!
+	local disconnectOthers = function(ignoreDirect)
+		for k,v in pairs(rednetResults) do
+			v.close()
+		end
+		for k,v in pairs(directResults) do
+			if k ~= ignoreDirect then
+				v.close()
+			end
+		end
+	end
+
 	local timer = os.startTimer(initiationTimeout)
 
 	Modem.open(serverChannel)
 	Modem.transmit(serverChannel, requestHeader .. serializedHandshake)
 
 	rednet.broadcast(requestHeader .. serializedHandshake, header.rednetHeader .. serverChannel)
+
+	-- Extendable to have server selection
 
 	while true do
 		local event, id, channel, protocol, message, dist = os.pullEventRaw()
@@ -1834,7 +1817,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 								if event == "modem_message" and channel == connection.channel and connection:verifyHeader(message) then
 									local resp, data = connection:decryptMessage(message)
 									if not resp then
-										debugLog("Decryption error!")
+										-- Decryption error
 									elseif data and data ~= page then
 										if data:match(pageResponseMatch) then
 											local head, body = data:match(pageResponseMatch)
@@ -1847,16 +1830,19 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 							end
 						end,
 						close = function()
-							connection:sendMessage("Close connection debug TODO", header.rednetHeader .. connection.channel)
+							connection:sendMessage(header.closeHeaderA .. url .. header.closeHeaderB, header.rednetHeader..connection.channel)
 							Modem.close(connection.channel)
 							connection = nil
 						end
 					})
+
+					disconnectOthers(1)
+					return directResults[1]
 				end
 			end
 		elseif event == "rednet_message" then
 			local fullMatch = responseMatch .. os.getComputerID() .. header.responseMatchC
-			if tonumber(protocol:match(header.rednetMatch)) == serverChannel and channel:match(fullMatch) and type(textutils.unserialize(channel:match(fullMatch))) == "table" then
+			if protocol and tonumber(protocol:match(header.rednetMatch)) == serverChannel and channel:match(fullMatch) and type(textutils.unserialize(channel:match(fullMatch))) == "table" then
 				local key = Handshake.generateResponseData(textutils.unserialize(channel:match(fullMatch)))
 				if key then
 					local connection = SecureConnection.new(key, url, url, id, true)
@@ -1876,15 +1862,13 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 							while true do
 								local event, id, channel, protocol, message, dist = os.pullEventRaw()
-								if event == "rednet_message" and tonumber(protocol:match(header.rednetMatch)) == connection.channel and connection:verifyHeader(channel) then
+								if event == "rednet_message" and protocol and tonumber(protocol:match(header.rednetMatch)) == connection.channel and connection:verifyHeader(channel) then
 									local resp, data = connection:decryptMessage(channel)
 									if not resp then
 										-- Decryption error
 									elseif data and data ~= page then
-										debugLog(data)
 										if data:match(pageResponseMatch) then
 											local head, body = data:match(pageResponseMatch)
-											debugLog("Success!")
 											return body, textutils.unserialize(head)
 										end
 									end
@@ -1899,11 +1883,15 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 							connection = nil
 						end
 					})
+
+					if #rednetResults == 1 then
+						timer = os.startTimer(0.2)
+					end
 				end
 			end
 		elseif event == "timer" and id == timer then
-			-- Return
 			if #directResults > 0 then
+				disconnectOthers(1)
 				return directResults[1]
 			elseif #rednetResults > 0 then
 				local lowestID = math.huge
@@ -1912,6 +1900,12 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 					if v.connection.rednet_id < lowestID then
 						lowestID = v.connection.rednet_id
 						lowestResult = v
+					end
+				end
+
+				for k,v in pairs(rednetResults) do
+					if v.connection.rednet_id ~= lowestID then
+						v.close()
 					end
 				end
 
@@ -2082,7 +2076,6 @@ end
 
 
 local fetchExternal = function(url, connection)
-
 	if connection.multipleServers then
 		-- Please forgive me
 		-- GravityScore forced me to do it like this
@@ -2092,15 +2085,18 @@ local fetchExternal = function(url, connection)
 
 	local page = normalizePage(url:match("^[^/]+/(.+)"))
 	local contents, head = connection.fetchPage(page)
-	connection.close()
 	if contents then
 		if type(contents) ~= "string" then
 			return fetchNone()
 		else
 			local language = determineLanguage(head)
-			return languages[language]["run"](contents, page)
+			return languages[language]["run"](contents, page, connection)
 		end
 	else
+		if connection then
+			connection.close()
+			return "retry"
+		end
 		return fetchError("A connection error/timeout has occurred!")
 	end
 end
@@ -2111,9 +2107,16 @@ local fetchNone = function()
 end
 
 
-local fetchURL = function(url)
+local fetchURL = function(url, inheritConnection)
 	url = normalizeURL(url)
 	currentWebsiteURL = url
+
+	if inheritConnection then
+		local resp = fetchExternal(url, inheritConnection)
+		if resp ~= "retry" then
+			return resp, false, inheritConnection
+		end
+	end
 
 	local action, connection = determineActionForURL(url)
 
@@ -2122,7 +2125,12 @@ local fetchURL = function(url)
 	elseif action == "internal website" then
 		return fetchInternal(url), true
 	elseif action == "external website" then
-		return fetchExternal(url, connection), false
+		local resp = fetchExternal(url, connection)
+		if resp == "retry" then
+			return fetchError("A connection error/timeout has occurred!"), false, connection
+		else
+			return resp, false, connection
+		end
 	elseif action == "none" then
 		return fetchNone(), true
 	elseif action == "exit" then
@@ -2182,16 +2190,26 @@ local loadTab = function(index, url, givenFunc)
 
 	local func = nil
 	local isOpen = true
+	local currentConnection = false
 
 	isMenubarOpen = true
 	currentWebsiteURL = url
 	drawMenubar()
 
+	if tabs[index] and tabs[index].connection and tabs[index].url then
+		if url:match("^([^/]+)") == tabs[index].url:match("^([^/]+)") then
+			currentConnection = tabs[index].connection
+		else
+			tabs[index].connection.close()
+			tabs[index].connection = nil
+		end
+	end
+
 	if givenFunc then
 		func = givenFunc
 	else
 		parallel.waitForAny(function()
-			func, isOpen = fetchURL(url)
+			func, isOpen, connection = fetchURL(url, currentConnection)
 		end, function()
 			while true do
 				local event, key = os.pullEvent()
@@ -2207,6 +2225,7 @@ local loadTab = function(index, url, givenFunc)
 
 		tabs[index] = {}
 		tabs[index].url = url
+		tabs[index].connection = connection
 		tabs[index].win = window.create(originalTerminal, 1, 1, w, h, false)
 
 		tabs[index].thread = coroutine.create(func)
@@ -2258,7 +2277,17 @@ local getWhitelistedEnvironment = function()
 	env["os"]["reboot"] = nil
 	env["os"]["setComputerLabel"] = nil
 	env["os"]["queueEvent"] = nil
-	env["os"]["pullEventRaw"] = os.pullEvent
+	env["os"]["pullEvent"] = function(filter)
+		while true do
+			local event = {os.pullEvent(filter)}
+			if not filter then
+				return unpack(event)
+			elseif filter and event[1] == filter then
+				return unpack(event)
+			end
+		end
+	end
+	env["os"]["pullEventRaw"] = env["os"]["pullEvent"]
 
 	copy(paintutils, env, "paintutils")
 	copy(parallel, env, "parallel")
@@ -2313,6 +2342,7 @@ local getWhitelistedEnvironment = function()
 	env["getmetatable"] = getmetatable
 
 	env["_G"] = env
+
 	return env
 end
 
@@ -2333,24 +2363,197 @@ local overrideEnvironment = function(env)
 		drawMenubar()
 	end
 
-
 	env["shell"]["getRunningProgram"] = function()
 		return currentWebsiteURL
 	end
 end
 
+local urlEncode = function(url)
+	local result = url
 
-local applyAPIFunctions = function(env)
+	result = result:gsub("%%", "%%a")
+	result = result:gsub(":", "%%c")
+	result = result:gsub("/", "%%s")
+	result = result:gsub("\n", "%%n")
+	result = result:gsub(" ", "%%w")
+	result = result:gsub("&", "%%m")
+	result = result:gsub("%?", "%%q")
+	result = result:gsub("=", "%%e")
+	result = result:gsub("%.", "%%d")
+
+	return result
+end
+
+local urlDecode = function(url)
+	local result = url
+
+	result = result:gsub("%%c", ":")
+	result = result:gsub("%%s", "/")
+	result = result:gsub("%%n", "\n")
+	result = result:gsub("%%w", " ")
+	result = result:gsub("%%&", "&")
+	result = result:gsub("%%q", "%?")
+	result = result:gsub("%%e", "=")
+	result = result:gsub("%%d", "%.")
+	result = result:gsub("%%m", "%%")
+
+	return result
+end
+
+local applyAPIFunctions = function(env, connection)
 	env["firewolf"] = {}
 	env["firewolf"]["version"] = version
+	env["firewolf"]["domain"] = currentWebsiteURL:match("^[^/]+")
 
 	env["firewolf"]["redirect"] = function(url)
-		if not url then
-			error("string expected, got nil", 2)
+		if type(url) ~= "string" then
+			return error("string (url) expected, got " .. type(url))
 		end
 
 		os.queueEvent(redirectEvent, url)
 		coroutine.yield()
+	end
+
+	env["firewolf"]["download"] = function(page)
+		if type(page) ~= "string" then
+			return error("string (page) expected")
+		end
+		local bannedNames = {"ls", "dir", "delete", "copy", "move", "list", "rm", "cp", "mv", "clear", "cd", "lua"}
+
+		local startSearch, endSearch = page:find(currentWebsiteURL:match("^[^/]+"))
+		if startSearch == 1 then
+			if page:sub(endSearch + 1, endSearch + 1) == "/" then
+				page = page:sub(endSearch + 2, -1)
+			else
+				page = page:sub(endSearch + 1, -1)
+			end
+		end
+
+		local filename = page:match("([^/]+)$")
+		if not filename then
+			return false, "Cannot download index"
+		end
+
+		for k, v in pairs(bannedNames) do
+			if filename == v then
+				return false, "Filename prohibited!"
+			end
+		end
+
+		if not fs.exists(downloadsLocation) then
+			fs.makeDir(downloadsLocation)
+		elseif not fs.isDir(downloadsLocation) then
+			return false, "Downloads disabled!"
+		end
+
+		contents = connection.fetchPage(normalizePage(page))
+		if type(contents) ~= "string" then
+			return false, "Download error!"
+		else
+			local f = io.open(downloadsLocation .. "/" .. filename, "w")
+			f:write(contents)
+			f:close()
+			return true, downloadsLocation .. "/" .. filename
+		end
+	end
+
+	env["firewolf"]["encode"] = function(vars)
+		if type(vars) ~= "table" then
+			return error("table (vars) expected, got " .. type(vars))
+		end
+
+		local startSearch, endSearch = page:find(currentWebsiteURL:match("^[^/]+"))
+		if startSearch == 1 then
+			if page:sub(endSearch + 1, endSearch + 1) == "/" then
+				page = page:sub(endSearch + 2, -1)
+			else
+				page = page:sub(endSearch + 1, -1)
+			end
+		end
+
+		local construct = "?"
+		for k,v in pairs(vars) do
+ 			construct = construct .. urlEncode(tostring(k)) .. "=" .. urlEncode(tostring(v)) .. "&"
+		end
+		-- Get rid of that last ampersand
+		construct = construct:sub(1, -2)
+
+		return construct
+	end
+
+	env["firewolf"]["query"] = function(page, vars)
+		if type(page) ~= "string" then
+			return error("string (page) expected, got " .. type(page))
+		end
+		if vars and type(vars) ~= "table" then
+			return error("table (vars) expected, got " .. type(vars))
+		end
+
+		local startSearch, endSearch = page:find(currentWebsiteURL:match("^[^/]+"))
+		if startSearch == 1 then
+			if page:sub(endSearch + 1, endSearch + 1) == "/" then
+				page = page:sub(endSearch + 2, -1)
+			else
+				page = page:sub(endSearch + 1, -1)
+			end
+		end
+
+		local construct = page .. "?"
+		if vars then
+			for k,v in pairs(vars) do
+	 			construct = construct .. urlEncode(tostring(k)) .. "=" .. urlEncode(tostring(v)) .. "&"
+			end
+		end
+		-- Get rid of that last ampersand
+		construct = construct:sub(1, -2)
+
+		contents = connection.fetchPage(normalizePage(construct))
+		if type(contents) == "string" then
+			return contents
+		else
+			return false
+		end
+	end
+
+	env["firewolf"]["loadImage"] = function(page)
+		if type(page) ~= "string" then
+			return error("string (page) expected, got " .. type(page))
+		end
+
+		local startSearch, endSearch = page:find(currentWebsiteURL:match("^[^/]+"))
+		if startSearch == 1 then
+			if page:sub(endSearch + 1, endSearch + 1) == "/" then
+				page = page:sub(endSearch + 2, -1)
+			else
+				page = page:sub(endSearch + 1, -1)
+			end
+		end
+
+		local filename = page:match("([^/]+)$")
+		if not filename then
+			return false, "Cannot load index as an image!"
+		end
+
+		contents = connection.fetchPage(normalizePage(page))
+		if type(contents) ~= "string" then
+			return false, "Download error!"
+		else
+			local colorLookup = {}
+			for n = 1, 16 do
+				colorLookup[string.byte("0123456789abcdef", n, n)] = 2 ^ (n - 1)
+			end
+
+			local image = {}
+			for line in contents:gmatch("[^\n]+") do
+				local lines = {}
+				for x = 1, line:len() do
+					lines[x] = colorLookup[string.byte(line, x, x)] or 0
+				end
+				table.insert(image, lines)
+			end
+
+			return image
+		end
 	end
 
 	env["center"] = center
@@ -2358,7 +2561,7 @@ local applyAPIFunctions = function(env)
 end
 
 
-local getWebsiteEnvironment = function(antivirus)
+local getWebsiteEnvironment = function(antivirus, connection)
 	local env = {}
 
 	if antivirus then
@@ -2368,7 +2571,7 @@ local getWebsiteEnvironment = function(antivirus)
 		setmetatable(env, {__index = _G})
 	end
 
-	applyAPIFunctions(env)
+	applyAPIFunctions(env, connection)
 
 	return env
 end
@@ -2779,13 +2982,13 @@ languages["lua"]["runWithoutAntivirus"] = function(func, ...)
 end
 
 
-languages["lua"]["run"] = function(contents, page, ...)
-	local func, err = loadstring(contents, page)
+languages["lua"]["run"] = function(contents, page, connection, ...)
+	local func, err = loadstring("sleep(0) " .. contents, page)
 	if err then
 		return languages["lua"]["runWithoutAntivirus"](builtInSites["crash"], err)
 	else
 		local args = {...}
-		local env = getWebsiteEnvironment(true)
+		local env = getWebsiteEnvironment(true, connection)
 		setfenv(func, env)
 		return function()
 			languages["lua"]["runWithErrorCatching"](func, unpack(args))
@@ -2794,7 +2997,7 @@ languages["lua"]["run"] = function(contents, page, ...)
 end
 
 
-languages["fwml"]["run"] = function(contents, page, ...)
+languages["fwml"]["run"] = function(contents, page, connection, ...)
 	local err, data = pcall(parse, contents)
 	if not err then
 		return languages["lua"]["runWithoutAntivirus"](builtInSites["crash"], data)
@@ -2822,7 +3025,7 @@ languages["fwml"]["run"] = function(contents, page, ...)
 						clear(theme.background, theme.text)
 						links = render.render(data, currentScroll)
 					end
-				elseif e == "key" and (scroll == keys.up or scroll == keys.down) then
+				elseif e == "key" and scroll == keys.up or scroll == keys.down then
 					local scrollAmount
 
 					if scroll == keys.up then
@@ -2831,7 +3034,9 @@ languages["fwml"]["run"] = function(contents, page, ...)
 						scrollAmount = -1
 					end
 
-					if currentScroll + scrollAmount - h >= -pageHeight and currentScroll + scrollAmount <= 0 then
+					local scrollLessHeight = currentScroll + scrollAmount - h >= -pageHeight
+					local scrollZero = currentScroll + scrollAmount <= 0
+					if scrollLessHeight and scrollZero then
 						currentScroll = currentScroll + scrollAmount
 						clear(theme.background, theme.text)
 						links = render.render(data, currentScroll)
