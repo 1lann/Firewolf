@@ -607,20 +607,35 @@
 
 	--  Communication
 		local Comm = {}
+		Comm.outgoingStack = {}
 		Comm.publicChannel = 44238
 
-		function Comm.transmit(msg, channel, direct)
-			if direct then
-				Modem.transmit(channel, msg)
-			else
-				Modem.transmit(Comm.publicChannel, {
-					isRepeated = false,
+		function Comm.messageObject(msg, channel, repeated)
+			if not repeated then repeated = false end
+			return {
+					isRepeated = repeated,
 					firewolf = true,
 					direction = "server",
 					message = msg,
 					channel = channel,
 					id = tostring({}):gsub("table: ", "")
-				})
+				}
+		end
+
+		function Comm.sendStackedMessages()
+			Comm.outgoingStack["firewolgithuf"] = true
+			Modem.transmit(Comm.publicChannel, Comm.outgoingStack)
+		end
+
+		function Comm.addToStack(msg, channel, repeated)
+			table.insert(Comm.outgoingStack, Comm.messageObject(msg, channel, repeated))
+		end
+
+		function Comm.handleMessage(msg, channel, direct)
+			if direct then
+				Modem.transmit(channel, msg)
+			else
+				Comm.addToStack(msg, channel, false)
 			end
 		end
 
@@ -761,7 +776,7 @@
 			local rawEncryptedMsg = Cryptography.aes.encrypt(self.packetHeader .. msg, self.secret)
 			local encryptedMsg = self.packetHeader .. rawEncryptedMsg
 
-			Comm.transmit(msg, self.channel, not(self.isRednet))
+			Comm.handleMessage(msg, self.channel, not(self.isRednet))
 		end
 
 
@@ -807,6 +822,7 @@ local serverAPILocation = "server_api"
 local locked = false
 local domain = ...
 local responseStack = {}
+local repeatStack = {}
 local terminalLog = {}
 local receivedMessages = {}
 local lastLogNum = 0
@@ -895,13 +911,16 @@ local checkDomain = function(domain)
 	if #domain < 4 then
 		return "short"
 	else
-		Comm.transmit(header.dnsPacket)
+		Comm.handleMessage(header.dnsPacket)
 		local timer = os.startTimer(2)
 		while true do
 			local event, id, channel, protocol, message, dist = os.pullEventRaw()
-			if event == "modem_message" and channel == dnsResponseChannel and message:match(header.dnsHeaderMatch) == domain then
-				-- TODO
-				return "taken"
+			if event == "modem_message" and channel == Comm.publicChannel and type(message) == "table" and message.firewolf then
+				if message.direction == "server" then
+					-- TODO
+				elseif message.direction == "client" then
+
+				end
 			elseif event == "timer" and id == timer then
 				break
 			end
@@ -999,8 +1018,12 @@ local receiveDaemon = function()
 	while true do
 		local event, id, channel, protocol, message, dist = os.pullEventRaw()
 		if event == "modem_message" then
-			if channel == Comm.publicChannel and type(message) == "table" and message.firewolf then
-				table.insert(responseStack, {type = "public", channel = message.channel, message = message.message})
+			if channel == Comm.publicChannel and type(message) == "table" and message.firewolf and message.direction then
+				if message.direction == "server" then
+					table.insert(responseStack, {type = "public", channel = message.channel, message = message.message})
+				elseif message.direction == "client" then
+					table.insert(repeatStack, message)
+				end
 			elseif channel ~= Comm.publicChannel then
 				table.insert(responseStack, {type = "direct", channel = channel, message = message, dist = dist, reply = protocol})
 			end
