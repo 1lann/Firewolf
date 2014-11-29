@@ -1,4 +1,3 @@
-
 --
 --  Firewolf Server
 --  Made by 1lann and GravityScore
@@ -1769,6 +1768,8 @@ local loadServerAPI = function()
 					result = f:read("*a")
 					f:close()
 				else
+					writeLog("Template file \"" .. template .. "\" does not exist!", theme.error, math.huge)
+					writeLog("Template locations are relative to / (root)", theme.error, math.huge)
 					return false
 				end
 				for k,v in pairs(variables) do
