@@ -1182,7 +1182,7 @@ local handlePageRequest = function(handler, index)
 				end
 				local body, head, isAPI = fetchPage(page)
 				if body then
-					sendPage(connection, body, head)
+					sendPage(connection, tostring(body), head)
 					if isAPI then
 						writeLog("API request: "..page:sub(1,25), theme.text, 0)
 					else
