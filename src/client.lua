@@ -10,7 +10,7 @@
 
 
 local version = "3.5"
-local build = 17
+local build = 18
 
 local w, h = term.getSize()
 
@@ -40,7 +40,7 @@ local publicResponseChannel = 9998
 local responseID = 41738
 
 local httpTimeout = 10
-local searchResultTimeout = 2
+local searchResultTimeout = 1
 local initiationTimeout = 2
 local animationInterval = 0.125
 local fetchTimeout = 3
@@ -876,8 +876,8 @@ end
 
 
 
---    RC4
---    Implementation by AgentE382
+--  RC4
+--  Implementation by AgentE382
 
 
 local cryptWrapper = function(plaintext, salt)
@@ -922,12 +922,13 @@ end
 
 
 
---    Base64
+--  Base64
 --
---    Base64 Encryption/Decryption
---    By KillaVanilla
---    http://www.computercraft.info/forums2/index.php?/topic/12450-killavanillas-various-apis/
---    http://pastebin.com/rCYDnCxn
+--  Base64 Encryption/Decryption
+--  By KillaVanilla
+--  http://www.computercraft.info/forums2/index.php?/topic/12450-killavanillas-various-apis/
+--  http://pastebin.com/rCYDnCxn
+--
 
 
 local alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
@@ -1047,13 +1048,13 @@ end
 
 
 
---    SHA-256
+--  SHA-256
 --
---    Adaptation of the Secure Hashing Algorithm (SHA-244/256)
---    Found Here: http://lua-users.org/wiki/SecureHashAlgorithm
+--  Adaptation of the Secure Hashing Algorithm (SHA-244/256)
+--  Found Here: http://lua-users.org/wiki/SecureHashAlgorithm
 --
---    Using an adapted version of the bit library
---    Found Here: https://bitbucket.org/Boolsheet/bslf/src/1ee664885805/bit.lua
+--  Using an adapted version of the bit library
+--  Found Here: https://bitbucket.org/Boolsheet/bslf/src/1ee664885805/bit.lua
 
 
 local MOD = 2^32
@@ -1389,7 +1390,7 @@ end
 
 
 
---    Modem
+--  Modem
 
 
 local Modem = {}
@@ -1573,9 +1574,9 @@ local SecureConnection = {}
 SecureConnection.__index = SecureConnection
 
 
-SecureConnection.packetHeaderA = "[" .. protocolName .. "-"
+SecureConnection.packetHeaderA = "["..protocolName.."-"
 SecureConnection.packetHeaderB = "-SecureConnection-Packet-Header]"
-SecureConnection.packetMatchA = "%[" .. protocolName .. "%-"
+SecureConnection.packetMatchA = "%["..protocolName.."%-"
 SecureConnection.packetMatchB = "%-SecureConnection%-Packet%-Header%](.+)"
 SecureConnection.connectionTimeout = 0.1
 SecureConnection.successPacketTimeout = 0.1
@@ -1813,9 +1814,11 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 							end
 						end,
 						close = function()
-							connection:sendMessage(header.closeHeaderA .. url .. header.closeHeaderB, header.rednetHeader..connection.channel)
-							Modem.close(connection.channel)
-							connection = nil
+							if connection ~= nil then
+								connection:sendMessage(header.closeHeaderA .. url .. header.closeHeaderB, header.rednetHeader..connection.channel)
+								Modem.close(connection.channel)
+								connection = nil
+							end
 						end
 					})
 
@@ -1873,6 +1876,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 				end
 			end
 		elseif event == "timer" and id == timer then
+			-- Return
 			if #directResults > 0 then
 				disconnectOthers(1)
 				return directResults[1]
