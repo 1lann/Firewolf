@@ -812,7 +812,7 @@ local closeMatch = ""
 local connections = {}
 local updateURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/server.lua"
 
-local version = "3.5"
+local version = "3.5.1"
 
 local header = {}
 header.dnsPacket = "[Firewolf-DNS-Packet]"
@@ -1031,7 +1031,7 @@ end
 
 local urlEncode = function(url)
 	local result = url
-	
+
 	result = result:gsub("%%", "%%a")
 	result = result:gsub(":", "%%c")
 	result = result:gsub("/", "%%s")
@@ -1110,7 +1110,7 @@ local fetchPage = function(page)
 		-- Forbid accessing server api files
 		return nil
 	end
-	
+
 	for k,v in pairs(handles) do
 		local startSearch, endSearch = pageRequest:find(k)
 		if startSearch == 1 and ((endSearch == #pageRequest) or (pageRequest:sub(endSearch + 1, endSearch + 1) == "/")) then
@@ -1481,7 +1481,7 @@ local lockArt = [[
 --------
 ########
 ########
- 
+
 [LOCKED]
 ]]
 
@@ -1773,7 +1773,7 @@ local loadServerAPI = function()
 					return false
 				end
 				for k,v in pairs(variables) do
-					result = result:gsub("##"..Cryptography.sanatize(k).."##", Cryptography.sanatize(v))
+					result = result:gsub("{{"..Cryptography.sanatize(k).."}}", Cryptography.sanatize(v))
 				end
 				return result
 			end
