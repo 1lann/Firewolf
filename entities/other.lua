@@ -40,7 +40,7 @@ local publicResponseChannel = 9998
 local responseID = 41738
 
 local httpTimeout = 10
-local searchResultTimeout = 2
+local searchResultTimeout = 1
 local initiationTimeout = 2
 local animationInterval = 0.125
 local fetchTimeout = 3
@@ -1814,12 +1814,14 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 							end
 						end,
 						close = function()
-							connection:sendMessage(header.closeHeaderA .. url .. header.closeHeaderB, header.rednetHeader..connection.channel)
-							Modem.close(connection.channel)
-							connection = nil
+							if connection ~= nil then
+								connection:sendMessage(header.closeHeaderA .. url .. header.closeHeaderB, header.rednetHeader..connection.channel)
+								Modem.close(connection.channel)
+								connection = nil
+							end
 						end
 					})
-					
+
 					disconnectOthers(1)
 					return directResults[1]
 				end
@@ -1867,7 +1869,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 							connection = nil
 						end
 					})
-					
+
 					if #rednetResults == 1 then
 						timer = os.startTimer(0.2)
 					end
@@ -2355,7 +2357,7 @@ end
 
 local urlEncode = function(url)
 	local result = url
-	
+
 	result = result:gsub("%%", "%%a")
 	result = result:gsub(":", "%%c")
 	result = result:gsub("/", "%%s")
