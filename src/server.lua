@@ -812,7 +812,7 @@ local closeMatch = ""
 local connections = {}
 local updateURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/server.lua"
 
-local version = "3.5.1"
+local version = "3.5.2"
 
 local header = {}
 header.dnsPacket = "[Firewolf-DNS-Packet]"
@@ -894,7 +894,7 @@ local checkDomain = function(domain)
 		local timer = os.startTimer(2)
 		while true do
 			local event, id, channel, protocol, message, dist = os.pullEventRaw()
-			if event == "modem_message" and channel == dnsResponseChannel and message:match(header.dnsHeaderMatch) == domain then
+			if event == "modem_message" and channel == dnsResponseChannel and type(message) == string and message:match(header.dnsHeaderMatch) == domain then
 				return "taken"
 			elseif event == "rednet_message" and protocol and tonumber(protocol:match(header.rednetMatch)) == dnsResponseChannel and channel:match(header.dnsHeaderMatch) == domain then
 				return "taken"
