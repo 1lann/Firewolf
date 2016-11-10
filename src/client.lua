@@ -9,8 +9,8 @@
 --    Variables
 
 
-local version = "3.5"
-local build = 18
+local version = "3.5.1"
+local build = 19
 
 local w, h = term.getSize()
 
@@ -1707,7 +1707,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 	while true do
 		local event, id, channel, protocol, message, dist = os.pullEventRaw()
 		if event == "modem_message" then
-			if channel == publicResponseChannel and message:match(header.dnsHeaderMatch) then
+			if channel == publicResponseChannel and type(message) == "string" and message:match(header.dnsHeaderMatch) then
 				if not uniqueServers[tostring(dist)] then
 					uniqueServers[tostring(dist)] = true
 					local domain = message:match(header.dnsHeaderMatch)
@@ -1778,7 +1778,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 		local event, id, channel, protocol, message, dist = os.pullEventRaw()
 		if event == "modem_message" then
 			local fullMatch = responseMatch .. tostring(dist) .. header.responseMatchC
-			if channel == serverChannel and message:match(fullMatch) and type(textutils.unserialize(message:match(fullMatch))) == "table" then
+			if channel == serverChannel and type(message) == "string" and message:match(fullMatch) and type(textutils.unserialize(message:match(fullMatch))) == "table" then
 				local key = Handshake.generateResponseData(textutils.unserialize(message:match(fullMatch)))
 				if key then
 					local connection = SecureConnection.new(key, url, url, dist)
@@ -1798,7 +1798,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 							while true do
 								local event, id, channel, protocol, message, dist = os.pullEventRaw()
-								if event == "modem_message" and channel == connection.channel and connection:verifyHeader(message) then
+								if event == "modem_message" and channel == connection.channel and type(message) == "string" and connection:verifyHeader(message) then
 									local resp, data = connection:decryptMessage(message)
 									if not resp then
 										-- Decryption error
