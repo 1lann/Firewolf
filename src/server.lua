@@ -730,6 +730,8 @@
 
 
 		function SecureConnection:verifyHeader(msg)
+			if type(msg) ~= "string" then return false end
+		
 			if msg:match(self.packetMatch) then
 				return true
 			else
