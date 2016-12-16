@@ -2292,6 +2292,7 @@ local getWhitelistedEnvironment = function()
 	env["shell"]["setAlias"] = nil
 	env["shell"]["clearAlias"] = nil
 	env["shell"]["setPath"] = nil
+	env["shell"]["openTab"] = nil
 
 	copy(string, env, "string")
 	copy(table, env, "table")
