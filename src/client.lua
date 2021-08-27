@@ -9,8 +9,8 @@
 --    Variables
 
 
-local version = "3.5.3"
-local build = 21
+local version = "3.5.4"
+local build = 22
 
 local w, h = term.getSize()
 
@@ -520,7 +520,7 @@ builtInSites["display"]["server"] = function()
 
 		while true do
 			local event, key = os.pullEvent()
-			if event == "key" and key == 57 then
+			if event == "key" and key == keys.space then
 				fill(1, 11, w, 4, theme.background)
 				term.setCursorPos(1, 11)
 				center("Downloading...")
@@ -2202,7 +2202,7 @@ local loadTab = function(index, url, givenFunc)
 		end, function()
 			while true do
 				local event, key = os.pullEvent()
-				if event == "key" and (key == 29 or key == 157) then
+				if event == "key" and (key == keys.leftCtrl or key == keys.rightCtrl) then
 					break
 				end
 			end
@@ -3060,7 +3060,7 @@ local readNewWebsiteURL = function()
 				return {["nullifyText"] = true, ["exit"] = true}
 			end
 		elseif event == "key" then
-			if key == 29 or key == 157 then
+			if key == keys.leftCtrl or key == keys.rightCtrl then
 				return {["nullifyText"] = true, ["exit"] = true}
 			end
 		end
@@ -3107,7 +3107,7 @@ end
 
 
 local handleKeyDown = function(event)
-	if event[2] == 29 or event[2] == 157 then
+	if event[2] == keys.leftCtrl or event[2] == keys.rightCtrl then
 		readNewWebsiteURL()
 		return true
 	end

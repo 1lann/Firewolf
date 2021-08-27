@@ -731,7 +731,7 @@
 
 		function SecureConnection:verifyHeader(msg)
 			if type(msg) ~= "string" then return false end
-		
+
 			if msg:match(self.packetMatch) then
 				return true
 			else
@@ -814,7 +814,7 @@ local closeMatch = ""
 local connections = {}
 local updateURL = "https://raw.githubusercontent.com/1lann/Firewolf/master/src/server.lua"
 
-local version = "3.5.2"
+local version = "3.5.3"
 
 local header = {}
 header.dnsPacket = "[Firewolf-DNS-Packet]"
@@ -1564,7 +1564,7 @@ local drawInputBar = function()
 end
 
 local handleKeyEvents = function(event, key)
-	if key == 14 then
+	if key == keys.backspace then
 		if enteredText ~= "" then
 			enteredText = enteredText:sub(1, cursorPosition - 2) .. enteredText:sub(cursorPosition, -1)
 			cursorPosition = cursorPosition-1
@@ -1572,7 +1572,7 @@ local handleKeyEvents = function(event, key)
 				offsetPosition = offsetPosition - 1
 			end
 		end
-	elseif key == 28 and enteredText ~= "" and locked then
+	elseif key == keys.enter and enteredText ~= "" and locked then
 		if enteredText == config.password then
 			writeLog("Successful login", theme.userResponse, math.huge)
 			inputName = "> "
@@ -1587,7 +1587,7 @@ local handleKeyEvents = function(event, key)
 		enteredText = ""
 		cursorPosition = 1
 		offsetPosition = 1
-	elseif key == 28 and enteredText ~= "" and not locked then
+	elseif key == keys.enter and enteredText ~= "" and not locked then
 		local commandWord = false
 		local arguments = {}
 		for word in enteredText:gmatch("%S+") do
@@ -1614,7 +1614,7 @@ local handleKeyEvents = function(event, key)
 		enteredText = ""
 		offsetPosition = 1
 		cursorPosition = 1
-	elseif key == 203 then
+	elseif key == keys.left then
 		cursorPosition = cursorPosition - 1
 		if cursorPosition < 1 then
 			cursorPosition = 1
@@ -1622,7 +1622,7 @@ local handleKeyEvents = function(event, key)
 		if cursorPosition >= width then
 			offsetPosition = offsetPosition - 1
 		end
-	elseif key == 205 then
+	elseif key == keys.right then
 		cursorPosition = cursorPosition + 1
 		if cursorPosition > #enteredText + 1 then
 			cursorPosition = #enteredText + 1
@@ -1630,7 +1630,7 @@ local handleKeyEvents = function(event, key)
 		if cursorPosition - offsetPosition >= width then
 			offsetPosition = offsetPosition + 1
 		end
-	elseif key == 208 and #history > 0 then
+	elseif key == keys.down and #history > 0 then
 		if type(scrollingHistory) == "number" then
 			scrollingHistory = scrollingHistory - 1
 			if scrollingHistory > 0 then
@@ -1642,7 +1642,7 @@ local handleKeyEvents = function(event, key)
 				cursorPosition = 1
 			end
 		end
-	elseif key == 200 and #history > 0 then
+	elseif key == keys.up and #history > 0 then
 		if type(scrollingHistory) == "number" then
 			scrollingHistory = scrollingHistory + 1
 			if scrollingHistory > #history then
