@@ -9,8 +9,8 @@
 --    Variables
 
 
-local version = "3.5"
-local build = 18
+local version = "3.5.4"
+local build = 22
 
 local w, h = term.getSize()
 
@@ -520,7 +520,7 @@ builtInSites["display"]["server"] = function()
 
 		while true do
 			local event, key = os.pullEvent()
-			if event == "key" and key == 57 then
+			if event == "key" and key == keys.space then
 				fill(1, 11, w, 4, theme.background)
 				term.setCursorPos(1, 11)
 				center("Downloading...")
@@ -1618,6 +1618,8 @@ end
 
 
 function SecureConnection:verifyHeader(msg)
+	if type(msg) ~= "string" then return false end
+
 	if msg:match(self.packetMatch) then
 		return true
 	else
@@ -1707,7 +1709,7 @@ protocols["rdnt"]["fetchAllSearchResults"] = function()
 	while true do
 		local event, id, channel, protocol, message, dist = os.pullEventRaw()
 		if event == "modem_message" then
-			if channel == publicResponseChannel and message:match(header.dnsHeaderMatch) then
+			if channel == publicResponseChannel and type(message) == "string" and message:match(header.dnsHeaderMatch) then
 				if not uniqueServers[tostring(dist)] then
 					uniqueServers[tostring(dist)] = true
 					local domain = message:match(header.dnsHeaderMatch)
@@ -1778,7 +1780,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 		local event, id, channel, protocol, message, dist = os.pullEventRaw()
 		if event == "modem_message" then
 			local fullMatch = responseMatch .. tostring(dist) .. header.responseMatchC
-			if channel == serverChannel and message:match(fullMatch) and type(textutils.unserialize(message:match(fullMatch))) == "table" then
+			if channel == serverChannel and type(message) == "string" and message:match(fullMatch) and type(textutils.unserialize(message:match(fullMatch))) == "table" then
 				local key = Handshake.generateResponseData(textutils.unserialize(message:match(fullMatch)))
 				if key then
 					local connection = SecureConnection.new(key, url, url, dist)
@@ -1798,7 +1800,7 @@ protocols["rdnt"]["fetchConnectionObject"] = function(url)
 
 							while true do
 								local event, id, channel, protocol, message, dist = os.pullEventRaw()
-								if event == "modem_message" and channel == connection.channel and connection:verifyHeader(message) then
+								if event == "modem_message" and channel == connection.channel and type(message) == "string" and connection:verifyHeader(message) then
 									local resp, data = connection:decryptMessage(message)
 									if not resp then
 										-- Decryption error
@@ -2200,7 +2202,7 @@ local loadTab = function(index, url, givenFunc)
 		end, function()
 			while true do
 				local event, key = os.pullEvent()
-				if event == "key" and (key == 29 or key == 157) then
+				if event == "key" and (key == keys.leftCtrl or key == keys.rightCtrl) then
 					break
 				end
 			end
@@ -2290,6 +2292,7 @@ local getWhitelistedEnvironment = function()
 	env["shell"]["setAlias"] = nil
 	env["shell"]["clearAlias"] = nil
 	env["shell"]["setPath"] = nil
+	env["shell"]["openTab"] = nil
 
 	copy(string, env, "string")
 	copy(table, env, "table")
@@ -3057,7 +3060,7 @@ local readNewWebsiteURL = function()
 				return {["nullifyText"] = true, ["exit"] = true}
 			end
 		elseif event == "key" then
-			if key == 29 or key == 157 then
+			if key == keys.leftCtrl or key == keys.rightCtrl then
 				return {["nullifyText"] = true, ["exit"] = true}
 			end
 		end
@@ -3104,7 +3107,7 @@ end
 
 
 local handleKeyDown = function(event)
-	if event[2] == 29 or event[2] == 157 then
+	if event[2] == keys.leftCtrl or event[2] == keys.rightCtrl then
 		readNewWebsiteURL()
 		return true
 	end
